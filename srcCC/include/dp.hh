@@ -30,8 +30,6 @@ namespace DP {
     public:
       Cell() : _th(ANGLE::INVALID), _l(std::numeric_limits<LEN_T>::max()), _next(NULL) {}
 
-      Cell(Angle th, LEN_T l, Cell* next, int i=0, int j=0, int id=0) : _th(th), _l(l),  _next(next), _i(i), _j(j), _id(id) {}
-      
       Cell(Angle th, LEN_T l=std::numeric_limits<LEN_T>::max(), Cell* next=NULL, int i=0, int j=0, int id=0) : 
         _th(th), _l(l),  _next(next), _i(i), _j(j), _id(id) {}
 
@@ -98,6 +96,7 @@ namespace DP {
     };
   } //Anonymous namespace to hide information
   
+  K_T Kmax=DUBINS_DEFAULT_KMAX;
   std::vector<std::vector<DP::Cell> >matrix;
   std::vector<Angle> solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params);
   

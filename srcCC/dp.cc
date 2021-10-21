@@ -33,7 +33,7 @@ void circles(double x1, double y1, double x2, double y2, double r, std::vector<d
   }
 }
 
-void guessInitialAngles(const int discr, std::vector<Angle>& thPrev, std::vector<Angle>& thCur, std::vector<Configuration2>& points, const std::vector<bool> fixedAngles){
+void guessInitialAngles(const int i, std::vector<Angle>& thPrev, std::vector<Angle>& thCur, std::vector<Configuration2>& points, const std::vector<bool> fixedAngles){
   thPrev.clear();
   thCur.clear();
   
@@ -41,19 +41,19 @@ void guessInitialAngles(const int discr, std::vector<Angle>& thPrev, std::vector
   thCur.reserve(5);
 
   // aligned on straight line
-  double th = std::atan2(y[i]-y[i-1], x[i]-x[i-1]);
+  double th = std::atan2(points[i].y()-points[i-1].y(), points[i].x()-points[i-1].x());
   thPrev.push_back(th);
   thCur.push_back(th);
 
   // aligned on circle
   std::vector<double> XC, YC;
-  circles(x[i-1], y[i-1], x[i], y[i], 1./Kmax, XC, YC);
+  circles(points[i-1].x(), points[i-1].y(), points[i].x(), points[i].y(), 1./Kmax, XC, YC);
   for (int j=0; j<XC.size(); ++j) 
   {
-    th = std::atan2(y[i-1]-YC[j], x[i-1]-XC[j]);
+    th = std::atan2(points[i-1].y()-YC[j], points[i-1].x()-XC[j]);
     thPrev.push_back(th+M_PI/2.);
     thPrev.push_back(th-M_PI/2.);
-    th = std::atan2(y[i]-YC[j], x[i]-XC[j]);
+    th = std::atan2(points[i].y()-YC[j], points[i].x()-XC[j]);
     thCur.push_back(th+M_PI/2.);
     thCur.push_back(th-M_PI/2.);
   }
