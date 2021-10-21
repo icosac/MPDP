@@ -1,70 +1,69 @@
-static inline Angle
-mod2pi(Angle ang){
-	while (ang < 0) ang += m_2pi;
-	while (ang >=  2*m_pi) ang -= m_2pi;
-	return ang;
-}
+#ifdef CUDA_ON 
 
-static inline Angle
+#include<dubins.cuh>
+
+BOTH static inline Angle
 rangeSymm(Angle ang){
-	while (ang <= - m_pi) ang += m_2pi;
-	while (ang >  m_pi) ang -= m_2pi;
-	return ang;
+  while (ang <= - M_PI) ang += M_2PI;
+  while (ang >  M_PI) ang -= M_2PI;
+  return ang;
 }
 
-static inline real_type
+BOTH static inline real_type
 sinc(real_type x){
-	if (std::abs(x) < 0.002) {
-		real_type xs = x*x;
-		return 1 - xs/6. * (1 - xs/20.0);
-	}
-	else
-	{
-		return std::sin(x) / x;
-	}
+  if (ABS<real_type>(x, 0.0) < 0.002) {
+    real_type xs = x*x;
+    return 1 - xs/6. * (1 - xs/20.0);
+  }
+  else
+  {
+    return SIN(x) / x;
+  }
 }
 
-template<class T>
-void Dubins<T>::scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax){
+BOTH void Dubins::scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax){
   real_type dx = this->cf()->x() - this->ci()->x();
   real_type dy = this->cf()->y() - this->ci()->y();
-  phi = atan2(dy, dx);
+  phi = ATAN2(dy, dx);
   lambda = hypot(dx, dy)*0.5;
   sKmax = this->kmax() * lambda;
   sth0 = mod2pi(this->ci()->th() - phi);
   sth1 = mod2pi(this->cf()->th() - phi);
 }
 
-template<class T>
-void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
+BOTH void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   K_T sk1=0.0, sk2=0.0, sk3=0.0;
   LEN_T ss1=0.0, ss2=0.0, ss3=0.0;
 
   real_type invK  = real_type(1)/sKmax;
-  real_type sin_0 = sin(th0);
-  real_type cos_0 = cos(th0);
-  real_type sin_1 = sin(th1);
-  real_type cos_1 = cos(th1);
+  real_type sin_0 = SIN(th0);
+  real_type cos_0 = COS(th0);
+  real_type sin_1 = SIN(th1);
+  real_type cos_1 = COS(th1);
 
   real_type Ksq   = sKmax*sKmax;
-  real_type dcos  = cos(th0 - th1);
+  real_type dcos  = COS(th0 - th1);
   real_type dcos2 = cos_0 - cos_1;
   real_type dsin  = sin_0 - sin_1;
   real_type scos  = cos_0 + cos_1;
   real_type ssin  = sin_0 + sin_1;
+  
+  real_type dth   = th0 - th1;
 
-	real_type dth   = th0 - th1;
-
-  real_type len = std::numeric_limits<real_type>::max();
+#ifdef __CUDA_ARCH__
+  real_type len = MAX_LEN_T;
+#else
+  real_type len = std::numeric_limits<LEN_T>::max();
+#endif 
   real_type temp1, temp2, temp3, t1, t2, t3, lc;
 
   // LSL
   real_type C = cos_1 - cos_0;
-  real_type S = 2*sKmax + dsin;
-  temp1 = std::atan2(C, S);
+  real_type S = 2.0*sKmax + dsin;
+  temp1 = ATAN2(C, S);
   temp2 = 2 + 4*Ksq - 2*dcos + 4*sKmax*dsin;
   if (temp2 >= 0) {
-    temp3 = invK * std::sqrt(temp2);
+    temp3 = invK * sqrt(temp2);
     t1    = invK * mod2pi(temp1-th0);
     t2    = temp3;
     t3    = invK * mod2pi(th1-temp1);
@@ -79,10 +78,10 @@ void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   // RSR
   C = -C;
   S = 2*sKmax - dsin;
-  temp1 = std::atan2(C, S);
+  temp1 = ATAN2(C, S);
   temp2 = 2 + 4*Ksq - 2*dcos - 4*sKmax*dsin;
   if (temp2 >= 0) {
-    temp3 = invK * std::sqrt(temp2);
+    temp3 = sqrt(invK*invK*(2 + 4*Ksq - 2*dcos - 4*sKmax*dsin));
     t1    = invK * mod2pi(th0-temp1);
     t2    = temp3;
     t3    = invK * mod2pi(temp1-th1);
@@ -97,11 +96,11 @@ void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   // LSR
   C = scos;
   S = 2*sKmax + ssin;
-  temp1 = std::atan2(-C, S);
+  temp1 = ATAN2(-C, S);
   temp2 = -2 + 4*Ksq + 2*dcos + 4*sKmax*ssin;
   if (temp2 >= 0) {
-    t2    = invK * std::sqrt(temp2);
-    temp3 = -std::atan2(-2, (t2*sKmax));
+    t2    = invK * sqrt(temp2);
+    temp3 = -ATAN2(-2.0, (t2*sKmax));
     t1    = invK * mod2pi(-th0 + temp1 + temp3);
     t3    = invK * mod2pi(-th1 + temp1 + temp3);
     lc    = t1+t2+t3;
@@ -115,11 +114,11 @@ void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   // RSL
   // C = C
   S = 2*sKmax - ssin;
-  temp1 = std::atan2(C, S);
+  temp1 = ATAN2(C, S);
   temp2 = -2 + 4*Ksq + 2*dcos - 4*sKmax*ssin;
   if (temp2 >= 0) {
-    t2    = invK * std::sqrt(temp2);
-    temp3 = std::atan2(2, (t2*sKmax));
+    t2    = invK * sqrt(temp2);
+    temp3 = ATAN2(2.0, (t2*sKmax));
     t1    = invK * mod2pi(th0 - temp1 + temp3);
     t3    = invK * mod2pi(th1 - temp1 + temp3);
     lc    = t1+t2+t3;
@@ -133,10 +132,10 @@ void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   // RLR
   C = dcos2;
   S = 2*sKmax - dsin;
-  temp1 = std::atan2(C, S);
+  temp1 = ATAN2(C, S);
   temp2 = 0.125 * (6 - 4*Ksq  + 2*dcos + 4*sKmax*dsin);
-  if (std::abs(temp2) <= 1) {
-    t2 = invK * mod2pi(2*M_PI - std::acos(temp2));
+  if (ABS<real_type>(temp2, 0.0) <= 1) {
+    t2 = invK * mod2pi(2.0*M_PI - ACOS(temp2));
     t1 = invK * mod2pi(th0 - temp1 + 0.5*t2*sKmax);
     t3 = invK * mod2pi(dth+(t2-t1)*sKmax);
     lc = t1+t2+t3;
@@ -150,10 +149,10 @@ void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   // LRL
   C = -C;
   S = 2*sKmax + dsin;
-  temp1 = std::atan2(C, S);
+  temp1 = ATAN2(C, S);
   temp2 = 0.125*(6 - 4*Ksq + 2*dcos - 4*sKmax*dsin);
-  if (std::abs(temp2) <= 1) {
-    t2 = invK * mod2pi(2*M_PI - std::acos(temp2));
+  if (ABS<real_type>(temp2, 0.0) <= 1) {
+    t2 = invK * mod2pi(2*M_PI - ACOS(temp2));
     t1 = invK * mod2pi(-th0 + temp1 + 0.5*t2*sKmax);
     t3 = invK * mod2pi(-dth + (t2-t1)*sKmax);
     lc = t1+t2+t3;
@@ -172,3 +171,5 @@ void Dubins<T>::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   this->s3(ss3*lambda);
   this->k3(sk3*this->kmax());
 }
+
+#endif //CUDA_ON

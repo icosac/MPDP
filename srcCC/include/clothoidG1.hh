@@ -12,7 +12,7 @@ using namespace std;
 #define A_SERIE_SIZE 3     //TODO cosa sono questi?
 
 template<class T1>
-class ClothoidG1 : public Curve<T1>{
+class ClothoidG1 : public Curve{
 private:
   LEN_T _l;                          ///< Length
   real_type tol = 0.000000000001;   ///< Tolerance
@@ -23,8 +23,8 @@ private:
   real_type dk_D[2];                ///< Sharpness derivatives
 
 public:
-  ClothoidG1() : Curve<T1>(CURVE_TYPE::CLOTHOID), _l(0) {}
-  ClothoidG1(Configuration2<T1> ci, Configuration2<T1> cf, LEN_T l=0) : Curve<T1>(ci, cf, CURVE_TYPE::CLOTHOID), _l(l) {
+  ClothoidG1() : Curve(CURVE_TYPE::CLOTHOID), _l(0) {}
+  ClothoidG1(Configuration2 ci, Configuration2 cf, LEN_T l=0) : Curve(ci, cf, CURVE_TYPE::CLOTHOID), _l(l) {
     this->buildG1();
   }
 

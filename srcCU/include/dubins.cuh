@@ -1,20 +1,33 @@
 #ifndef DUBINS_HH
 #define DUBINS_HH
 
-#include <curve.cuh>
-#include <utils.cuh>
-#include <settings.hh>
-#include <constants.cuh>
-#include <trig.cuh>
-
-
+#define M_2PI (M_PI*2.0);
 #define DUBINS_DEFAULT_KMAX 0.01
 
 #include <cmath>
 #include <limits>
 
-template<class T1>
-class Dubins : public Curve<T1> {
+#include <curve.cuh>
+#include <utils.cuh>
+#include <settings.hh>
+#include <constants.cuh>
+#ifdef TRIG
+  #warning "TRIG defined"
+  #include <trig.cuh>
+  #define COS(x)      my_cos(x)
+  #define SIN(x)      my_sin(x)
+  #define ATAN(x)     my_atan(x)
+  #define ATAN2(y, x) my_atan2(y, x)
+  #define ACOS(x)     my_acos(x)
+#else
+  #define COS(x)      cos(x)
+  #define SIN(x)      sin(x)
+  #define ATAN(x)     atan(x)
+  #define ATAN2(y, x) atan2(y, x)
+  #define ACOS(x)     acos(x)
+#endif
+
+class Dubins : public Curve {
 public:
   enum D_TYPE {INVALID, LSL, RSR, LSR, RSL, RLR, LRL};
 private:
@@ -32,12 +45,12 @@ private:
 
 public:
   Dubins() :
-          Curve<T1>(CURVE_TYPE::DUBINS),
+          Curve(CURVE_TYPE::DUBINS),
           _Dtype (D_TYPE::INVALID),
           _kmax(0) {}
 
-  BOTH Dubins(Configuration2<T1> ci, Configuration2<T1> cf, real_type* params) :
-          Curve<T1>(ci, cf, CURVE_TYPE::DUBINS, params),
+  BOTH Dubins(Configuration2 ci, Configuration2 cf, real_type* params) :
+          Curve(ci, cf, CURVE_TYPE::DUBINS, params),
           _Dtype(D_TYPE::INVALID) 
   {  
     if (params!=NULL) { this->_kmax=params[0]; }
@@ -45,8 +58,8 @@ public:
     solve();
   }
 
-  BOTH Dubins(Configuration2<T1> ci, Configuration2<T1> cf, real_type kmax) :
-          Curve<T1>(ci, cf, CURVE_TYPE::DUBINS),
+  BOTH Dubins(Configuration2 ci, Configuration2 cf, real_type kmax) :
+          Curve(ci, cf, CURVE_TYPE::DUBINS),
           _Dtype(D_TYPE::INVALID),
           _kmax(kmax) 
   {
@@ -92,7 +105,5 @@ public:
   // }
   
 };
-
-#include <dubins.cut>
 
 #endif //DUBINS_HH

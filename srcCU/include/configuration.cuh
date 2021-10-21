@@ -10,32 +10,28 @@ using namespace std;
 
 #include <typedefs.hh>
 
-template<class T1=float>
 class Configuration2{
 private:
-  T1 _x, _y;     ///<Coordinates
+  real_type _x, _y;     ///<Coordinates
   Angle _th;     ///<Angle
   K_T _k;  ///<Curvature
 
 public:
   Configuration2() : _x(0), _y(0), _th(0), _k(0) {}
-  BOTH Configuration2(T1 x, T1 y, Angle th, K_T k=0) : _x(x), _y(y), _th(th), _k(k) {}
+  BOTH Configuration2(real_type x, real_type y, Angle th, K_T k=0) : _x(x), _y(y), _th(th), _k(k) {}
 
-  BOTH T1 x() const { return this->_x; }
-  BOTH T1 y() const { return this->_y; }
+  BOTH real_type x() const { return this->_x; }
+  BOTH real_type y() const { return this->_y; }
   BOTH Angle th() const { return this->_th; }
   K_T k() const { return this->_k; }
 
-  template<class T2>
-  BOTH T1 x(const T2 x) { this->_x=((T1)x); return this->x(); }
-  template<class T2>
-  BOTH T1 y(const T2 y) { this->_y=((T1)y); return this->y(); }
+  BOTH real_type x(const real_type x) { this->_x=((real_type)x); return this->x(); }
+  BOTH real_type y(const real_type y) { this->_y=((real_type)y); return this->y(); }
 
   BOTH Angle th(const Angle th) { this->_th=th; return this->th(); }
   K_T k(const real_type k) { this->_k=k;   return this->k();  }
 
-  template<class T2>
-  Configuration2 copy (Configuration2<T2> conf){
+  Configuration2 copy (Configuration2 conf){
     this->x(conf.x());
     this->y(conf.y());
     this->th(conf.th());
@@ -43,8 +39,7 @@ public:
     return *this;
   }
 
-  template<class T2>
-  Configuration2 operator= (Configuration2<T2> conf){
+  Configuration2 operator= (Configuration2 conf){
     return copy(conf);
   }
 

@@ -10,8 +10,7 @@
 #include <cmath>
 #include <limits>
 
-template<class T1>
-class Dubins : public Curve<T1> {
+class Dubins : public Curve {
 public:
   enum D_TYPE {INVALID, LSL, RSR, LSR, RSL, RLR, LRL};
 private:
@@ -29,23 +28,23 @@ private:
 
 public:
   Dubins() :
-          Curve<T1>(CURVE_TYPE::DUBINS),
-          _Dtype (D_TYPE::INVALID),
-          _kmax(0) {}
+    Curve(CURVE_TYPE::DUBINS),
+    _Dtype (D_TYPE::INVALID),
+    _kmax(0) {}
 
-  Dubins(Configuration2<T1> ci, Configuration2<T1> cf, real_type* params) :
-          Curve<T1>(ci, cf, CURVE_TYPE::DUBINS, params),
-          _Dtype(D_TYPE::INVALID) 
+  Dubins(Configuration2 ci, Configuration2 cf, real_type* params) :
+    Curve(ci, cf, CURVE_TYPE::DUBINS, params),
+    _Dtype(D_TYPE::INVALID) 
   {  
     if (params!=NULL) { this->_kmax=params[0]; }
     else              { this->_kmax=DUBINS_DEFAULT_KMAX; }
     solve();
   }
 
-  Dubins(Configuration2<T1> ci, Configuration2<T1> cf, real_type kmax) :
-          Curve<T1>(ci, cf, CURVE_TYPE::DUBINS),
-          _Dtype(D_TYPE::INVALID),
-          _kmax(kmax) 
+  Dubins(Configuration2 ci, Configuration2 cf, real_type kmax) :
+    Curve(ci, cf, CURVE_TYPE::DUBINS),
+    _Dtype(D_TYPE::INVALID),
+    _kmax(kmax) 
   {
     solve();
   }
@@ -89,7 +88,5 @@ public:
   // }
   
 };
-
-#include <dubins.tt>
 
 #endif //DUBINS_HH

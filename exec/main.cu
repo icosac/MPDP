@@ -5,8 +5,6 @@
 #include<stdlib.h>
 #include<unistd.h>
 
-// #define DEBUG
-
 #include<utils.cuh>
 #include<dubins.cuh>
 #include<dp.cuh>
@@ -43,11 +41,11 @@ void PrintScientific2D(real_type d){
 }
 
 
-std::vector<Configuration2<real_type> > example1 = {
-  Configuration2<real_type>(0,0,-2.0*M_PI/8.0),
-  Configuration2<real_type>(2,2,ANGLE::INVALID),
-  Configuration2<real_type>(6,-1,ANGLE::INVALID),
-  Configuration2<real_type>(8,1,2.0*M_PI/8.0)
+std::vector<Configuration2> example1 = {
+  Configuration2(0,0,-2.0*M_PI/8.0),
+  Configuration2(2,2,ANGLE::INVALID),
+  Configuration2(6,-1,ANGLE::INVALID),
+  Configuration2(8,1,2.0*M_PI/8.0)
 };
 
 std::vector<std::string> testsNames = { 
@@ -59,7 +57,7 @@ std::vector<std::string> testsNames = {
   "Circuit"
 }; 
 
-std::vector<std::vector<Configuration2<real_type> > > Tests = {
+std::vector<std::vector<Configuration2> > Tests = {
   kaya1, kaya2, kaya3, kaya4, omega, spa
 };
 
@@ -78,8 +76,8 @@ std::string nameTest(std::string name, std::string add="", std::string conc=" ")
   }
 }
 
-__global__ void dubinsL(Configuration2<real_type> c0, Configuration2<real_type> c1, real_type k, real_type* L){
-  Dubins<real_type> dubins(c0, c1, k);
+__global__ void dubinsL(Configuration2 c0, Configuration2 c1, real_type k, real_type* L){
+  Dubins dubins(c0, c1, k);
   L[0]+=dubins.l();
   //printf("GPU Length: %.16f\n", dubins.l());
 }
@@ -121,8 +119,8 @@ int main (int argc, char* argv[]){
           TimePerf tp, tp1;
           tp.start();
 
-          std::vector<Configuration2<real_type> >points=Tests[testID];
-          DP::solveDP<Dubins<real_type> >(points, DISCR, fixedAngles, curveParamV, 2, true, r); 
+          std::vector<Configuration2>points=Tests[testID];
+          DP::solveDP(points, DISCR, fixedAngles, curveParamV, 2, true, r); 
           auto time1=tp.getTime();
           LEN_T Length=0.0;
           LEN_T *Length1; cudaMallocManaged(&Length1, sizeof(LEN_T));
@@ -130,20 +128,21 @@ int main (int argc, char* argv[]){
             dubinsL<<<1,1>>>(points[idjijij-1], points[idjijij], Ks[testID], Length1);
             cudaDeviceSynchronize();
 
-            Dubins<real_type> c(points[idjijij-1], points[idjijij], Ks[testID]);
+            Dubins c(points[idjijij-1], points[idjijij], Ks[testID]);
             Length+=c.l();
           }
 
           printf("%3d & %2d & ", DISCR, r);
           PrintScientific2D((Length-exampleLenghts[testID])*1000.0);
-          printf(" & ");
-          PrintScientific2D((Length1[0]-Length)*1000.0);
+          // printf(" & ");
+          // PrintScientific2D((Length1[0]-Length)*1000.0);
           //printf(" & ");
           //PrintScientific2D((Length1[0]-exampleLenghts[testID])*1000.0);
           printf(" & ");
           PrintScientific1D(time1);
-          printf("&%.16f", Length);
-          printf("&%.16f\\\\\n", Length1[0]);
+          // printf("&%.16f", Length);
+          // printf("&%.16f\\\\\n", Length1[0]);
+          printf("\\\\\n");
 
           cudaFree(Length1);
           //std::cout << "Length: " << std::setprecision(30) << Length << " " << std::setprecision(20) << (ABS<real_type>(Length*1000.0, dLen*1000.0)) << endl;
@@ -169,7 +168,7 @@ int main (int argc, char* argv[]){
     real_type value;
     int count=0;
     real_type x, y;
-    std::vector<Configuration2<real_type> > points;
+    std::vector<Configuration2> points;
     real_type th0=0.0, thf=0.0, kMax=0.0;
     while (file >> value){
       if (count==0){ kMax=value; }
@@ -180,7 +179,7 @@ int main (int argc, char* argv[]){
           x=value;
         else {
           y=value;
-          points.push_back(Configuration2<real_type> (x, y, ANGLE::INVALID));
+          points.push_back(Configuration2 (x, y, ANGLE::INVALID));
         }
       }
       count+=1;
@@ -205,12 +204,12 @@ int main (int argc, char* argv[]){
     
     TimePerf tp;
     tp.start();
-    DP::solveDP<Dubins<real_type> >(points, discr, fixedAngles, curveParamV, funcID, true, rip, threads); 
+    DP::solveDP(points, discr, fixedAngles, curveParamV, funcID, true, rip, threads); 
     auto time1=tp.getTime();
 
     LEN_T Length=0.0;
     for (unsigned int j=points.size()-1; j>0; j--){
-      Dubins<real_type> c(points[j-1], points[j], kMax);
+      Dubins c(points[j-1], points[j], kMax);
       Length+=c.l();
     }
     
@@ -256,7 +255,7 @@ int main (int argc, char* argv[]){
     std::fstream json_out; json_out.open("testResults/tests.json", std::fstream::app);
     
     std::vector<bool> fixedAngles;
-    std::vector<Configuration2<real_type> > points=Tests[testID];
+    std::vector<Configuration2> points=Tests[testID];
     for (uint i=0; i<points.size(); i++){
       if (i==0 || i==points.size()-1) {
         fixedAngles.push_back(true);
@@ -278,12 +277,12 @@ int main (int argc, char* argv[]){
     //system((std::string("tegrastats --interval 50 --start --logfile ")+powerName).c_str());
     //std::cout << (std::string("tegrastats --interval 50 --start --logfile ")+powerName).c_str() << std::endl;
     
-    DP::solveDP<Dubins<real_type> >(points, discr, fixedAngles, curveParamV, funcID, guessAnglesVal, rip, threads); 
+    DP::solveDP(points, discr, fixedAngles, curveParamV, funcID, guessAnglesVal, rip, threads); 
     sleep(5);
 
     TimePerf tp;
     tp.start();
-    DP::solveDP<Dubins<real_type> >(points, discr, fixedAngles, curveParamV, funcID, guessAnglesVal, rip, threads); 
+    DP::solveDP(points, discr, fixedAngles, curveParamV, funcID, guessAnglesVal, rip, threads); 
     auto time1=tp.getTime();
 
     if (initTime!=-1.0){
@@ -292,7 +291,7 @@ int main (int argc, char* argv[]){
 
     LEN_T Length=0.0;
     for (unsigned int j=points.size()-1; j>0; j--){
-      Dubins<real_type> c(points[j-1], points[j], Ks[testID]);
+      Dubins c(points[j-1], points[j], Ks[testID]);
       Length+=c.l();
     }
     

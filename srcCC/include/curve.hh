@@ -3,15 +3,10 @@
 
 #include <configuration.hh>
 
-/*!
- * Type-parameter for the `Configuration2`, i.e., specifies the coordinate's type.
- * @tparam T1
- */
-template<class T1>
 class Curve{
 private:
-  Configuration2<T1> _ci; ///<Initial `Configuration`
-  Configuration2<T1> _cf; ///<Final `Configuration`
+  Configuration2 _ci; ///<Initial `Configuration`
+  Configuration2 _cf; ///<Final `Configuration`
   CURVE_TYPE _type;       ///<Type of curve
   real_type* _params;     ///<Parameters of curve
 
@@ -32,10 +27,10 @@ public:
    * @param type Type of the curve.
    * @param params The parameters of the curve, such as the curvature.
    */
-  Curve(Configuration2<T1> ci, Configuration2<T1> cf, CURVE_TYPE type=CURVE_TYPE::INVALID, real_type* params=NULL) : _ci(ci), _cf(cf), _type(type), _params(params) {}
+  Curve(Configuration2 ci, Configuration2 cf, CURVE_TYPE type=CURVE_TYPE::INVALID, real_type* params=NULL) : _ci(ci), _cf(cf), _type(type), _params(params) {}
 
-  Configuration2<T1>* ci() { return &(this->_ci); }   ///< Returns a pointer to the initial `Configuration2`.
-  Configuration2<T1>* cf() { return &(this->_cf); }   ///< Returns a pointer to the final `Configuration2`.
+  Configuration2* ci() { return &(this->_ci); }   ///< Returns a pointer to the initial `Configuration2`.
+  Configuration2* cf() { return &(this->_cf); }   ///< Returns a pointer to the final `Configuration2`.
 
   CURVE_TYPE type () const { return this->_type; }    ///< Returns type of curve.
   

@@ -23,26 +23,29 @@ INCLUDECC=srcCC/include
 INCLUDECU=srcCU/include
 INCCC=-I./lib/includeCC
 INCCU=-I./lib/includeCU
-LIBSCC=-L./lib $(INCCC) -lClothoidsCC
-LIBSCU=-L./lib $(INCCU) -lClothoidsCU
+LIBSCC=$(INCCC) -L./lib -lClothoidsCC
+LIBSCU=$(INCCU) -L./lib -lClothoidsCU
 LIBCC=libClothoidsCC.a #LIB_DUBINS
 LIBCU=libClothoidsCU.a #LIB_DUBINS
-MORE_FLAGS=
+MORE_FLAGS_OBJ_CC=
+MORE_FLAGS_OBJ_CU=
+MORE_FLAGS_BIN_CC=
+MORE_FLAGS_BIN_CU=
 
 srcCC/obj/cc/%.o: srcCC/%.cc
-	$(CC) $(CCFLAGS) $(MORE_FLAGS) -c -o $@ $< $(LIBSCC)
+	$(CC) $(CCFLAGS) $(MORE_FLAGS_OBJ_CC) -c -o $@ $< $(LIBSCC)
 
 srcCU/obj/cu/%.o: srcCU/%.cu
-	$(CU) $(CUFLAGS) $(MORE_FLAGS) -c -o $@ $< $(LIBSCU)
+	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) -c -o $@ $< $(LIBSCU)
 
 bin/cc/%.out: exec/%.cc
-	$(CC) $(CCFLAGS) $(MORE_FLAGS) -o $@ $< $(LIBSCC)
+	$(CC) $(CCFLAGS) $(MORE_FLAGS_BIN_CC) -o $@ $< $(LIBSCC)
 
 exec/%.cu.o: exec/%.cu
-	$(CU) $(CUFLAGS) $(MORE_FLAGS) -c -o $@ $< $(LIBSCU)
+	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) -c -o $@ $< $(LIBSCU)
 
 bin/cu/%.out: exec/%.cu.o 
-	$(CU) $(CUFLAGS) $(MORE_FLAGS) -o $@ $< $(LIBSCU)
+	$(CU) $(CUFLAGS) $(MORE_FLAGS_BIN_CU) -o $@ $< $(LIBSCU)
 
 
 all: echo CPU GPU 
@@ -68,14 +71,14 @@ mvlibCC:
 	$(MKDIR) lib/includeCC
 	cp -f include/*.hh lib/includeCC
 	cp -f $(INCLUDECC)/*.hh lib/includeCC
-	cp -f $(INCLUDECC)/*.tt lib/includeCC
+# 	cp -f $(INCLUDECC)/*.tt lib/includeCC
 
 mvlibCU:
 	@rm -rf lib/includeCU
 	$(MKDIR) lib/includeCU
 	cp -f include/*.hh lib/includeCU
-	cp -f $(INCLUDECU)/*.cut lib/includeCU
 	cp -f $(INCLUDECU)/*.cuh lib/includeCU
+# 	cp -f $(INCLUDECU)/*.cut lib/includeCU
 
 lib/$(LIBCC): mvlibCC obj/ bin/ $(CCOBJ) #TODO add CUDA support
 	$(AR) lib/$(LIBCC) $(CCOBJ)
