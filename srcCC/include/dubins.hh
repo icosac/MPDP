@@ -71,21 +71,21 @@ public:
   void scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax);
   void computeBest( Angle th0, Angle th1, real_type lambda, K_T& sKmax);
 
-  // std::stringstream to_string (std::string str="") const {
-  //   std::stringstream out;
-  //   out << "Section1:\n\tx0: " << x0 << endl << "\ty0: " << y0 << endl << "\tth0: " << th0 << k
-  //   return out;
-  // }
+  std::stringstream to_string (std::string str="") {
+    std::stringstream out;
+    out << "c0: " << this->ci()->to_string().str() << "\tc1: " << this->cf()->to_string().str() << "\tk: " << this->kmax() << "\tl: " << this->l();
+    return out;
+  }
 
-  // /*! This function overload the << operator so to print with `std::cout` the most essential info about the `Configuration2`.
-  // 		\param[in] out The out stream.
-  // 		\param[in] data The configuration to print.
-  // 		\returns An output stream to be printed.
-  // */
-  // friend std::ostream& operator<<(std::ostream &out, const Dubins& data) {
-  //   out << data.to_string().str();
-  //   return out;
-  // }
+  /*! This function overload the << operator so to print with `std::cout` the most essential info about the `Configuration2`.
+  		\param[in] out The out stream.
+  		\param[in] data The configuration to print.
+  		\returns An output stream to be printed.
+  */
+  friend std::ostream& operator<<(std::ostream &out, Dubins& data) {
+    out << data.to_string().str();
+    return out;
+  }
   
 };
 

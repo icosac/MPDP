@@ -12,6 +12,7 @@
 #include <cmath>
 #include <vector>
 #include <sstream>
+#include <omp.h>
 //#include <cmath>
 
 #ifndef CURVE
@@ -24,20 +25,20 @@ namespace DP {
     private:
       Angle _th;
       LEN_T _l; //Length of the curve
-      Cell* _next;
+      int _next;
       int _i, _j, _id;
 
     public:
-      Cell() : _th(ANGLE::INVALID), _l(std::numeric_limits<LEN_T>::max()), _next(NULL) {}
+      Cell() : _th(ANGLE::INVALID), _l(std::numeric_limits<LEN_T>::max()), _next(-1) {}
 
-      Cell(Angle th, LEN_T l=std::numeric_limits<LEN_T>::max(), Cell* next=NULL, int i=0, int j=0, int id=0) : 
+      Cell(Angle th, LEN_T l=std::numeric_limits<LEN_T>::max(), int next=-1, int i=0, int j=0, int id=0) : 
         _th(th), _l(l),  _next(next), _i(i), _j(j), _id(id) {}
 
       Angle th() const { return this->_th; }
 
       LEN_T l() const { return this->_l; }
       
-      Cell* next() const { return this->_next; }
+      int next() const { return this->_next; }
 
       int i() const { return this->_i; }
       int j() const { return this->_j; }
@@ -53,7 +54,7 @@ namespace DP {
         return this->l();
       }
 
-      Cell* next(Cell* next){
+      int next(int next){
         this->_next = next;
         return this->next();
       }
@@ -96,9 +97,8 @@ namespace DP {
     };
   } //Anonymous namespace to hide information
   
-  K_T Kmax=DUBINS_DEFAULT_KMAX;
   std::vector<std::vector<DP::Cell> >matrix;
-  std::vector<Angle> solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params);
+  std::vector<Angle> solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params=NULL);
   
 } //namespace DP
 

@@ -46,7 +46,7 @@ public:
 
   std::stringstream to_string (std::string str="") const {
     std::stringstream out;
-    out << (str!="" ? "" : str+" ") << "x: " << this->x() << "  y: " << this->y() << "  th: " << this->th() << "  k: " << this->k();
+    out << (str!="" ? "" : str+" ") << "x: " << this->x() << "  y: " << this->y() << "  th: " << this->th();
     return out;
   }
 

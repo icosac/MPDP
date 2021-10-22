@@ -14,7 +14,7 @@
 #define MYM_PI 3.14159265358979323846264338328
 
 #ifdef DEBUG
-#define COUT(x) cout << x;
+#define COUT(x) std::cout << #x << ": " << x << std::endl;
 #else
 #define COUT(x)
 #endif
