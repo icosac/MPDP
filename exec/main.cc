@@ -1,13 +1,7 @@
-//#define CLOTHOID CLOTHOID //Need to rewrite CLOTHOID because of typedefs.hh
-#define DUBINS DUBINS
-
-#if defined(CLOTHOID)
-#include <clothoidG1.hh>
-#elif defined(DUBINS)
 #include <dubins.hh>
-#endif
 #include <dp.hh>
 #include <timeperf.hh>
+#include<tests.hh>
 
 #include<iostream>
 #include<fstream>
@@ -17,9 +11,6 @@
 #include<utility>
 #include<iomanip>
 #include<algorithm>
-
-#include<tests.hh>
-
 
 void PrintScientific1D(real_type d){
   if (d == 0)

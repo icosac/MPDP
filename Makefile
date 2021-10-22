@@ -25,8 +25,8 @@ INCCC=-I./lib/includeCC
 INCCU=-I./lib/includeCU
 LIBSCC=$(INCCC) -L./lib -lClothoidsCC
 LIBSCU=$(INCCU) -L./lib -lClothoidsCU
-LIBCC=libClothoidsCC.a #LIB_DUBINS
-LIBCU=libClothoidsCU.a #LIB_DUBINS
+LIBCC=libMPMDCC.a 
+LIBCU=libMPMDCU.a 
 MORE_FLAGS_OBJ_CC=
 MORE_FLAGS_OBJ_CU=
 MORE_FLAGS_BIN_CC=
@@ -50,6 +50,17 @@ bin/cu/%.out: exec/%.cu.o
 
 all: echo CPU GPU 
 
+norProj: lib/$(LIBCC) lib/$(LIBCU)
+	rm -rf norProject/lib
+	rm -rf norProject/inc
+	$(MKDIR) norProject/lib
+	$(MKDIR) norProject/inc
+	cp -f include/*.hh norProject/inc
+	cp -f $(INCLUDECC)/*.hh norProject/inc
+	cp -f $(INCLUDECU)/*.cuh norProject/inc
+	cp -f lib/$(LIBCC) norProject/lib/$(LIBCC)
+	cp -f lib/$(LIBCU) norProject/lib/$(LIBCU)
+
 CPU: lib/$(LIBCC) $(TESTCCEXEC)
 
 GPU: lib/$(LIBCU) $(TESTCUEXEC)
@@ -71,16 +82,14 @@ mvlibCC:
 	$(MKDIR) lib/includeCC
 	cp -f include/*.hh lib/includeCC
 	cp -f $(INCLUDECC)/*.hh lib/includeCC
-# 	cp -f $(INCLUDECC)/*.tt lib/includeCC
 
 mvlibCU:
 	@rm -rf lib/includeCU
 	$(MKDIR) lib/includeCU
 	cp -f include/*.hh lib/includeCU
 	cp -f $(INCLUDECU)/*.cuh lib/includeCU
-# 	cp -f $(INCLUDECU)/*.cut lib/includeCU
 
-lib/$(LIBCC): mvlibCC obj/ bin/ $(CCOBJ) #TODO add CUDA support
+lib/$(LIBCC): mvlibCC obj/ bin/ $(CCOBJ) 
 	$(AR) lib/$(LIBCC) $(CCOBJ)
 
 lib/$(LIBCU): mvlibCU obj/ bin/ $(CUOBJ) 
