@@ -13,28 +13,6 @@
 
 #ifdef DEBUG
 #define COUT(x) std::cout << #x << ": " << x << std::endl;
-#else
-#define COUT(x)
-#endif
-
-#ifndef ASSERT
-  #define ASSERT(COND,MSG)         \
-    if ( !(COND) ) {                        \
-      std::ostringstream ost ;              \
-      ost << "On line: " << __LINE__        \
-          << " file: " << __FILE__          \
-          << MSG << '\n' ;          \
-      throw std::runtime_error(ost.str()) ; \
-    }
-#endif //ASSERT
-
-extern real_type const epsi        ;
-extern real_type const m_pi        ; // pi
-extern real_type const m_pi_2      ; // pi/2
-extern real_type const m_2pi       ; // 2*pi
-extern real_type const m_1_pi      ; // 1/pi
-extern real_type const m_1_sqrt_pi ; // 1/sqrt(pi)
-
 #define printCV(v, d)       \
   printf("<");              \
   for (uint i=0; i<d; i++){ \
@@ -74,6 +52,33 @@ for (int i=0; i<discr; i++){                 \
   }                                          \
   printf("\n");                              \
 }
+#else
+#define COUT(x)
+#define printCV(v, d)
+#define printV(v)
+#define printM(M, discr, size)
+#define printVM(M, discr, size)
+#define printCVM(M, discr, size)
+#endif //DEBUG
+
+
+#ifndef ASSERT
+  #define ASSERT(COND,MSG)         \
+    if ( !(COND) ) {                        \
+      std::ostringstream ost ;              \
+      ost << "On line: " << __LINE__        \
+          << " file: " << __FILE__          \
+          << MSG << '\n' ;          \
+      throw std::runtime_error(ost.str()) ; \
+    }
+#endif //ASSERT
+
+extern real_type const epsi        ;
+extern real_type const m_pi        ; // pi
+extern real_type const m_pi_2      ; // pi/2
+extern real_type const m_2pi       ; // 2*pi
+extern real_type const m_1_pi      ; // 1/pi
+extern real_type const m_1_sqrt_pi ; // 1/sqrt(pi)
 
 template<class T>
 inline T ABS(T x, T y) {return (x>y ? (x-y) : (y-x)); }

@@ -87,7 +87,7 @@ int main (){
   cout << "C++" << endl;
 
   for (int testID=0; testID<Tests.size(); testID++){
-    // if (testID!=0){continue;}
+    // if (testID!=3){continue;}
     real_type dLen=exampleLenghts[testID];
 
     std::vector<bool> fixedAngles;
@@ -105,25 +105,29 @@ int main (){
     for (auto DISCR :  discrs){
       // if (DISCR!=4){continue;}
       for (auto r : refins){
-        // if (r!=1){continue;}
+        // if (r!=4){continue;}
         //std::cout << DISCR << " " << r << " ";
         TimePerf tp, tp1;
-        tp.start();
-
         std::vector<Configuration2>points=Tests[testID];
-        std::vector<Angle> vtheta=DP::solveDP(points, DISCR, fixedAngles, r, curveParam); 
-        
+
+        tp.start();
+        std::vector<real_type> vtheta=DP::solveDP(points, DISCR, fixedAngles, r, curveParam); 
         auto time1=tp.getTime();
-        LEN_T Length=0.0;
+
+        LEN_T ComLength=vtheta[0];
+        vtheta.erase(vtheta.begin());
+
+        LEN_T Length;
         for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
           points[idjijij-1].th(vtheta[idjijij-1]);
           points[idjijij].th(vtheta[idjijij]);
           Dubins c(points[idjijij-1], points[idjijij], Ks[testID]);
+          // std::cout << c << std::endl;
           Length+=c.l();
         }
-
+        // std::cout << Length << " " << exampleLenghts[testID] << std::endl;
         printf("%3d & %2d & ", DISCR, r);
-        PrintScientific2D((Length-exampleLenghts[testID])*1000.0);
+        PrintScientific2D((ComLength-exampleLenghts[testID])*1000.0);
         printf(" & ");
         PrintScientific1D(time1);
         printf("\\\\\n");

@@ -41,6 +41,15 @@ public:
     solve();
   }
 
+  Dubins(real_type x0, real_type y0, Angle th0, real_type x1, real_type y1, real_type th1, real_type* params) :
+    Curve(Configuration2(x0, y0, th0), Configuration2(x1, y1, th1), CURVE_TYPE::DUBINS, params),
+    _Dtype(D_TYPE::INVALID) 
+  {  
+    if (params!=NULL) { this->_kmax=params[0]; }
+    else              { this->_kmax=DUBINS_DEFAULT_KMAX; }
+    solve();
+  }
+
   Dubins(Configuration2 ci, Configuration2 cf, real_type kmax) :
     Curve(ci, cf, CURVE_TYPE::DUBINS),
     _Dtype(D_TYPE::INVALID),

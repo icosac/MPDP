@@ -6,6 +6,8 @@ static K_T Kmax=DUBINS_DEFAULT_KMAX;
 
 #ifdef DEBUG
 #define printMatrix(type)                                               \
+  if (type==0) {std::cout << "Angle table: " << std::endl;}             \
+  else if (type==1) {std::cout << "Length table: " << std::endl;}       \
   for (int i=0; i<MATRIX.size(); i++){                                  \
     for (int j=0; j<MATRIX[i].size(); j++){                             \
       if (type==0){                                                     \
@@ -16,7 +18,8 @@ static K_T Kmax=DUBINS_DEFAULT_KMAX;
       }                                                                 \
     }                                                                   \
     std::cout << std::endl;                                             \
-  }
+  }                                                                     \
+  std::cout << std::endl << std::endl;                                               
 #else 
 #define printMatrix(type)
 #endif
@@ -102,7 +105,6 @@ void setSamplingAngles(int discr, const std::vector<bool> fixedAngles, const std
       MATRIX[i]={ DP::Cell(points[i].th()) };
     }
   }
-  printMatrix(0)
 }
 
 void setSamplingAngles(const std::vector<Configuration2> points, const std::vector<bool> fixedAngles, double hrange, int hn){
@@ -113,8 +115,9 @@ void setSamplingAngles(const std::vector<Configuration2> points, const std::vect
   for (int i=0; i<points.size(); ++i){
     MATRIX.reserve(2*hn+11); // up to 10 "special" + one for thref + hn on both side of thref
     MATRIX[i].push_back(DP::Cell(points[i].th()));
-    for (int j=0; j<hn; ++j){
-      MATRIX[i].push_back(DP::Cell(dtheta*j));
+    for (int j=1; j<=hn; ++j){
+      MATRIX[i].push_back(DP::Cell(dtheta*j+points[i].th()));
+      MATRIX[i].push_back(DP::Cell(-dtheta*j+points[i].th()));
     }
     if (i>=1){
       std::vector<DP::Cell> thPrev, thCur;
@@ -129,13 +132,10 @@ void setSamplingAngles(const std::vector<Configuration2> points, const std::vect
       MATRIX[i]={ DP::Cell(points[i].th()) };
     }
   }
-  printMatrix(0)
 }
 
 //Once the matrix is given, find the best angles
-std::vector<Angle> bestAngles(int size, std::vector<Configuration2>* points=NULL){
-  // printMatrix(0)
-  // printMatrix(1)
+std::vector<real_type> bestAngles(int size, std::vector<Configuration2>* points=NULL){
   int bestIdx = -1;
   LEN_T bestL = std::numeric_limits<LEN_T>::max();
   //Find best path overall
@@ -160,26 +160,32 @@ std::vector<Angle> bestAngles(int size, std::vector<Configuration2>* points=NULL
     }
   }
 
+  vtheta.insert(vtheta.begin(), bestL);
+
   return vtheta;
 }
 
-void solveDPInner (std::vector<Configuration2>& points, real_type* params){
+std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_type* params){
+  printMatrix(0)
   for (int idx=(points.size()-1); idx>0; --idx){ //Cycle between all points starting from the last one
-    Configuration2 c0=points[idx-1];
-    Configuration2 c1=points[idx];
+    Configuration2* c0=&points[idx-1];
+    Configuration2* c1=&points[idx];
     
     #pragma omp parallel for
     for (int i=0; i<MATRIX[idx-1].size(); ++i){ //Consider the previous angle
-      c0.th(MATRIX[idx-1][i].th());
       int bestJ=-1;
       double bestL = std::numeric_limits<LEN_T>::max();
 
       for (int j=0; j<MATRIX[idx].size(); ++j){ //Consider the next angle
-        c1.th(MATRIX[idx][j].th());
-        
         //Compute Dubins
-        Dubins dub=Dubins(c0, c1, params);
+        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), params);
         LEN_T curL=dub.l();
+        if (idx==(points.size()-1) && i==1){
+          COUT(MATRIX[idx-1][i])  
+          COUT(MATRIX[idx][j])  
+          COUT(dub)
+          COUT(curL)
+        }
     
         if (idx<(points.size()-1)){
           curL+=MATRIX[idx][j].l();
@@ -194,41 +200,32 @@ void solveDPInner (std::vector<Configuration2>& points, real_type* params){
       MATRIX[idx-1][i].next(bestJ);
     }
   }
-
-  bestAngles(points.size(), &points);
+  printMatrix(1)
+  return bestAngles(points.size(), &points);
 }
 
 
-std::vector<Angle> DP::solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params){  
+std::vector<real_type> DP::solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params){  
   MATRIX.clear();
   if (params!=NULL){
     Kmax=params[0];
   }
-  std::vector<Angle> bestA;
+  std::vector<real_type> bestA;
   
   //First round
   setSamplingAngles(discr, fixedAngles, points);
-  solveDPInner(points, params);
-  for (int i=0; i<points.size(); ++i){
-    bestA.push_back(points[i].th());
-  }
+  bestA=solveDPInner(points, params);
 
   //Other refinements
   double hrange=2.0*M_PI;
-  for (int i=0; i<nRefinements; ++i){
+  for (int ref=0; ref<nRefinements; ++ref){
+    COUT(ref) 
     hrange=hrange/discr*1.5;
     setSamplingAngles(points, fixedAngles, hrange, discr/2);
-
-    for (auto a : points){
-      std::cout << a.th() << " ";
-    }
-    std::cout << std::endl;
+    printV(bestA)
     
-    solveDPInner(points, params);
     bestA.clear();
-    for (int i=0; i<points.size(); ++i){
-      bestA.push_back(points[i].th());
-    }
+    bestA=solveDPInner(points, params);
   }
   
   return bestA;

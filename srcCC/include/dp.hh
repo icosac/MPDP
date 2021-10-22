@@ -98,7 +98,7 @@ namespace DP {
   } //Anonymous namespace to hide information
   
   std::vector<std::vector<DP::Cell> >matrix;
-  std::vector<Angle> solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params=NULL);
+  std::vector<real_type> solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params=NULL);
   
 } //namespace DP
 
