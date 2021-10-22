@@ -3,23 +3,23 @@ cmake_minimum_required(VERSION 3.10)
 include(GoogleTest)
 
 project(DynamicCurve LANGUAGES CXX)
-set(LIB libDynamicCurve)
-set(APP_EXEC dynamicCurve)
+set(LIB MPMD)
+set(APP_EXEC MPMD_exec)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3 -fopenmp")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(${CUDA_ON} MATCHES ON)
   enable_language(CUDA)
-  file(GLOB dynamicCurveExec "exec/main.cu")
+  file(GLOB MPMDExec "exec/main.cu")
   add_definitions(-DCUDA_ON)
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 -O3 -arch=sm_75 -DCUDA_ON --default-stream per-thread --compiler-options -Wall")
   set(CUDA_SEPARABLE_COMPILATION ON)
   set(SRC "srcCU")
   set(SRCF "${SRC}/*.cu")
 ELSE()
-  file(GLOB dynamicCurveExec "exec/main.cc")
+  file(GLOB MPMDExec "exec/main.cc")
   set(SRC "srcCC")
   set(SRCF "${SRC}/*.cc")
 ENDIF()
@@ -29,14 +29,14 @@ message(STATUS "Compiling CUDA with: " ${CMAKE_CUDA_FLAGS})
 
 include_directories(${SRC}/include include)
 
-file(GLOB dynamicCurveSrc ${SRCF})
+file(GLOB MPMDSrc ${SRCF})
 
-message(STATUS "${dynamicCurveSrc}")
+message(STATUS "${MPMDSrc}")
 
-add_library(${LIB} STATIC ${dynamicCurveSrc})
+add_library(${LIB} STATIC ${MPMDSrc})
 
-#add_executable(${APP_SRC} ${dynamicCurveSrc})
-add_executable(${APP_EXEC} ${dynamicCurveExec})
+#add_executable(${APP_SRC} ${MPMDSrc})
+add_executable(${APP_EXEC} ${MPMDExec})
 
 target_link_libraries(${APP_EXEC} ${LIB})
 target_include_directories(${APP_EXEC} PRIVATE src/include/)

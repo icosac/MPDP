@@ -77,7 +77,7 @@ std::string nameTest(std::string name, std::string add="", std::string conc=" ")
 int main (){
   cout << "C++" << endl;
 
-  for (int testID=0; testID<Tests.size(); testID++){
+  for (uint testID=0; testID<Tests.size(); testID++){
     // if (testID!=3){continue;}
     real_type dLen=exampleLenghts[testID];
 

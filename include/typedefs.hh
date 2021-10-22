@@ -12,9 +12,6 @@ typedef real_type Angle;
 //Used in curve.hh
 typedef double 	LEN_T;///<Typedef to describe the length
 typedef double 	K_T;  ///<Typedef to describe the curvature
-namespace {
-  enum CURVE_TYPE { INVALID, CLOTHOID, DUBINS, DUBINS_ARC }; ///< Possible types of CURVE
-}
 
 enum ANGLE { INVALID = 0 };
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include<fstream>
+
 class Run{
 public:
   std::string name, test_name, file_name, guessInitialAngles;

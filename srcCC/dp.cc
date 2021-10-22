@@ -71,7 +71,7 @@ void guessInitialAngles(const int i, std::vector<DP::Cell>& thPrev, std::vector<
   // aligned on circle
   std::vector<double> XC, YC;
   circles(points[i-1].x(), points[i-1].y(), points[i].x(), points[i].y(), 1./Kmax, XC, YC);
-  for (int j=0; j<XC.size(); ++j) 
+  for (uint j=0; j<XC.size(); ++j) 
   {
     th = std::atan2(points[i-1].y()-YC[j], points[i-1].x()-XC[j]);
     thPrev.push_back(DP::Cell(th+M_PI/2.));
@@ -87,7 +87,7 @@ void setSamplingAngles(int discr, const std::vector<bool> fixedAngles, const std
   MATRIX.resize(points.size());
 
   Angle dtheta=2*M_PI/discr;
-  for (int i=0; i<points.size(); ++i){
+  for (uint i=0; i<points.size(); ++i){
     MATRIX.reserve(discr+10);
     for (int j=0; j<discr; ++j){
       MATRIX[i].push_back(DP::Cell(dtheta*j));
@@ -99,7 +99,7 @@ void setSamplingAngles(int discr, const std::vector<bool> fixedAngles, const std
       MATRIX[i].insert(MATRIX[i].end(), thCur.begin(), thCur.end());
     }
   }
-  for (int i=0; i<points.size(); ++i){
+  for (uint i=0; i<points.size(); ++i){
     if (fixedAngles[i]){
       MATRIX[i].clear();
       MATRIX[i]={ DP::Cell(points[i].th()) };
@@ -112,7 +112,7 @@ void setSamplingAngles(const std::vector<Configuration2> points, const std::vect
   MATRIX.resize(points.size());
 
   Angle dtheta=hrange/hn;
-  for (int i=0; i<points.size(); ++i){
+  for (uint i=0; i<points.size(); ++i){
     MATRIX.reserve(2*hn+11); // up to 10 "special" + one for thref + hn on both side of thref
     MATRIX[i].push_back(DP::Cell(points[i].th()));
     for (int j=1; j<=hn; ++j){
@@ -126,7 +126,7 @@ void setSamplingAngles(const std::vector<Configuration2> points, const std::vect
       MATRIX[i].insert(MATRIX[i].end(), thCur.begin(), thCur.end());
     }
   }
-  for (int i=0; i<points.size(); ++i){
+  for (uint i=0; i<points.size(); ++i){
     if (fixedAngles[i]){
       MATRIX[i].clear();
       MATRIX[i]={ DP::Cell(points[i].th()) };
@@ -139,7 +139,7 @@ std::vector<real_type> bestAngles(int size, std::vector<Configuration2>* points=
   int bestIdx = -1;
   LEN_T bestL = std::numeric_limits<LEN_T>::max();
   //Find best path overall
-  for (int i=0; i<MATRIX[0].size(); ++i){
+  for (uint i=0; i<MATRIX[0].size(); ++i){
     if (MATRIX[0][i].l()<bestL){
       bestL=MATRIX[0][i].l();
       bestIdx=i;
@@ -167,16 +167,16 @@ std::vector<real_type> bestAngles(int size, std::vector<Configuration2>* points=
 
 std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_type* params){
   printMatrix(0)
-  for (int idx=(points.size()-1); idx>0; --idx){ //Cycle between all points starting from the last one
+  for (uint idx=(points.size()-1); idx>0; --idx){ //Cycle between all points starting from the last one
     Configuration2* c0=&points[idx-1];
     Configuration2* c1=&points[idx];
     
     #pragma omp parallel for
-    for (int i=0; i<MATRIX[idx-1].size(); ++i){ //Consider the previous angle
+    for (uint i=0; i<MATRIX[idx-1].size(); ++i){ //Consider the previous angle
       int bestJ=-1;
       double bestL = std::numeric_limits<LEN_T>::max();
 
-      for (int j=0; j<MATRIX[idx].size(); ++j){ //Consider the next angle
+      for (uint j=0; j<MATRIX[idx].size(); ++j){ //Consider the next angle
         //Compute Dubins
         Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), params);
         LEN_T curL=dub.l();

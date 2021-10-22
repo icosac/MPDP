@@ -4,13 +4,16 @@
 #include <configuration.hh>
 
 class Curve{
+public: 
+  enum CURVE_TYPE { INVALID, CLOTHOID, DUBINS, DUBINS_ARC }; ///< Possible types of CURVE
 private:
   Configuration2 _ci; ///<Initial `Configuration`
   Configuration2 _cf; ///<Final `Configuration`
-  CURVE_TYPE _type;       ///<Type of curve
-  real_type* _params;     ///<Parameters of curve
+  CURVE_TYPE _type;   ///<Type of curve
+  real_type* _params; ///<Parameters of curve
 
 public:
+
   /*!
    * @brief Void constructor.
    */
