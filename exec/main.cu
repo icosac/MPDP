@@ -111,7 +111,7 @@ int main (int argc, char* argv[]){
       real_type* curveParam=curveParamV.data();
       
       for (auto DISCR :  discrs){
-        //if (DISCR!=360){continue;}
+        if (DISCR!=360){continue;}
         for (auto r : refins){
           //if (r!=16){continue;}
           //r=5;

@@ -34,6 +34,8 @@ private:
   D_TYPE _Dtype;
   K_T _kmax=0.0, _k1=0.0, _k2=0.0, _k3=0.0;
   LEN_T _s1=0.0, _s2=0.0, _s3=0.0;
+  BOTH void scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax);
+  BOTH void computeBest( Angle th0, Angle th1, real_type lambda, K_T& sKmax);
 
   BOTH void solve(){
     real_type lambda;
@@ -84,9 +86,6 @@ public:
   BOTH LEN_T s2(LEN_T s2) { this->_s2 = s2; return this->s2(); }
   BOTH LEN_T s3(LEN_T s3) { this->_s3 = s3; return this->s3(); }
   BOTH D_TYPE type(D_TYPE type) { this->_Dtype = type; return this->type(); }
-
-  BOTH void scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax);
-  BOTH void computeBest( Angle th0, Angle th1, real_type lambda, K_T& sKmax);
 
   // std::stringstream to_string (std::string str="") const {
   //   std::stringstream out;

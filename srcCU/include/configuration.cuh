@@ -17,7 +17,7 @@ private:
   K_T _k;  ///<Curvature
 
 public:
-  Configuration2() : _x(0), _y(0), _th(0), _k(0) {}
+  BOTH Configuration2() : _x(0), _y(0), _th(ANGLE::INVALID), _k(0) {}
   BOTH Configuration2(real_type x, real_type y, Angle th, K_T k=0) : _x(x), _y(y), _th(th), _k(k) {}
 
   BOTH real_type x() const { return this->_x; }

@@ -1,45 +1,52 @@
-cmake_minimum_required(VERSION 3.10)
-#set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.0/bin/nvcc") #Sometimes one needs to set the path to the compiler
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 include(GoogleTest)
 
-project(DynamicCurve LANGUAGES CXX)
+project(MPMD LANGUAGES CXX CUDA)
 set(LIB MPMD)
 set(APP_EXEC MPMD_exec)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3 -fopenmp")
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3 -fopenmp -Wno-reorder")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(${CUDA_ON} MATCHES ON)
-  enable_language(CUDA)
-  file(GLOB MPMDExec "exec/main.cu")
-  add_definitions(-DCUDA_ON)
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 -O3 -arch=sm_75 -DCUDA_ON --default-stream per-thread --compiler-options -Wall")
-  set(CUDA_SEPARABLE_COMPILATION ON)
+  #Define files to be compiled
   set(SRC "srcCU")
   set(SRCF "${SRC}/*.cu")
+  file(GLOB MPMDSrc ${SRCF})
+  file(GLOB MPMDExec "exec/main.cu")
+  include_directories(${SRC}/include include)
+
+  #What should be compiled
+  add_library(${LIB} STATIC ${MPMDSrc})
+  add_executable(${APP_EXEC} ${MPMDExec})
+  target_link_libraries(${APP_EXEC} ${LIB})
+
+  #Set compiler options
+  set_target_properties(${LIB} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  add_definitions(-DCUDA_ON)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 -O3 -dc -arch=sm_75 -DCUDA_ON --default-stream per-thread --compiler-options -Wall")
+
+  message(STATUS "Compiling CUDA with: " ${CMAKE_CUDA_FLAGS})
+  message(STATUS "${MPMDSrc}")
 ELSE()
-  file(GLOB MPMDExec "exec/main.cc")
+  #Define files to be compiled
   set(SRC "srcCC")
   set(SRCF "${SRC}/*.cc")
+  file(GLOB MPMDSrc ${SRCF})
+  file(GLOB MPMDExec "exec/main.cc")
+  include_directories(${SRC}/include include)
+  
+  message(STATUS "Compiling C++ with: " -std=c++${CMAKE_CXX_STANDARD} ${CMAKE_CXX_FLAGS})
+  message(STATUS "${MPMDSrc}")
+
+  #Compile 
+  add_library(${LIB} STATIC ${MPMDSrc})
+  add_executable(${APP_EXEC} ${MPMDExec})
+  target_link_libraries(${APP_EXEC} ${LIB})
 ENDIF()
 
-message(STATUS "Compiling C++ with: " -std=c++${CMAKE_CXX_STANDARD} ${CMAKE_CXX_FLAGS})
-message(STATUS "Compiling CUDA with: " ${CMAKE_CUDA_FLAGS})
 
-include_directories(${SRC}/include include)
-
-file(GLOB MPMDSrc ${SRCF})
-
-message(STATUS "${MPMDSrc}")
-
-add_library(${LIB} STATIC ${MPMDSrc})
-
-#add_executable(${APP_SRC} ${MPMDSrc})
-add_executable(${APP_EXEC} ${MPMDExec})
-
-target_link_libraries(${APP_EXEC} ${LIB})
-target_include_directories(${APP_EXEC} PRIVATE src/include/)
 
 #add_subdirectory(test)
 

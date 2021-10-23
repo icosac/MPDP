@@ -7,6 +7,27 @@ __global__ void dubinsWrapper(Configuration2 c0, Configuration2 c1, double Kmax,
   L[0]+=c.l();
 }
 
+__global__ void printResults(real_type* results, uint discr, uint size){
+  for (int i=0; i<size; i++){
+    for(int j=0; j<discr; j++){
+      for(int h=0; h<discr; h++){
+        printf("(%2.0f,%.2f)", (float)((i*discr+j)*discr+h), results[(i*discr+j)*discr+h]);
+      }
+      printf("\t");
+    }
+    printf("\n");
+  }
+}
+
+__global__ void printMatrix(DP::Cell* matrix, uint discr, uint size){
+  for (int i=0; i<size; i++){
+    for(int j=0; j<discr; j++){
+      printf("(%d,%d)", (i*discr+j), matrix[i*discr+j].next());
+    }
+    printf("\n");
+  }
+}
+
 
 // returns (up to) two circles through two points, given the radius
 // Marco Frego and Paolo Bevilacqua in "An Iterative Dynamic Programming Approach to the Multipoint Markov-Dubins Problem" 2020.
@@ -81,27 +102,6 @@ uint guessInitialAngles(std::vector<std::set<Angle> >& moreAngles, const std::ve
   return max;
 }
 
-__global__ void printResults(real_type* results, uint discr, uint size){
-  for (int i=0; i<size; i++){
-    for(int j=0; j<discr; j++){
-      for(int h=0; h<discr; h++){
-        printf("(%2.0f,%.2f)", (float)((i*discr+j)*discr+h), results[(i*discr+j)*discr+h]);
-      }
-      printf("\t");
-    }
-    printf("\n");
-  }
-}
-
-__global__ void printMatrix(DP::Cell* matrix, uint discr, uint size){
-  for (int i=0; i<size; i++){
-    for(int j=0; j<discr; j++){
-      printf("(%d,%d)", (i*discr+j), matrix[i*discr+j].next());
-    }
-    printf("\n");
-  }
-}
-
 std::vector<Angle> bestAngles(DP::Cell* matrix, int discr, int size){
   DP::Cell* best=&matrix[0];
   //Find best path
@@ -135,32 +135,11 @@ bestAnglesMatrix(DP::Cell* matrix, int discr, int size, const std::vector<bool>&
 
   std::vector<Angle> ret(1, best->th());
   int nextID=best->next()+discr;
-  for (uint i=1; i<size; i++){
+  for (int i=1; i<size; i++){
     ret.push_back(matrix[nextID].th());
     nextID=matrix[nextID].next()+(i+1)*discr;
   }
   return ret;
-}
-
-__global__ void solveCell(DP::Cell* matrix, uint discr, uint size, const bool* fixedAngles, 
-                          Configuration2 c0, Configuration2 c1, uint* bestK, LEN_T* bestL,
-                          Angle* bestA, Angle a00, Angle a01, real_type* params, int i
-                          ){
-  int k=threadIdx.x+blockDim.x*blockIdx.x;
-  if(k<discr){
-    if (!fixedAngles[i]){ c1.th(a01+2*M_PI*k/(discr*1.0)); } //If angle is fixed I don't have to change it
-    CURVE c=CURVE(c0, c1, params); 
-    if (c.l()>0){
-      DP::Cell* next=(i==size-1 ? NULL : &matrix[k*size+(i+1)]);
-      LEN_T currL=c.l();
-      if (next!=NULL){
-        currL+=next->l();
-      }  
-        bestL[k]=currL;
-        bestA[k]=c1.th();
-        bestK[k]=k;
-    }
-  }
 }
 
 __global__ void solveCol( DP::Cell* matrix, uint discr, uint size, const bool* fixedAngles, 
@@ -293,58 +272,6 @@ std::vector<Angle> solveDPFirstVersion (std::vector<Configuration2> points, uint
   cudaFree(dev_params);
 
   return bestA;
-}
-
-__global__ void solveMatrixCell ( DP::Cell* matrix, uint discr, Configuration2 c0, Configuration2 c1,
-                                  real_type* params, int i, int j, real_type* results){
-  int h=threadIdx.x+blockDim.x*blockIdx.x;
-  if (h<discr){
-    c0.th(matrix[i*discr+j].th());
-    c1.th(matrix[(i+1)*discr+h].th());
-
-    CURVE c=CURVE(c0, c1, params);
-    LEN_T currL=c.l()+matrix[(i+1)*discr+h].l();
-
-    results[h]=currL;
-  }
-}
-
-__global__ void solveMatrixCol1 (DP::Cell* matrix, uint discr, uint size, const bool* fixedAngles, 
-                                Configuration2 c0, Configuration2 c1, 
-                                real_type* params, int i, uint nThreads){
-  uint tidx=threadIdx.x+blockDim.x*blockIdx.x;
-  uint stride=blockDim.x*gridDim.x;
-
-  uint j=tidx;
-  for (; j<discr; j+=stride){
-    real_type* results=(real_type*)malloc(sizeof(real_type)*discr);
-    size_t threads=nThreads;
-    size_t blocks=(int)(discr/threads)+1;
-    if (fixedAngles[i+1]) {
-      threads=1;
-      blocks=1;
-    }
-    //solveMatrixCell<<<blocks, threads>>>(matrix, discr, c0, c1, params, i, j, results);
-    //cudaDeviceSynchronize();
-    
-    real_type bestL=MAX_LEN_T;
-    int nextID=0;
-    for (uint h=0; h<discr; h++){
-      if (results[h]<bestL && results[h]>0){
-        bestL=results[h];
-        nextID=(i+1)*discr+h;
-      }
-    }
-    if(bestL!=MAX_LEN_T){
-      matrix[i*discr+j].l(bestL);
-      //matrix[i*discr+j].next(nextID);
-    }
-
-    free(results);
-
-    if(fixedAngles[i]) j=discr;
-  
-  }
 }
 
 
@@ -562,58 +489,6 @@ __global__ void computeMore(DP::Cell* matrix, real_type* results, const bool* fi
   }
 }
 
-__global__ void bestAnglesPerCellOld(DP::Cell* matrix, real_type* results, const bool* fixedAngles, 
-                                      size_t size, size_t discr, size_t iter, size_t jump){
-
-  uint tidx=threadIdx.x+blockDim.x*blockIdx.x;
-  uint i=tidx;
-  if (i<discr){ //It would be soooooo beautiful to increase the performances of this
-    for (int j=jump-1; j>=0; j--){
-      LEN_T bestL=MAX_LEN_T;
-      int nextID=0;
-      uint pos=((jump*iter+j)*discr+i)*discr;
-      uint posRes=(i+j*discr)*discr;
-      for (uint h=0; h<discr; h++){ //The inner cells of the next row 
-        if (((int)(pos/(discr*discr)))==(size-2) && results[posRes+h]<bestL){ //If it's the last row and the length is shorter than bestL, then
-          bestL=results[posRes+h];
-          //nextID=iter*jump*discr+(j+1)*discr+h;
-          nextID=h;
-        }
-        else if(((int)(pos/(discr*discr)))<(size-2)){ //Otherwise consider also the next length
-          LEN_T currL=results[posRes+h]+matrix[iter*jump*discr+(j+1)*discr+h].l();
-          if (currL<bestL){
-            bestL=currL;
-            //nextID=iter*jump*discr+(j+1)*discr+h;
-            nextID=h;
-          }
-        }
-      }
-      if (((int)(pos/(discr*discr)))<(size-1)){
-        matrix[(int)(pos/discr)]=DP::Cell(matrix[(int)(pos/discr)].th(), bestL, nextID);
-        matrix[(int)(pos/discr)].next(nextID);
-      }
-      if(matrix[(int)(pos/discr)].next()==-1){ printf("BIG NO\n");}
-      //printf("[%d] %d, %d\n", (int)(pos/discr), nextID, matrix[(int)(pos/discr)]);
-    }
-  }
-}
-
-__global__ void bestAnglesPerCellPerRow(DP::Cell* matrix, real_type* results, const bool* fixedAngles, 
-                                        size_t size, size_t discr, size_t iter, size_t jump, uint rowID){
-
-  uint tidx=threadIdx.x+blockDim.x*blockIdx.x;
-  uint cellID=tidx; //ID of cell w.r.t. to big matrix
-//  if (rowM<discr){ //It would be soooooo beautiful to increase the performances of this
-//    for (int i=jump-1; j>=0){
-//
-//    }
-//  }
-  __syncthreads();
-}
-
-      //size_t threads=(discr<_threads? discr : _threads);
-      //size_t blocks=((size_t)((discr/threads)))*numberOfSMs;
-      //bestAnglesPerCellPerRow<<<blocks, threads>>>(matrix, results);
 
 void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<bool> fixedAngles, 
                         size_t size, size_t discr, size_t iter, size_t jump, size_t _threads, size_t numberOfSMs){
@@ -622,7 +497,7 @@ void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<
   uint lastRowIDM=iter*jump+jump-1;  //Given #jump rows, this is the id of the last row in the jump group
   lastRowIDM=(lastRowIDM<size ? lastRowIDM : size-1);
   for (int i=lastRowIDM; i>=startRowIDM; i--){ //Cycle through the rows
-    if (i==size-1){continue;}    //If it's the last row, then skip it.
+    if (i==(int)(size-1)){continue;}    //If it's the last row, then skip it.
     uint startCellM=i*discr;              //Given #jump rows, this is the id of the cell in the row in the jump group I'm considering
     //std::cout << "startRowIDM: " << startRowIDM << std::endl;
     //std::cout << "lastRowIDM: " << lastRowIDM << std::endl;

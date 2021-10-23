@@ -6,6 +6,7 @@
 
 using namespace std;
 
+#if false
 
 void PrintScientific1D(double d)
 {
@@ -152,4 +153,22 @@ int main(int argc, char const *argv[]) {
 	return 0;
 }
 
+#else
 
+#include "IOUtils.hh"
+
+int main(int argc, char const *argv[]) {
+  std::vector<Configuration2> points=readConfigurationsFromFile("file1.txt", 1);
+  for (auto a : points){
+    std::cout << a << std::endl;
+  }
+  std::vector<Configuration2> points1=readPointsFromFile("filePoints1.txt", ANGLE::INVALID, ANGLE::INVALID, 1);
+  for (auto a : points1){
+    std::cout << a << std::endl;
+  }
+  getMPMDInfo(points, 3);
+  drawSolution(points, 3.0, "prova.asy");
+  return 0;
+}
+
+#endif

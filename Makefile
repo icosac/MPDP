@@ -23,8 +23,8 @@ INCLUDECC=srcCC/include
 INCLUDECU=srcCU/include
 INCCC=-I./lib/includeCC
 INCCU=-I./lib/includeCU
-LIBSCC=$(INCCC) -L./lib -lClothoidsCC
-LIBSCU=$(INCCU) -L./lib -lClothoidsCU
+LIBSCC=-L./lib -lMPMDCC
+LIBSCU=-L./lib -lMPMDCU
 LIBCC=libMPMDCC.a 
 LIBCU=libMPMDCU.a 
 MORE_FLAGS_OBJ_CC=
@@ -33,19 +33,19 @@ MORE_FLAGS_BIN_CC=
 MORE_FLAGS_BIN_CU=
 
 srcCC/obj/cc/%.o: srcCC/%.cc
-	$(CC) $(CCFLAGS) $(MORE_FLAGS_OBJ_CC) -c -o $@ $< $(LIBSCC)
+	$(CC) $(CCFLAGS) $(MORE_FLAGS_OBJ_CC) $(INCCC) -c -o $@ $<
 
 srcCU/obj/cu/%.o: srcCU/%.cu
-	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) -c -o $@ $< $(LIBSCU)
+	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) $(INCCU) -c -o $@ $<
 
 bin/cc/%.out: exec/%.cc
-	$(CC) $(CCFLAGS) $(MORE_FLAGS_BIN_CC) -o $@ $< $(LIBSCC)
+	$(CC) $(CCFLAGS) $(MORE_FLAGS_BIN_CC) $(INCCC) -o $@ $< $(LIBSCC)
 
-exec/%.cu.o: exec/%.cu
-	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) -c -o $@ $< $(LIBSCU)
+# exec/%.cu.o: exec/%.cu
+# 	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) -c -o $@ $< $(LIBSCU)
 
-bin/cu/%.out: exec/%.cu.o 
-	$(CU) $(CUFLAGS) $(MORE_FLAGS_BIN_CU) -o $@ $< $(LIBSCU)
+bin/cu/%.out: exec/%.cu
+	$(CU) $(CUFLAGS) $(MORE_FLAGS_BIN_CU) $(INCCU) -o $@ $< $(LIBSCU)
 
 
 all: echo CPU GPU 
