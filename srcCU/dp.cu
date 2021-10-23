@@ -720,7 +720,7 @@ solveDPAllIn1 ( std::vector<Configuration2> points,
   return bestA;
 }
 
-void DP::solveDP(std::vector<Configuration2>& points, int discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, short type, bool guessInitialAnglesVal, uint nIter, uint threads, Angle _fullAngle){
+std::vector<Angle> DP::solveDP(std::vector<Configuration2>& points, int discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, short type, bool guessInitialAnglesVal, uint nIter, uint threads, Angle _fullAngle){
   Angle fullAngle=_fullAngle;
   std::vector<Angle> angles; 
   //Passing the functions as pointers doesn't work for reasons I don't know
@@ -773,6 +773,7 @@ void DP::solveDP(std::vector<Configuration2>& points, int discr, const std::vect
       fullAngle=fullAngle/(discr-1)*1.5;
     }
   }
+  return angles;
 }
 
 #endif //CUDA_ON
