@@ -50,16 +50,21 @@ bin/cu/%.out: exec/%.cu
 
 all: echo CPU GPU 
 
-norProj: lib/$(LIBCC) lib/$(LIBCU)
-	rm -rf norProject/lib
-	rm -rf norProject/inc
+norProj: clean_nor lib/$(LIBCC) lib/$(LIBCU)
+
+norProjCU: lib/$(LIBCU)
+	$(MKDIR) norProject/lib
+	$(MKDIR) norProject/inc
+	cp -f include/*.hh norProject/inc
+	cp -f $(INCLUDECU)/*.cuh norProject/inc
+	cp -f lib/$(LIBCU) norProject/lib/$(LIBCU)
+
+norProjCC: lib/$(LIBCC) 
 	$(MKDIR) norProject/lib
 	$(MKDIR) norProject/inc
 	cp -f include/*.hh norProject/inc
 	cp -f $(INCLUDECC)/*.hh norProject/inc
-	cp -f $(INCLUDECU)/*.cuh norProject/inc
 	cp -f lib/$(LIBCC) norProject/lib/$(LIBCC)
-	cp -f lib/$(LIBCU) norProject/lib/$(LIBCU)
 
 CPU: lib/$(LIBCC) $(TESTCCEXEC)
 
@@ -104,6 +109,10 @@ clean_obj:
 
 clean_bin:
 	rm -rf bin
+
+clean_nor:
+	rm -rf norProject/lib
+	rm -rf norProject/inc
 
 clean: clean_lib clean_bin clean_obj
 

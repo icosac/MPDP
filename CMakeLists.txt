@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 include(GoogleTest)
 
-project(MPMD LANGUAGES CXX CUDA)
+project(MPMD LANGUAGES CXX)
 set(LIB MPMD)
 set(APP_EXEC MPMD_exec)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3 -fopenmp -Wno-reorder")
+#set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3 -fopenmp -Wno-reorder")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(${CUDA_ON} MATCHES ON)
   #Define files to be compiled
+  enable_language(CUDA)
   set(SRC "srcCU")
   set(SRCF "${SRC}/*.cu")
   file(GLOB MPMDSrc ${SRCF})
@@ -44,6 +45,11 @@ ELSE()
   add_library(${LIB} STATIC ${MPMDSrc})
   add_executable(${APP_EXEC} ${MPMDExec})
   target_link_libraries(${APP_EXEC} ${LIB})
+  
+  find_package(OpenMP)
+  if (OpenMP_CXX_FOUND)
+    target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
 ENDIF()
 
 

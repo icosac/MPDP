@@ -137,7 +137,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   temp1 = std::atan2(C, S);
   temp2 = 0.125 * (6 - 4*Ksq  + 2*dcos + 4*sKmax*dsin);
   if (std::abs(temp2) <= 1) {
-    t2 = invK * mod2pi(2*M_PI - std::acos(temp2));
+    t2 = invK * mod2pi(2*m_pi - std::acos(temp2));
     t1 = invK * mod2pi(th0 - temp1 + 0.5*t2*sKmax);
     t3 = invK * mod2pi(dth+(t2-t1)*sKmax);
     lc = t1+t2+t3;
@@ -154,7 +154,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   temp1 = std::atan2(C, S);
   temp2 = 0.125*(6 - 4*Ksq + 2*dcos - 4*sKmax*dsin);
   if (std::abs(temp2) <= 1) {
-    t2 = invK * mod2pi(2*M_PI - std::acos(temp2));
+    t2 = invK * mod2pi(2*m_pi - std::acos(temp2));
     t1 = invK * mod2pi(-th0 + temp1 + 0.5*t2*sKmax);
     t3 = invK * mod2pi(-dth + (t2-t1)*sKmax);
     lc = t1+t2+t3;
