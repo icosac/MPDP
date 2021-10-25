@@ -40,10 +40,10 @@ void PrintScientific2D(real_type d){
 
 
 std::vector<Configuration2> example1 = {
-  Configuration2(0,0,-2.0*M_PI/8.0),
+  Configuration2(0,0,-2.0*m_pi/8.0),
   Configuration2(2,2,ANGLE::INVALID),
   Configuration2(6,-1,ANGLE::INVALID),
-  Configuration2(8,1,2.0*M_PI/8.0)
+  Configuration2(8,1,2.0*m_pi/8.0)
 };
 
 std::vector<std::string> testsNames = { 

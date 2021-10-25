@@ -1,6 +1,7 @@
 #pragma once
 
 #include<fstream>
+#include<utils.hh>
 
 class Run{
 public:
@@ -38,23 +39,23 @@ public:
 };
 
 std::vector<Configuration2> kaya1={
-        Configuration2(0, 0, -M_PI/3.0),
+        Configuration2(0, 0, -m_pi/3.0),
         Configuration2(-0.1, 0.3, ANGLE::INVALID),
         Configuration2(0.2, 0.8, ANGLE::INVALID),
-        Configuration2(1, 1, -M_PI/6.0)
+        Configuration2(1, 1, -m_pi/6.0)
 };
 
 std::vector<Configuration2> kaya2={
-        Configuration2(0, 0, -M_PI/3.0),
+        Configuration2(0, 0, -m_pi/3.0),
         Configuration2(-0.1, 0.3, ANGLE::INVALID),
         Configuration2(0.2, 0.8, ANGLE::INVALID),
         Configuration2(1, 1, ANGLE::INVALID),
         Configuration2(0.5, 0.5, ANGLE::INVALID),
-        Configuration2(0.5, 0, -M_PI/6.0)
+        Configuration2(0.5, 0, -m_pi/6.0)
 };
 
 std::vector<Configuration2> kaya3={
-       Configuration2(0.5, 1.2, 5.0*M_PI/6.0),
+       Configuration2(0.5, 1.2, 5.0*m_pi/6.0),
        Configuration2(0, 0.8, ANGLE::INVALID),
        Configuration2(0, 0.4, ANGLE::INVALID),
        Configuration2(0.1, 0, ANGLE::INVALID),
@@ -77,7 +78,7 @@ std::vector<Configuration2> kaya3={
 };
 
 std::vector<Configuration2> kaya4={
-       Configuration2(0.5, 1.2, 5.0*M_PI/6.0),
+       Configuration2(0.5, 1.2, 5.0*m_pi/6.0),
        Configuration2(0.0, 0.5, ANGLE::INVALID),
        Configuration2(0.5, 0.5, ANGLE::INVALID),
        Configuration2(1.0, 0.5, ANGLE::INVALID),
@@ -92,7 +93,7 @@ std::vector<Configuration2> kaya4={
 };
 
 std::vector<Configuration2> omega ={
-      Configuration2(2.9265642, -1.707808758, 9.0/10.0*M_PI),
+      Configuration2(2.9265642, -1.707808758, 9.0/10.0*m_pi),
       Configuration2(2.6734362, -1.707808758, ANGLE::INVALID),
       Configuration2(2.5109322, -2.367185958, ANGLE::INVALID),
       Configuration2(1.9078122, -2.582810358, ANGLE::INVALID),
@@ -118,7 +119,7 @@ std::vector<Configuration2> omega ={
       Configuration2(0.8968722, -2.989063158, ANGLE::INVALID),
       Configuration2(1.1406282, -3.178123242, ANGLE::INVALID),
       Configuration2(2.6187522, -3.178123242, ANGLE::INVALID),
-      Configuration2(2.9265642, -1.707808758, 9.0/10.0*M_PI),
+      Configuration2(2.9265642, -1.707808758, 9.0/10.0*m_pi),
 };
 
 std::vector<Configuration2> spa ={

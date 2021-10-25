@@ -1,0 +1,27 @@
+{
+    "configurations": [
+      {
+        "name": "x64-Release",
+        "generator": "Ninja",
+        "configurationType": "RelWithDebInfo",
+        "inheritEnvironments": [
+          "msvc_x64_x64"
+        ],
+        "buildRoot": "${projectDir}\\CMakeBuilds\\out\\build\\${name}",
+        "installRoot": "${projectDir}\\CMakeBuilds\\bin\\build\\${name}",
+        "cmakeCommandArgs": "",
+        "buildCommandArgs": "-v",
+        "ctestCommandArgs": ""
+      },
+      {
+        "name": "GNU-release",
+        "generator": "Unix Makefiles",
+        "configurationType": "Release",
+        "buildRoot": "${projectDir}\\CMakeBuilds\\out\\build\\${name}",
+        "installRoot": "${projectDir}\\CMakeBuilds\\bin\\build\\${name}",
+        "cmakeCommandArgs": "",
+        "buildCommandArgs": "-v",
+        "ctestCommandArgs": ""
+      }
+    ]
+  } 
