@@ -74,11 +74,11 @@ void guessInitialAngles(const int i, std::vector<DP::Cell>& thPrev, std::vector<
   for (uint j=0; j<XC.size(); ++j) 
   {
     th = std::atan2(points[i-1].y()-YC[j], points[i-1].x()-XC[j]);
-    thPrev.push_back(DP::Cell(th+M_PI/2.));
-    thPrev.push_back(DP::Cell(th-M_PI/2.));
+    thPrev.push_back(DP::Cell(th+m_pi/2.));
+    thPrev.push_back(DP::Cell(th-m_pi/2.));
     th = std::atan2(points[i].y()-YC[j], points[i].x()-XC[j]);
-    thCur.push_back(DP::Cell(th+M_PI/2.));
-    thCur.push_back(DP::Cell(th-M_PI/2.));
+    thCur.push_back(DP::Cell(th+m_pi/2.));
+    thCur.push_back(DP::Cell(th-m_pi/2.));
   }
 }
 
@@ -86,7 +86,7 @@ void setSamplingAngles(int discr, const std::vector<bool> fixedAngles, const std
   MATRIX.clear();
   MATRIX.resize(points.size());
 
-  Angle dtheta=2*M_PI/discr;
+  Angle dtheta=2*m_pi/discr;
   for (uint i=0; i<points.size(); ++i){
     MATRIX.reserve(discr+10);
     for (int j=0; j<discr; ++j){
@@ -217,7 +217,7 @@ std::vector<real_type> DP::solveDP (std::vector<Configuration2> points, int disc
   bestA=solveDPInner(points, params);
 
   //Other refinements
-  double hrange=2.0*M_PI;
+  double hrange=2.0*m_pi;
   for (int ref=0; ref<nRefinements; ++ref){
     COUT(ref) 
     hrange=hrange/discr*1.5;
