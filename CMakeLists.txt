@@ -45,6 +45,11 @@ ELSE()
   add_library(${LIB} STATIC ${MPMDSrc})
   add_executable(${APP_EXEC} ${MPMDExec})
   target_link_libraries(${APP_EXEC} ${LIB})
+  
+  find_package(OpenMP)
+  if (OpenMP_CXX_FOUND)
+    target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
 ENDIF()
 
 
