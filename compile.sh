@@ -9,7 +9,6 @@ fi
 mkdir build 
 cp test/build_clothoid.txt build/
 cp test/dubinsTest.txt build/
-cd build
-cmake .. -D$1 -DTEST:STRING=$2
-make 
+cmake . --preset=$1 -DTEST:STRING=$2
+cmake --build --preset=$1 --verbose
 #ctest $2

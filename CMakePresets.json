@@ -1,0 +1,66 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default Config",
+      "description": "Default build meant for Linux or Unix-like systems",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-O2 --std=c++11 -Wall -Wno-reorder"
+    
+      }
+    },
+
+    {
+      "name": "cuda" ,
+      "displayName": "CUDA",
+      "description": "Compile with CUDA support",
+      "inherits": "default",
+      "cacheVariables": {
+        "CUDA_ON": "ON",
+        "CUDA_FLAGS": "-std=c++11 -DCUDA_ON --default-stream per-thread",
+        "CUDA_ARCH": "72;75",
+        "CUDA_SEP_COMP": "ON"
+      }
+    },
+    {
+      "name": "ninja",
+      "displayName": "Ninja",
+      "description": "Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "/O2 /std=c++11 /Wall /Wno-reorder"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    },
+    {
+      "name": "cuda",
+      "configurePreset": "cuda"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ],
+  "vendor": {
+    "example.com/ExampleIDE/1.0": {
+      "autoFormat": false
+    }
+  }
+}

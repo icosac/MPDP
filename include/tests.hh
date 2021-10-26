@@ -1,7 +1,11 @@
 #pragma once
 
 #include<fstream>
+#ifndef CUDA_ON
 #include<utils.hh>
+#else
+#include<utils.cuh>
+#endif
 
 class Run{
 public:
