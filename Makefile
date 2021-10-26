@@ -3,9 +3,9 @@ OS=$(shell uname)
 CLR=clear && clear && clear
 
 CC=g++
-CCFLAGS=-std=c++11 -O3
+CCFLAGS=-std=c++11 -O2
 CU=nvcc
-CUFLAGS=-std=c++11 -O3 -arch=sm_62 -rdc=true -DCUDA_ON --compiler-options -std=c++11
+CUFLAGS=-std=c++11 -O2 -arch=sm_62 -rdc=true -DCUDA_ON --compiler-options -std=c++11
 
 AR=ar rcs
 
@@ -36,7 +36,7 @@ srcCC/obj/cc/%.o: srcCC/%.cc
 	$(CC) $(CCFLAGS) $(MORE_FLAGS_OBJ_CC) $(INCCC) -c -o $@ $<
 
 srcCU/obj/cu/%.o: srcCU/%.cu
-	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) $(INCCU) -c -o $@ $<
+	$(CU) $(CUFLAGS) $(MORE_FLAGS_OBJ_CU) $(INCCU) -c -o $@ $<
 
 bin/cc/%.out: exec/%.cc
 	$(CC) $(CCFLAGS) $(MORE_FLAGS_BIN_CC) $(INCCC) -o $@ $< $(LIBSCC)

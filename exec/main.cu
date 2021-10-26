@@ -92,7 +92,7 @@ int main (int argc, char* argv[]){
   cudaDeviceProp deviceProperties;
   cudaGetDeviceProperties(&deviceProperties, 0);
   //printf("[%d] %s\n", 0, deviceProperties.name);
- 
+
   if (argc==1){
     for (int testID=0; testID<6; testID++){
       //if (testID!=3){continue;}

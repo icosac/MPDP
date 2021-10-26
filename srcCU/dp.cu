@@ -266,7 +266,7 @@ std::vector<Angle> solveDPFirstVersion (std::vector<Configuration2> points, uint
   cout << "KMAX: " << params[0] << endl;
 #endif
 
-  free(matrix);
+  delete matrix;
   cudaFree(dev_matrix);
   cudaFree(dev_fixedAngles);
   cudaFree(dev_params);
@@ -507,10 +507,10 @@ void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<
       for (uint h=0; h<discr; h++){        //Each cell in matrix corresponds to discr cells in results. Each h is in results is the same as the next row
         uint cellIDR=cellIDM*discr+h-startRowIDM*discr*discr;
         double currL=results[cellIDR]+matrix[(i+1)*discr+h].l();
-        int a=-2;
+        // int a=-2;
         if(currL<matrix[cellIDM].l()){
           matrix[cellIDM].l(currL);
-          a=matrix[cellIDM].next(h);
+          // a=matrix[cellIDM].next(h);
           //std::cout << "a: " << a << std::endl;
         }
         //if (cellIDM>29 && cellIDM<45){
@@ -586,6 +586,7 @@ solveDPAllIn1 ( std::vector<Configuration2> points,
     }
     else{
       for (uint j=0; j<=halfDiscr; j++){
+        COUT(j)
         if(j==0) { matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1); 
         }
         else{

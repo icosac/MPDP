@@ -24,7 +24,7 @@
       "inherits": "default",
       "cacheVariables": {
         "CUDA_ON": "ON",
-        "CUDA_FLAGS": "-std=c++11 -DCUDA_ON --default-stream per-thread",
+        "CUDA_FLAGS": "-O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options -Wall -Wno-reorder",
         "CUDA_ARCH": "72;75",
         "CUDA_SEP_COMP": "ON"
       }
