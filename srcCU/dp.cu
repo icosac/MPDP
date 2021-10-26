@@ -510,6 +510,7 @@ void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<
         // int a=-2;
         if(currL<matrix[cellIDM].l()){
           matrix[cellIDM].l(currL);
+          matrix[cellIDM].next(h);
           // a=matrix[cellIDM].next(h);
           //std::cout << "a: " << a << std::endl;
         }
