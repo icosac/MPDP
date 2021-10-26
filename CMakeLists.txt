@@ -15,12 +15,16 @@ IF(${CUDA_ON} MATCHES ON)
   set(SRCF "${SRC}/*.cu")
   file(GLOB MPMDSrc ${SRCF})
   file(GLOB MPMDExec "exec/main.cu")
-  include_directories(${SRC}/include include)
+  file(GLOB includeFiles "${SRC}/include/*.cuh" "./include/*.hh")
 
   #What should be compiled
+  include_directories(${SRC}/include include)
   add_library(${LIB} ${MPMDSrc})
   add_executable(${APP_EXEC} ${MPMDExec})
   target_link_libraries(${APP_EXEC} PUBLIC ${LIB})
+
+  #What should be installed
+  install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
 
   #Set compiler options
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_FLAGS}")
@@ -37,15 +41,19 @@ ELSE()
   set(SRCF "${SRC}/*.cc")
   file(GLOB MPMDSrc ${SRCF})
   file(GLOB MPMDExec "exec/main.cc")
-  include_directories(${SRC}/include include)
+  file(GLOB includeFiles "${SRC}/include/*.hh" "./include/*.hh")  
   
   message(STATUS "Compiling C++ with: " ${CXX_FLAGS})
   message(STATUS "${MPMDSrc}")
 
   #Compile 
+  include_directories(${SRC}/include include)
   add_library(${LIB} STATIC ${MPMDSrc})
   add_executable(${APP_EXEC} ${MPMDExec})
   target_link_libraries(${APP_EXEC} ${LIB})
+  
+  #What should be installed
+  install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
   
   find_package(OpenMP)
   if (OpenMP_CXX_FOUND)
