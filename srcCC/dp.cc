@@ -172,7 +172,7 @@ std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_t
     Configuration2* c1=&points[idx];
     
     #pragma omp parallel for
-    for (uint i=0; i<MATRIX[idx-1].size(); ++i){ //Consider the previous angle
+    for (int i=0; i<(int)(MATRIX[idx-1].size()); ++i){ //Consider the previous angle
       int bestJ=-1;
       double bestL = std::numeric_limits<LEN_T>::max();
 

@@ -1,0 +1,15 @@
+IF(CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
+  SET(CMAKE_CXX_FLAGS "/O2 /std=c++11 /Wall /Wno-reorder /DDEBUG /we4267 /WX")
+ELSEIF(CMAKE_CXX_COMPILER_ID MATCHES "")
+  IF(NOT CUDA_VERSION_MAJOR MATCHES "")
+	SET(CUDA_ON "ON")
+  	SET(CUDA_FLAGS "-O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options -Wall -Wno-reorder")
+  	SET(CUDA_ARCH "72;75")
+	SET(CUDA_SEP_COMP "ON")
+  ELSE()
+  	MESSAGE(FATAL_ERROR "Unsupported compiler ${CMAKE_CXX_COMPILER_ID}")
+  ENDIF()
+ENDIF()
+
+MESSAGE(STATUS "Compiler used: ${CMAKE_CXX_COMPILER_ID}")
+
