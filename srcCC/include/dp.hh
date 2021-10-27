@@ -29,7 +29,7 @@ namespace DP {
       int _i, _j, _id;
 
     public:
-      Cell() : _th(ANGLE::INVALID), _l(std::numeric_limits<LEN_T>::max()), _next(-1) {}
+      Cell() : _th(ANGLE::FREE), _l(std::numeric_limits<LEN_T>::max()), _next(-1) {}
 
       Cell(Angle th, LEN_T l=std::numeric_limits<LEN_T>::max(), int next=-1, int i=0, int j=0, int id=0) : 
         _th(th), _l(l),  _next(next), _i(i), _j(j), _id(id) {}

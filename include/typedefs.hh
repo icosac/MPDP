@@ -13,7 +13,7 @@ typedef real_type Angle;
 typedef double 	LEN_T;///<Typedef to describe the length
 typedef double 	K_T;  ///<Typedef to describe the curvature
 
-enum ANGLE { INVALID = 0 };
+enum ANGLE { FREE = 0 };
 
 #ifdef CUDA_ON
 #define BOTH __host__ __device__

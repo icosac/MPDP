@@ -29,7 +29,7 @@ namespace DP {
 
     public:
       real_type* _results;
-      Cell() : _th(ANGLE::INVALID), _l(std::numeric_limits<LEN_T>::max()), _nextID(0) {}
+      Cell() : _th(ANGLE::FREE), _l(std::numeric_limits<LEN_T>::max()), _nextID(0) {}
 
       BOTH Cell(Angle th, LEN_T l, int nextID) : 
           _th(th), 

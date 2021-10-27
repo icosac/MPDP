@@ -1,7 +1,12 @@
 #ifndef IOUTILS_HH
 #define IOUTILS_HH
 
+#ifndef CUDA_ON 
 #include<configuration.hh>
+#else
+#include<configuration.cuh>
+#endif
+
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -18,7 +23,7 @@ readConfigurationsFromFile(fstream& inputFile, int type=0, bool close=true){
 		std::string th;
 		while(inputFile >> x >> y >> th){
 			if (th.find("INVALID")!=std::string::npos){ 
-				points.push_back(Configuration2(x, y, ANGLE::INVALID));
+				points.push_back(Configuration2(x, y, ANGLE::FREE));
 			}
 			else{
 				points.push_back(Configuration2(x, y, atof(th.c_str())));
@@ -51,7 +56,7 @@ readConfigurationsFromFile(fstream& inputFile, int type=0, bool close=true){
 		counter=0;
 		while (inputFile >> th){
 			if (th.find("INVALID")!=std::string::npos){ 
-				points[counter].th(ANGLE::INVALID);
+				points[counter].th(ANGLE::FREE);
 			}
 			else{
 				points[counter].th(atof(th.c_str()));
@@ -73,13 +78,13 @@ readConfigurationsFromFile(const char* filename, int type=0){
 }
 
 std::vector<Configuration2> 
-readPointsFromFile(fstream& inputFile, Angle thi=ANGLE::INVALID, Angle thf=ANGLE::INVALID, int type=0, bool close=true){
+readPointsFromFile(fstream& inputFile, Angle thi=ANGLE::FREE, Angle thf=ANGLE::FREE, int type=0, bool close=true){
 	std::vector<Configuration2> points;
 	
 	if (type==0){
 		real_type x, y;
 		while(inputFile >> x >> y){
-			points.push_back(Configuration2(x, y, ANGLE::INVALID));
+			points.push_back(Configuration2(x, y, ANGLE::FREE));
 		}	
 	}
 	
@@ -111,7 +116,7 @@ readPointsFromFile(fstream& inputFile, Angle thi=ANGLE::INVALID, Angle thf=ANGLE
 }
 
 std::vector<Configuration2> 
-readPointsFromFile(const char* filename, Angle thi=ANGLE::INVALID, Angle thf=ANGLE::INVALID, int type=0){
+readPointsFromFile(const char* filename, Angle thi=ANGLE::FREE, Angle thf=ANGLE::FREE, int type=0){
 	std::fstream inputFile;
 	inputFile.open(filename, std::fstream::in);
 	return readPointsFromFile(inputFile, thi, thf, type);
