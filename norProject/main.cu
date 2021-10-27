@@ -4,8 +4,6 @@
 
 #include<dp.cuh>
 
-using namespace std;
-
 #include "IOUtils.hh"
 
 int main(int argc, char const *argv[]) {

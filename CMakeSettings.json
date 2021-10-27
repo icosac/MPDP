@@ -34,7 +34,7 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "CMakeMSVC.cmake"
+          "value": "CMakeMSCuda.cmake"
         },
         {
           "name": "CUDA_ON",
