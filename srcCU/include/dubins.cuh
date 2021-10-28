@@ -9,7 +9,6 @@
 
 #include <curve.cuh>
 #include <utils.cuh>
-#include <settings.hh>
 #include <constants.cuh>
 #ifdef TRIG
   #warning "TRIG defined"

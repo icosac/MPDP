@@ -3,7 +3,6 @@
 
 #include <curve.hh>
 #include <utils.hh>
-#include <settings.hh>
 
 #define DUBINS_DEFAULT_KMAX 0.01
 

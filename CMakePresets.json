@@ -30,6 +30,7 @@
         "CUDA_SEP_COMP": "ON"
       }
     },
+
     {
       "name": "ninja",
       "displayName": "Ninja",
@@ -48,8 +49,18 @@
       "configurePreset": "default"
     },
     {
+      "name": "defaultLib",
+      "configurePreset": "default",
+      "targets": "MPMD"
+    },
+    {
       "name": "cuda",
       "configurePreset": "cuda"
+    },
+    {
+      "name": "cudaLib",
+      "configurePreset": "cuda",
+      "targets": "MPMD"
     }
   ],
   "testPresets": [

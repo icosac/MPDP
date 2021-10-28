@@ -2,7 +2,7 @@
 #define TYPEDEFS_HH
 
 typedef double real_type;  ///<Typedef to describe the real type
-typedef int int_type       ///<Typedef to describe integers
+typedef int int_type;      ///<Typedef to describe integers
 typedef unsigned int uint; ///<Typedef to abbreviate unsigned int
 typedef real_type Angle;   ///<Typedef if the Angle. This should have been a class.
 typedef double 	LEN_T;     ///<Typedef to describe the length

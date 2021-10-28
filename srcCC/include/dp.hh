@@ -1,7 +1,6 @@
 #ifndef DP_HH
 #define DP_HH
 
-#include <settings.hh>
 #include <utils.hh>
 #include <typedefs.hh>
 #include <configuration.hh>

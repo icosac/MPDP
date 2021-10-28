@@ -5,7 +5,6 @@
 #define CURVE Dubins
 #endif
 
-#include <settings.hh>
 #include <utils.cuh>
 #include <typedefs.hh>
 #include <configuration.cuh>
