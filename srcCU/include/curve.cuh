@@ -1,5 +1,5 @@
-#ifndef CURVE_HH
-#define CURVE_HH
+#ifndef CURVE_CUH
+#define CURVE_CUH
 
 #include <configuration.cuh>
 
@@ -42,4 +42,4 @@ public:
   BOTH virtual LEN_T l() const = 0;                        ///< Returns the length of the curve.
 };
 
-#endif //CURVE_HH
+#endif //CURVE_CUH

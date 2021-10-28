@@ -1,6 +1,113 @@
 #ifdef CUDA_ON
 #include <dp.cuh>
 
+namespace DP {
+  namespace {
+    class Cell {
+    private:
+      Angle _th;   ///<Angle of the final point of the point to point curve.
+      LEN_T _l;    ///<Length of the point to point curve.
+      int _nextID; ///<Id to the next cell for dynamic programming.
+
+    public:
+      /*!
+       * Default void constructor which returns a cell initialized with ANGLE::FREE, max length and -1 as next cell.
+       */
+      Cell() : _th(ANGLE::FREE), _l(std::numeric_limits<LEN_T>::max()), _nextID(0) {}
+
+      /*!
+       * Constructor that takes in input an angle, a length and the next id and returns a DP::Cell.
+       * @param th The initial angle of the point to point curve.
+       * @param l The length of the point to point curve.
+       * @param next The next id of the cell.
+       */
+      BOTH Cell(Angle th, LEN_T l, int nextID) :
+          _th(th), _l(l), _nextID(nextID) {}
+
+      BOTH Angle th() const { return this->_th; }      ///<Returns the angle.
+      BOTH LEN_T l()  const { return this->_l; }       ///<Returns the length.
+      BOTH int next() const { return this->_nextID; }  ///<Returns the next id.
+
+      /*!
+       * Sets the new angle.
+       * @param th The new angle to be set.
+       * @return the new set angle.
+       */
+      BOTH Angle th(Angle th) {
+        this->_th = th;
+        return this->th();
+      }
+      /*!
+       * Sets the new length.
+       * @param th The new length to be set.
+       * @return the new set length.
+       */
+      BOTH LEN_T l(LEN_T l) {
+        this->_l = l;
+        return this->l();
+      }
+      /*!
+       * Sets the new next id.
+       * @param th The new next id to be set.
+       * @return the new set next id.
+       */
+      BOTH int next(int nextID){
+        //printf("nextID in class %d %u\n", nextID, nextID);
+        this->_nextID = nextID;
+        return this->next();
+      }
+
+      /*!
+       * Creates a deep copy of a cell to `this`.
+       * @param d The cell to copy from.
+       * @return `*this`.
+       */
+      BOTH Cell& copy(const Cell &d) {
+        this->th(d.th());
+        this->l(d.l());
+        this->next(d.next());
+
+        return *this;
+      }
+      /*!
+       * Overrides the assign operator (=) to make a deep copy of a cell to `this`.
+       * @param d The cell to copy from.
+       * @return `*this`.
+       */
+      BOTH Cell& operator=(const Cell &d) {
+        this->copy(d);
+        return *this;
+      }
+
+      /*!
+       * Function to print the most essential info about `DP::Cell`.
+       * @param pretty An additional truth value to print a prettier version. Default is `false`.
+       * @return A `std::stringstream` object containing the data of `DP::Cell`.
+       */
+      std::stringstream to_string(bool pretty = false) const {
+        std::stringstream out;
+        out << std::setw(20) << std::setprecision(17);
+        if (pretty) {
+          out << "th: " << this->th() << " l: " << this->l();
+        } else {
+          out << "<" << (Angle)(this->th()*1.0) << ", " << (LEN_T)(this->l()) << ">";
+        }
+        return out;
+      }
+      /*! This function overrides the << operator so to print with `std::cout` the most essential info about the `DP::Cell`.
+          \param[in] out The out stream.
+          \param[in] data The `DP::Cell` to print.
+          \returns An output stream to be printed.
+      */
+      friend std::ostream &operator<<(std::ostream &out, const Cell &data) {
+        out << data.to_string().str();
+        return out;
+      }
+
+    };
+  } //Anonymous namespace to hide information
+} //Namespace DP
+
 __global__ void dubinsWrapper(Configuration2 c0, Configuration2 c1, double Kmax, double* L){
   CURVE c(c0, c1, Kmax);
   //printf("%.17f\n", c.l());

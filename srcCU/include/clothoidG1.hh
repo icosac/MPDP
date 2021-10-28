@@ -1,5 +1,5 @@
-#ifndef CLOTHOID_HH
-#define CLOTHOID_HH
+#ifndef CLOTHOID_CUH
+#define CLOTHOID_CUH
 
 #include <cmath>
 #include <iostream>
@@ -409,4 +409,4 @@ public:
 };
 
 
-#endif //CLOTHOID_HH
+#endif //CLOTHOID_CUH

@@ -106,7 +106,6 @@ namespace DP {
 
         return *this;
       }
-
       /*!
        * Overrides the assign operator (=) to make a deep copy of a cell to `this`.
        * @param d The cell to copy from.

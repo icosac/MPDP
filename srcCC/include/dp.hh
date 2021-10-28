@@ -1,6 +1,10 @@
 #ifndef DP_HH
 #define DP_HH
 
+#ifndef CURVE
+#define CURVE Dubins
+#endif
+
 #include <utils.hh>
 #include <typedefs.hh>
 #include <configuration.hh>
@@ -13,9 +17,6 @@
 #include <sstream>
 #include <omp.h>
 
-#ifndef CURVE
-#define CURVE Dubins
-#endif
 
 namespace DP {
   /*!

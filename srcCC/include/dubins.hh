@@ -149,7 +149,7 @@ public:
 
   /*! This function overload the << operator so to print with `std::cout` the most essential info about the `Dubins`.
   		\param[in] out The out stream.
-  		\param[in] data The configuration to print.
+  		\param[in] data The Dubins to print.
   		\returns An output stream to be printed.
   */
   friend std::ostream& operator<<(std::ostream &out, Dubins& data) {

@@ -81,7 +81,7 @@ public:
    * @param conf The `Configuration2` from which to copy.
    * @return The new copied `Configuration2`.
    */
-  Configuration2& copy (Configuration2 conf){
+  Configuration2& copy (const Configuration2& conf){
     this->x(conf.x());
     this->y(conf.y());
     this->th(conf.th());
@@ -94,7 +94,7 @@ public:
    * @param conf The `Configuration2` to copy from.
    * @return The new copied `Configuration2`.
    */
-  Configuration2& operator= (Configuration2 conf){
+  Configuration2& operator= (const Configuration2& conf){
     this->copy(conf);
     return *this;
   }
