@@ -1,17 +1,12 @@
 #ifndef TYPEDEFS_HH
 #define TYPEDEFS_HH
 
-//General
-typedef double real_type; ///<Typedef to describe the real type //I would love to put double here, but then CUDA breaks with atan2 not been defined for doubles... really don't know why
-typedef int int_type;     ///<Typedef to describe integers
-typedef unsigned int uint;///<Typedef to abbreviate unsigned int
-
-//Used in configuration.hh
-typedef real_type Angle;
-
-//Used in curve.hh
-typedef double 	LEN_T;///<Typedef to describe the length
-typedef double 	K_T;  ///<Typedef to describe the curvature
+typedef double real_type;  ///<Typedef to describe the real type
+typedef int int_type       ///<Typedef to describe integers
+typedef unsigned int uint; ///<Typedef to abbreviate unsigned int
+typedef real_type Angle;   ///<Typedef if the Angle. This should have been a class.
+typedef double 	LEN_T;     ///<Typedef to describe the length
+typedef double 	K_T;       ///<Typedef to describe the curvature
 
 enum ANGLE { FREE = 0 };
 

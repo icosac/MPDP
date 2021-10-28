@@ -181,6 +181,11 @@ void getMPMDInfo(std::vector<Configuration2> points, K_T kmax, const std::vector
 	}
 }
 
+/*!
+ * Function to compute the sinc of a value.
+ * @param x The value.
+ * @return sinc(x)
+ */
 static inline double sinc(double x){
 	if (std::abs(x) < 0.002) {
 		double xs = x * x;
@@ -192,16 +197,25 @@ static inline double sinc(double x){
 	}
 }
 
+/*!
+ * Credit to Marco Frego and Enrico Bertolazzi.
+ */
 static inline double f(double ell, double k, double th){
 	double tmp = k * ell*0.5;
 	return ell * sinc(tmp)*std::cos(th + tmp);
 }
 
+/*!
+ * Credit to Marco Frego and Enrico Bertolazzi.
+ */
 static inline double g(double ell, double k, double th){
 	double tmp = k * ell*0.5;
 	return ell * sinc(tmp)*std::sin(th + tmp);
 }
 
+/*!
+ * Credit to Marco Frego and Enrico Bertolazzi.
+ */
 void draw(Dubins & dc, AsyPlot& plot, string const & penna)
 {
   std::stringstream str;
