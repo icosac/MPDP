@@ -37,7 +37,7 @@ public:
 
   CURVE_TYPE type () const { return this->_type; }    ///< Returns type of curve.
   
-  real_type* params () const { return this->_params; }         ///< Returns the parameters of the curve.
+  real_type* params () const { return this->_params; }  ///< Returns the parameters of the curve.
 
   virtual LEN_T l() const = 0;                        ///< Returns the length of the curve.
 };

@@ -1,6 +1,8 @@
 #ifndef CUDA_ON
 #include <dp.hh>
-
+/*
+ * This file is largely inspired by a similar work from Marco Frego & Paolo Bevilacqua.
+ */
 static K_T Kmax=DUBINS_DEFAULT_KMAX;
 #define MATRIX DP::matrix
 
@@ -24,10 +26,140 @@ static K_T Kmax=DUBINS_DEFAULT_KMAX;
 #define printMatrix(type)
 #endif
 
-// returns (up to) two circles through two points, given the radius
-static inline
-void circles(double x1, double y1, double x2, double y2, double r, std::vector<double> & XC, std::vector<double> & YC) 
-{
+namespace DP {
+  namespace {
+    class Cell {
+    private:
+      Angle _th;    ///<Angle of the final point of the point to point curve.
+      LEN_T _l;     ///<Length of the point to point curve.
+      int _next;    ///<Id to the next cell for dynamic programming.
+
+    public:
+      /*!
+       * Default void constructor which returns a cell initialized with ANGLE::FREE, max length and -1 as next cell.
+       */
+      Cell() : _th(ANGLE::FREE), _l(std::numeric_limits<LEN_T>::max()), _next(-1) {}
+
+      /*!
+       * Constructor that takes in input an angle, a length and the next id and returns a DP::Cell.
+       * @param th The initial angle of the point to point curve.
+       * @param l The length of the point to point curve. Default is `LEN_T` max value.
+       * @param next The next id of the cell. Default is -1.
+       */
+      explicit Cell(Angle th, LEN_T l = std::numeric_limits<LEN_T>::max(), int next = -1) :
+          _th(th), _l(l), _next(next) {}
+
+      /*!
+       * Returns the angle.
+       * @return the angle.
+       */
+      Angle th() const { return this->_th; }
+      /*!
+       * Returns the length.
+       * @return the length.
+       */
+      LEN_T l() const { return this->_l; }
+      /*!
+       * Returns the next it.
+       * @return the next it.
+       */
+      int next() const { return this->_next; }
+
+
+      /*!
+       * Sets the new angle.
+       * @param th The new angle to be set.
+       * @return the new set angle.
+       */
+      Angle th(Angle th) {
+        this->_th = th;
+        return this->th();
+      }
+      /*!
+       * Sets the new length.
+       * @param th The new length to be set.
+       * @return the new set length.
+       */
+      LEN_T l(LEN_T l) {
+        this->_l = l;
+        return this->l();
+      }
+      /*!
+       * Sets the new next id.
+       * @param th The new next id to be set.
+       * @return the new set next id.
+       */
+      int next(int next) {
+        this->_next = next;
+        return this->next();
+      }
+
+      /*!
+       * Creates a deep copy of a cell to `this`.
+       * @param d The cell to copy from.
+       * @return `*this`.
+       */
+      Cell& copy(const Cell &d) {
+        this->th(d.th());
+        this->l(d.l());
+        this->next(d.next());
+
+        return *this;
+      }
+
+      /*!
+       * Overrides the assign operator (=) to make a deep copy of a cell to `this`.
+       * @param d The cell to copy from.
+       * @return `*this`.
+       */
+      Cell& operator=(const Cell &d) {
+        this->copy(d);
+        return *this;
+      }
+
+      /*!
+       * Function to print the most essential info about `DP::Cell`.
+       * @param pretty An additional truth value to print a prettier version. Default is `false`.
+       * @return A `std::stringstream` object containing the data of `DP::Cell`.
+       */
+      std::stringstream to_string(bool pretty = false) const {
+        std::stringstream out;
+        if (pretty) {
+          out << "th: " << this->th() << " l: " << this->l();
+        } else {
+          out << "<" << (Angle) (this->th() * 1.0) << ", " << (LEN_T) (this->l()) << ">";
+        }
+        return out;
+      }
+
+      /*! This function overrides the << operator so to print with `std::cout` the most essential info about the `DP::Cell`.
+          \param[in] out The out stream.
+          \param[in] data The `DP::Cell` to print.
+          \returns An output stream to be printed.
+      */
+      friend std::ostream &operator<<(std::ostream &out, const Cell &data) {
+        out << data.to_string().str();
+        return out;
+      }
+    };
+  } //Anonymous namespace to hide information
+
+  std::vector<std::vector<DP::Cell> >matrix; ///<The matrix used for the dynamic programming algorithm.
+} //Namespace DP
+
+
+/*!
+ * This function returns (up to) two circles through two points, given the radius. Credit to Marco Frego & Paolo Bevilacqua.
+ * @param x1 The initial abscissa coordinate.
+ * @param y1 The initial ordinate coordinate.
+ * @param x2 The final abscissa coordinate.
+ * @param y2 The final ordinate coordinate.
+ * @param r The radius of the possible circles.
+ * @param XC The abscissas of points to use to calculate the tangents.
+ * @param YC The abscissas of points to use to calculate the tangents.
+ */
+static inline void circles(double x1, double y1, double x2, double y2, double r,
+                           std::vector<double> & XC, std::vector<double> & YC) {
   double TOL = 1e-8;
   
   double q = std::hypot(x2-x1, y2-y1);
@@ -56,7 +188,14 @@ void circles(double x1, double y1, double x2, double y2, double r, std::vector<d
   }
 }
 
-void guessInitialAngles(const int i, std::vector<DP::Cell>& thPrev, std::vector<DP::Cell>& thCur, const std::vector<Configuration2>& points){
+/*!
+ * Given two points, this function returns some particular angles, for example the angle that would allow to connect the two points with a straight line. Credit to Marco Frego & Paolo Bevilacqua.
+ * @param i The ith point to consider.
+ * @param thPrev Where to save the angle for the (i-1)th point.
+ * @param thCur Where to save the angle for the ith point.
+ * @param points All the points. (Simpler and cheaper than passing two `Configuration2`)
+ */
+void guessInitialAngles(const uint i, std::vector<DP::Cell>& thPrev, std::vector<DP::Cell>& thCur, const std::vector<Configuration2>& points){
   thPrev.clear();
   thCur.clear();
   
@@ -65,8 +204,8 @@ void guessInitialAngles(const int i, std::vector<DP::Cell>& thPrev, std::vector<
 
   // aligned on straight line
   double th = std::atan2(points[i].y()-points[i-1].y(), points[i].x()-points[i-1].x());
-  thPrev.push_back(DP::Cell(th));
-  thCur.push_back(DP::Cell(th));
+  thPrev.emplace_back(th);
+  thCur.emplace_back(DP::Cell(th));
 
   // aligned on circle
   std::vector<double> XC, YC;
@@ -74,15 +213,21 @@ void guessInitialAngles(const int i, std::vector<DP::Cell>& thPrev, std::vector<
   for (uint j=0; j<XC.size(); ++j) 
   {
     th = std::atan2(points[i-1].y()-YC[j], points[i-1].x()-XC[j]);
-    thPrev.push_back(DP::Cell(th+m_pi/2.));
-    thPrev.push_back(DP::Cell(th-m_pi/2.));
+    thPrev.emplace_back(DP::Cell(th+m_pi/2.));
+    thPrev.emplace_back(DP::Cell(th-m_pi/2.));
     th = std::atan2(points[i].y()-YC[j], points[i].x()-XC[j]);
-    thCur.push_back(DP::Cell(th+m_pi/2.));
-    thCur.push_back(DP::Cell(th-m_pi/2.));
+    thCur.emplace_back(DP::Cell(th+m_pi/2.));
+    thCur.emplace_back(DP::Cell(th-m_pi/2.));
   }
 }
 
-void setSamplingAngles(int discr, const std::vector<bool> fixedAngles, const std::vector<Configuration2> points){
+/*!
+ * This function sets the possible angles to consider for each point in the matrix. It is specialized for the first iteration.
+ * @param discr The number of samples to consider for each angle.
+ * @param fixedAngles A vector of bools stating which angles should not be changed.
+ * @param points A vector containing all the points through the multi-point curve should go.
+ */
+void setSamplingAngles(int discr, const std::vector<bool>& fixedAngles, const std::vector<Configuration2>& points){
   MATRIX.clear();
   MATRIX.resize(points.size());
 
@@ -107,7 +252,14 @@ void setSamplingAngles(int discr, const std::vector<bool> fixedAngles, const std
   }
 }
 
-void setSamplingAngles(const std::vector<Configuration2> points, const std::vector<bool> fixedAngles, double hrange, int hn){
+/*!
+ * This function sets the possible angles to consider for each point in the matrix. It is specialized for the first iteration.
+ * @param points A vector containing all the points through the multi-point curve should go.
+ * @param fixedAngles A vector of `bool` stating which angles should not be changed.
+ * @param hrange The value to move from the previous computed angle to find new sampling angles.
+ * @param hn The number to cycle to add new samples (set to half the value of new samplings since the added samples are mirrored w.r.t. the previously found angle).
+ */
+void setSamplingAngles(const std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles, double hrange, int hn){
   MATRIX.clear();
   MATRIX.resize(points.size());
 
@@ -134,28 +286,32 @@ void setSamplingAngles(const std::vector<Configuration2> points, const std::vect
   }
 }
 
-//Once the matrix is given, find the best angles
-std::vector<real_type> bestAngles(int size, std::vector<Configuration2>* points=NULL){
+/*!
+ * Function to compute the backward phase once all the matrix is filled.
+ * @param points The list of points.
+ * @return Returns the best angles to go through to compute the shortest multi-point path.
+*/
+std::vector<real_type> bestAngles(std::vector<Configuration2>* points=nullptr){
   int bestIdx = -1;
   LEN_T bestL = std::numeric_limits<LEN_T>::max();
   //Find best path overall
   for (uint i=0; i<MATRIX[0].size(); ++i){
     if (MATRIX[0][i].l()<bestL){
       bestL=MATRIX[0][i].l();
-      bestIdx=i;
+      bestIdx=(int)(i);
     }
   }  
 
   std::vector<Angle> vtheta;
   vtheta.push_back(MATRIX[0][bestIdx].th());
-  for (int i=0; i<size-1; ++i){
+  for (int i=0; i<points->size()-1; ++i){
     int nIdx=MATRIX[i][bestIdx].next();
     vtheta.push_back(MATRIX[i+1][nIdx].th());
     bestIdx=nIdx;
   }
 
-  if (points!=NULL){
-    for (int i=0; i<size; ++i){
+  if (points!=nullptr){
+    for (int i=0; i<points->size(); ++i){
       (*points)[i].th(vtheta[i]);
     }
   }
@@ -165,6 +321,12 @@ std::vector<real_type> bestAngles(int size, std::vector<Configuration2>* points=
   return vtheta;
 }
 
+/*!
+ * Function that computes the point to point curves and finds the best values for each initial angle considering the rest of the curve.
+ * @param points The list of points which the multi-point path should go through.
+ * @param params Additional parameters to pass to the curve constructor.
+ * @return A vector containing the length as the first value and the best angles in the rest of the vector.
+ */
 std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_type* params){
   printMatrix(0)
   for (uint idx=(points.size()-1); idx>0; --idx){ //Cycle between all points starting from the last one
@@ -201,13 +363,21 @@ std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_t
     }
   }
   printMatrix(1)
-  return bestAngles(points.size(), &points);
+  return bestAngles(&points);
 }
 
-
-std::vector<real_type> DP::solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool> fixedAngles, int nRefinements, real_type* params){  
+/*!
+ * The wrapper to call to solve the dynamic programming problem for multi-point path finding.
+ * @param points A vector of points the path should go through.
+ * @param discr The number of sampling to consider for each point.
+ * @param fixedAngles A vector stating which angles should not be changed.
+ * @param nRefinements The number of times the algorithm should be called back in order to narrow the sampling intervals finding more precise final values.
+ * @param params A list of additional parameters to pass to the curve constructor.
+ * @return A vector containing the total length of the path and the best angles in the rest of the positions.
+ */
+std::vector<real_type> DP::solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool>& fixedAngles, int nRefinements, real_type* params){
   MATRIX.clear();
-  if (params!=NULL){
+  if (params!=nullptr){
     Kmax=params[0];
   }
   std::vector<real_type> bestA;

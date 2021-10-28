@@ -9,8 +9,8 @@ CUFLAGS=-std=c++11 -O3 -arch=sm_62 -rdc=true -DCUDA_ON --compiler-options -std=c
 
 AR=ar rcs
 
-CCSRC=./AsyPlot.cc
-CUSRC=./AsyPlot.cc
+CCSRC=
+CUSRC=
 CCOBJ=$(subst ./,./obj/cc/,$(patsubst %.cc,%.o, $(CCSRC)))
 CUOBJ=$(subst ./,./obj/cu/,$(patsubst %.cc,%.o, $(CUSRC)))
 

@@ -86,7 +86,19 @@ public:
   BOTH LEN_T s2(LEN_T s2) { this->_s2 = s2; return this->s2(); }
   BOTH LEN_T s3(LEN_T s3) { this->_s3 = s3; return this->s3(); }
   BOTH D_TYPE type(D_TYPE type) { this->_Dtype = type; return this->type(); }
-
+  string type_to_string() {
+    string ret="INVALID";
+    switch(this->_Dtype){
+      case D_TYPE::LSL: { ret="LSL"; break; }
+      case D_TYPE::LSR: { ret="LSR"; break; }
+      case D_TYPE::RSR: { ret="RSR"; break; }
+      case D_TYPE::RSL: { ret="RSL"; break; }
+      case D_TYPE::LRL: { ret="LRL"; break; }
+      case D_TYPE::RLR: { ret="RLR"; break; }
+    }
+    return ret;
+  }
+  
   std::stringstream to_string (std::string str="") {
     std::stringstream out;
     out << "c0: " << this->ci()->to_string().str() << "\tc1: " << this->cf()->to_string().str() << "\tk: " << this->kmax() << "\tl: " << this->l();

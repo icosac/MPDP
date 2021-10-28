@@ -1,6 +1,11 @@
 #ifndef CUDA_ON
 #include<dubins.hh>
 
+/*!
+ * Function to standardize an angle between 0 and 2*\pi.
+ * @param ang The angle to be standardized.
+ * @return The standardized angle.
+ */
 static inline Angle
 mod2pi(Angle ang){
 	while (ang < 0) ang += m_2pi;
@@ -8,25 +13,9 @@ mod2pi(Angle ang){
 	return ang;
 }
 
-static inline Angle
-rangeSymm(Angle ang){
-	while (ang <= - m_pi) ang += m_2pi;
-	while (ang >  m_pi) ang -= m_2pi;
-	return ang;
-}
-
-static inline real_type
-sinc(real_type x){
-	if (std::abs(x) < 0.002) {
-		real_type xs = x*x;
-		return 1 - xs/6. * (1 - xs/20.0);
-	}
-	else
-	{
-		return std::sin(x) / x;
-	}
-}
-
+/*!
+ * Function to scale to a standard settings the values. Credit to Marco Frego & Paolo Bevilacqua.
+ */
 void Dubins::scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax){
   real_type dx = this->cf()->x() - this->ci()->x();
   real_type dy = this->cf()->y() - this->ci()->y();
@@ -37,6 +26,13 @@ void Dubins::scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& 
   sth1 = mod2pi(this->cf()->th() - phi);
 }
 
+/*!
+ * Given the standardized version, compute the best word. Credit to Marco Frego & Paolo Bevilacqua.
+ * @param th0 The initial standardized angle.
+ * @param th1 The final standardized angle.
+ * @param lambda A multiplier.
+ * @param sKmax The standardized curvature.
+ */
 void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   K_T sk1=0.0, sk2=0.0, sk3=0.0;
   LEN_T ss1=0.0, ss2=0.0, ss3=0.0;
@@ -73,7 +69,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = 1; sk2 = 0; sk3 = 1;
-      this->type(D_TYPE::LSL);
+      this->dtype(D_TYPE::LSL);
     }
   }
 
@@ -91,7 +87,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = -1; sk2 = 0; sk3 = -1;
-      this->type(D_TYPE::RSR);
+      this->dtype(D_TYPE::RSR);
     }
   }
 
@@ -109,7 +105,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = 1; sk2 = 0; sk3 = -1;
-      this->type(D_TYPE::LSR);
+      this->dtype(D_TYPE::LSR);
     }
   }
 
@@ -127,7 +123,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = -1; sk2 = 0; sk3 = 1;
-      this->type(D_TYPE::RSL);
+      this->dtype(D_TYPE::RSL);
     }
   }
 
@@ -144,7 +140,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = -1; sk2 = 1; sk3 = -1;
-      this->type(D_TYPE::RLR);
+      this->dtype(D_TYPE::RLR);
     }
   }
 
@@ -161,7 +157,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = 1; sk2 = -1; sk3 = 1;
-      this->type(D_TYPE::LRL);
+      this->dtype(D_TYPE::LRL);
     }
   }
 

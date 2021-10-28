@@ -13,8 +13,15 @@
 #include<limits>
 #include<cstdlib>
 
-#include "AsyPlot.hh"
+#include<asyplot.hh>
 
+/*!
+ * Function to read from a file the `Configuration2`.
+ * @param inputFile A `fstream` to the input file.
+ * @param type The type of file: 0 or 1. Default to 0.
+ * @param close Whether to close the file after reading or not. Default to true.
+ * @return Returns a vector of `Configuration2`.
+ */
 std::vector<Configuration2> 
 readConfigurationsFromFile(fstream& inputFile, int type=0, bool close=true){
 	std::vector<Configuration2> points;
@@ -70,13 +77,28 @@ readConfigurationsFromFile(fstream& inputFile, int type=0, bool close=true){
 	return points;
 }
 
+/*!
+ * Function to read from a file the `Configuration2`.
+ * @param inputFile A string containing the path to the input file.
+ * @param type The type of file: 0 or 1. Default to 0.
+ * @return Returns a vector of `Configuration2`.
+ */
 std::vector<Configuration2> 
 readConfigurationsFromFile(const char* filename, int type=0){
 	std::fstream inputFile;
 	inputFile.open(filename, std::fstream::in);
-	return readConfigurationsFromFile(inputFile,  type);
+	return readConfigurationsFromFile(inputFile,  type, true);
 }
 
+/*!
+ * Function to read from a file the points for the `Configuration2`. The first and final angle are manually set
+ * @param inputFile A `fstream` to the input file.
+ * @param thi The initial angle to be set. Default is ANGLE::FREE.
+ * @param thf The initial angle to be set. Default is ANGLE::FREE.
+ * @param type The type of file: 0 or 1. Default to 0.
+ * @param close Whether to close the file after reading or not. Default to true.
+ * @return Returns a vector of `Configuration2`.
+ */
 std::vector<Configuration2> 
 readPointsFromFile(fstream& inputFile, Angle thi=ANGLE::FREE, Angle thf=ANGLE::FREE, int type=0, bool close=true){
 	std::vector<Configuration2> points;
@@ -115,13 +137,28 @@ readPointsFromFile(fstream& inputFile, Angle thi=ANGLE::FREE, Angle thf=ANGLE::F
 	return points;
 }
 
+/*!
+ * Function to read from a file the points for the `Configuration2`. The first and final angle are manually set
+ * @param inputFile A string containing the path to the input file.
+ * @param thi The initial angle to be set. Default is ANGLE::FREE.
+ * @param thf The initial angle to be set. Default is ANGLE::FREE.
+ * @param type The type of file: 0 or 1. Default to 0.
+ * @return Returns a vector of `Configuration2`.
+ */
 std::vector<Configuration2> 
 readPointsFromFile(const char* filename, Angle thi=ANGLE::FREE, Angle thf=ANGLE::FREE, int type=0){
 	std::fstream inputFile;
 	inputFile.open(filename, std::fstream::in);
-	return readPointsFromFile(inputFile, thi, thf, type);
+  return readPointsFromFile(inputFile, thi, thf, type, true);
 }
 
+/*!
+ * This function returns informations regarding the Dubins composing the path.
+ * @param points A vector of points with or without the newly computed angles.
+ * @param kmax The maximum curvature used to compute the best angles.
+ * @param vtheta The best angles. Default is nullptr, instead if set, the function will assign the angles to the point before starting.
+ * @param len The length the MPMD should have. Deafult is 0.0, instead if set, it's used to check whether the now computed Dubins are correct.
+ */
 void getMPMDInfo(std::vector<Configuration2> points, K_T kmax, const std::vector<Angle>* vtheta=NULL, LEN_T len=0.0){
 	std::vector<Dubins> dubinss;
 	LEN_T Len=0.0;
@@ -137,12 +174,7 @@ void getMPMDInfo(std::vector<Configuration2> points, K_T kmax, const std::vector
 		std::cout << "ERROR" << std::endl;
 	}
 	else{
-		if (len!=0.0){
-			std::cout << "Total length: " << len << std::endl;
-		}
-		else {
-			std::cout << "Total length: " << Len << std::endl;
-		}
+    std::cout << "Total length: " << Len << std::endl;
 	}
 	for (Dubins d : dubinss){
 		std::cout << d << std::endl;

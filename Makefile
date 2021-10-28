@@ -3,7 +3,7 @@ OS=$(shell uname)
 CLR=clear && clear && clear
 
 CC=g++
-CCFLAGS=-std=c++11 -O2
+CCFLAGS=-std=c++11 -O2 -fopenmp
 CU=nvcc
 CUFLAGS=-std=c++11 -O2 -arch=sm_62 -rdc=true -DCUDA_ON --compiler-options -std=c++11
 
