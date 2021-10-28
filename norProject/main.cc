@@ -1,10 +1,7 @@
 #include<iostream>
-#include<stdio.h>
-#include<cmath>
 
 #include<dp.hh>
-
-#include "IOUtils.hh"
+#include<IOUtils.hh>
 
 int main(int argc, char const *argv[]) {
   std::vector<Configuration2> points=readConfigurationsFromFile("file1.txt", 1);
@@ -18,14 +15,13 @@ int main(int argc, char const *argv[]) {
   }
 
   real_type Kmax=0.5;
-  std::vector<real_type> vtheta= DP::solveDP(points, 4, fixedAngles, 4, &Kmax);
+  std::vector<real_type> vtheta= DP::solveDP(points, 4, fixedAngles, std::vector<real_type>(1, Kmax), 4, true);
   LEN_T len=vtheta[0];
   vtheta.erase(vtheta.begin());
 
   std::cout << "Finished points" << std::endl;
 
   for (int i=0; i<points.size(); i++){
-    points[i].th(vtheta[i]);
     std::cout << points[i] << std::endl;
   }
   

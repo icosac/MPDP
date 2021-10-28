@@ -18,7 +18,7 @@ int main(int argc, char const *argv[]) {
   }
 
   real_type Kmax=0.5;
-  std::vector<real_type> vtheta= DP::solveDP(points, 4, fixedAngles, std::vector<double>{Kmax}, 2, true, 4);
+  std::vector<real_type> vtheta= DP::solveDP(points, 4, fixedAngles, std::vector<double>{Kmax}, 4, true, 2);
   
   std::cout << "Finished points" << std::endl;
   for (auto a : points){

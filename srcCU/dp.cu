@@ -301,7 +301,7 @@ __global__ void solveCol( DP::Cell* matrix, uint discr, uint size, const bool* f
   }
 }
 
-std::vector<Angle> solveDPFirstVersion (std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, Angle fullAngle=2*M_PI, bool halveDiscr=false, bool guessInitialAnglesVal=false, uint nThreads=0){
+std::vector<Angle> solveDPFirstVersion (std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, Angle fullAngle=2*M_PI, bool halveDiscr=false, uint nThreads=0){
   if (points.size()!=fixedAngles.size()){
     cerr << "Number of points and number of fixed angles are not the same: " << points.size() << "!=" << fixedAngles.size() << endl;
     return std::vector<Angle>();
@@ -452,7 +452,7 @@ void solveDPMatrix (std::vector<Configuration2> points, DP::Cell* dev_matrix, ui
   }
 }
 
-std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, Angle fullAngle=2*M_PI, bool halveDiscr=false, bool guessInitialAnglesVal=false, uint nThreads=0, uint ref=0){
+std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, Angle fullAngle=2*M_PI, bool halveDiscr=false, uint nThreads=0, uint ref=0){
   size_t size=points.size();
   DP::Cell* matrix;
   bool* dev_fixedAngles=cudaSTDVectorToArray<bool>(fixedAngles);
@@ -468,10 +468,9 @@ std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, u
   
   std::vector<std::set<Angle> > moreAngles;
   uint addedAngles=0;
-  if(guessInitialAnglesVal){
-    addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
-  }
-  
+
+  addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
+
   uint halfDiscr=(uint)((discr-(discr%2==0 ? 0 : 1))/2);
   real_type dtheta=fullAngle/((halveDiscr ? (int)(discr/2) : discr)*1.0);
   discr+=addedAngles;
@@ -504,7 +503,7 @@ std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, u
         }
       }
     }
-    if (guessInitialAnglesVal){
+    if (true){
       uint j=discr-addedAngles;
       if (!fixedAngles[i]){
         for (std::set<Angle>::iterator it=moreAngles[i].begin(); it!=moreAngles[i].end(); ++it){
@@ -640,44 +639,38 @@ void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<
   }
 }
 
+
 std::vector<Angle> 
-solveDPAllIn1 ( std::vector<Configuration2> points, 
-                uint discr, const std::vector<bool> fixedAngles, 
-                std::vector<real_type> params, Angle fullAngle, 
-                bool halveDiscr=false, bool guessInitialAnglesVal=false, 
-                uint nThreads=0, uint ref=0){
-  if (points.size()!=fixedAngles.size()){
-    cerr << "Number of points and number of fixed angles are not the same: " << points.size() << "!=" << fixedAngles.size() << endl;
-    return std::vector<Angle>();
-  }
-  
+solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles,
+                std::vector<real_type> params, Angle fullAngle, uint nThreads=0, uint ref=0){
+
+  //Get the number of multiproccessors in the GPU so to best compute the number of blocks afterwards.
   int numberOfSMs; cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, cudaGetdeviceID());
+
 
   uint addedAngles=0;
   std::vector<std::set<Angle> > moreAngles;
-  //guessInitialAnglesVal=false;
-  if(guessInitialAnglesVal){
-    addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
-  }
+  addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
   
   size_t size=points.size();
-  //discr=(discr%2==0 ? discr+1 : discr); //So.... since we add always the angle in position 0, we'll always have an odd number of discretizionations... 
+  //discr=(discr%2==0 ? discr+1 : discr); //So.... since we add always the angle in position 0, we'll always have an odd number of discretizionations... I'm not so sure about this, but ok
   uint halfDiscr=(uint)(discr/2);
-  real_type dtheta=fullAngle/((halveDiscr ? (int)(discr/2) : discr)*1.0);
+  real_type dtheta=fullAngle/(((int)(discr/2))*1.0);
+  if(ref==0){
+    dtheta=fullAngle/(discr*1.0);
+  }
   discr+=addedAngles;
 
   DP::Cell* matrix;
   cudaMallocHost(&matrix, sizeof(DP::Cell)*size*(discr));
   DP::Cell* dev_matrix;
   cudaMalloc(&dev_matrix, sizeof(DP::Cell)*size*(discr));
-  //real_type* results;
-  //cudaMallocHost(&results, sizeof(real_type)*size*discr*discr);
-  
+
   bool* dev_fixedAngles=cudaSTDVectorToArray<bool>(fixedAngles);
   real_type* dev_params=cudaSTDVectorToArray<real_type>(params);  
   Configuration2* dev_points=cudaSTDVectorToArray<Configuration2>(points);
   
-  //std::cout << "halveDiscr: " << (halveDiscr==true ? "true" : "false") << std::endl; 
+  //std::cout << "halveDiscr: " << (ref!=0 ? "true" : "false") << std::endl;
   //std::cout << "discr: " << discr << std::endl;
   //std::cout << "halfDiscr: " << halfDiscr << std::endl;
   //std::cout << "hrange: " << std::setw(20) << std::setprecision(17) << fullAngle << std::endl;
@@ -702,7 +695,7 @@ solveDPAllIn1 ( std::vector<Configuration2> points,
           matrix[i*discr+j+halfDiscr]=DP::Cell(mod2pi(points[i].th()+(j*1.0)*dtheta), l, -1); 
         }
       }
-      if (guessInitialAnglesVal){
+      if (true){
         uint j=discr-addedAngles;
         if (!fixedAngles[i]){
           for (std::set<Angle>::iterator it=moreAngles[i].begin(); it!=moreAngles[i].end(); ++it){
@@ -829,25 +822,32 @@ solveDPAllIn1 ( std::vector<Configuration2> points,
   return bestA;
 }
 
-std::vector<Angle> DP::solveDP(std::vector<Configuration2>& points, int discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, short type, bool guessInitialAnglesVal, uint nIter, uint threads, Angle _fullAngle){
+std::vector<Angle> DP::solveDP(std::vector<Configuration2>& points, int discr, const std::vector<bool> fixedAngles,
+                               std::vector<real_type> params, uint nRefs, bool saveAngles,
+                               short type, uint threads, Angle _fullAngle){
+  if (points.size()!=fixedAngles.size()){
+    std::cerr << "Number of points and number of fixed angles are not the same: " << points.size() << "!=" << fixedAngles.size() << std::endl;
+    return std::vector<Angle>();
+  }
+
   Angle fullAngle=_fullAngle;
   std::vector<Angle> angles; 
   //Passing the functions as pointers doesn't work for reasons I don't know
   //std::vector<Angle>(*func)(std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, Angle fullAngle, bool halveDiscr, bool guessInitialAnglesVal)=NULL;
-  for(uint i=0; i<nIter+1; ++i){
+  for(uint i=0; i<nRefs+1; ++i){
     //std::cout << "Refinement: " << i << std::endl;
     //std::cout << std::endl;
     switch(type){
       case 0: {
-        angles=solveDPFirstVersion(points, discr, fixedAngles, params, fullAngle, (i==0 ? false : true), guessInitialAnglesVal, threads);
+        angles=solveDPFirstVersion(points, discr, fixedAngles, params, fullAngle, (i==0 ? false : true), threads);
         break;
       }
       case 1:{
-        angles=solveDPMatrixAllocator(points, discr, fixedAngles, params, fullAngle, (i==0 ? false : true), guessInitialAnglesVal, threads, i);
+        angles=solveDPMatrixAllocator(points, discr, fixedAngles, params, fullAngle, (i==0 ? false : true), threads, i);
         break;
       }
       case 2: default:{
-        angles=solveDPAllIn1(points, discr, fixedAngles, params, fullAngle, (i==0 ? false : true), guessInitialAnglesVal, threads, i);
+        angles=solveDPAllIn1(points, discr, fixedAngles, params, fullAngle, threads, i);
       }
     }
 

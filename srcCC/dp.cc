@@ -326,7 +326,7 @@ std::vector<real_type> bestAngles(std::vector<Configuration2>* points=nullptr){
  * @param params Additional parameters to pass to the curve constructor.
  * @return A vector containing the length as the first value and the best angles in the rest of the vector.
  */
-std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_type* params){
+std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, std::vector<real_type> &params){
   printMatrix(0)
   for (uint idx=(points.size()-1); idx>0; --idx){ //Cycle between all points starting from the last one
     Configuration2* c0=&points[idx-1];
@@ -339,7 +339,7 @@ std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_t
 
       for (uint j=0; j<MATRIX[idx].size(); ++j){ //Consider the next angle
         //Compute Dubins
-        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), params);
+        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), &params[0]);
         LEN_T curL=dub.l();
         if (idx==(points.size()-1) && i==1){
           COUT(MATRIX[idx-1][i])  
@@ -370,33 +370,45 @@ std::vector<real_type> solveDPInner (std::vector<Configuration2>& points, real_t
  * @param points A vector of points the path should go through.
  * @param discr The number of sampling to consider for each point.
  * @param fixedAngles A vector stating which angles should not be changed.
- * @param nRefinements The number of times the algorithm should be called back in order to narrow the sampling intervals finding more precise final values.
+ * @param nRef The number of times the algorithm should be called back in order to narrow the sampling intervals finding more precise final values.
  * @param params A list of additional parameters to pass to the curve constructor.
+ * @param saveAngles If set to `true`, then the points angles are changed to the best angles found at the end of the algorithm, otherwise, they are only returned. Default is true
  * @return A vector containing the total length of the path and the best angles in the rest of the positions.
  */
-std::vector<real_type> DP::solveDP (std::vector<Configuration2> points, int discr, const std::vector<bool>& fixedAngles, int nRefinements, real_type* params){
+std::vector<real_type> DP::solveDP (std::vector<Configuration2>& points, int discr, const std::vector<bool>& fixedAngles,
+                                    std::vector<real_type> params, int nRef, bool saveAngles){
   MATRIX.clear();
-  if (params!=nullptr){
-    Kmax=params[0];
-  }
+
+  Kmax=params[0];
+
   std::vector<real_type> bestA;
-  
+  std::vector<Configuration2> compPoints;
+  for (auto p : points){
+    compPoints.emplace_back(Configuration2(p.x(), p.y(), p.th()));
+  }
+
   //First round
-  setSamplingAngles(discr, fixedAngles, points);
-  bestA=solveDPInner(points, params);
+  setSamplingAngles(discr, fixedAngles, compPoints);
+  bestA=solveDPInner(compPoints, params);
 
   //Other refinements
   double hrange=2.0*m_pi;
-  for (int ref=0; ref<nRefinements; ++ref){
+  for (int ref=0; ref<nRef; ++ref){
     COUT(ref) 
     hrange=hrange/discr*1.5;
-    setSamplingAngles(points, fixedAngles, hrange, discr/2);
+    setSamplingAngles(compPoints, fixedAngles, hrange, discr/2);
     printV(bestA)
     
     bestA.clear();
-    bestA=solveDPInner(points, params);
+    bestA=solveDPInner(compPoints, params);
   }
-  
+
+  if (saveAngles){
+    for(uint i=0; i<points.size(); i++){
+      points[i].th(bestA[i+1]);
+    }
+  }
+
   return bestA;
 }
 
