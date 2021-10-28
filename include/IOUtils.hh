@@ -15,6 +15,32 @@
 
 #include<asyplot.hh>
 
+void PrintScientific1D(real_type d){
+  if (d == 0)
+  {
+    printf ("%*d", 6, 0);
+    return;
+  }
+
+  int exponent  = (int)floor(log10( fabs(d)));  // This will round down the exponent
+  real_type base   = d * pow(10, -1.0*exponent);
+
+  printf("%1.1lfe%+01d", base, exponent);
+}
+
+void PrintScientific2D(real_type d){
+  if (d == 0)
+  {
+    printf ("%*d", 7, 0);
+    return;
+  }
+
+  int exponent  = (int)floor(log10( fabs(d)));  // This will round down the exponent
+  real_type base   = d * pow(10, -1.0*exponent);
+
+  printf("%1.1lfe%+02d", base, exponent);
+}
+
 /*!
  * Function to read from a file the `Configuration2`.
  * @param inputFile A `fstream` to the input file.
@@ -170,8 +196,10 @@ void getMPMDInfo(std::vector<Configuration2> points, K_T kmax, const std::vector
 		dubinss.push_back(Dubins(points[i], points[i+1], kmax));
 		Len+=dubinss.back().l();
 	}
-	if (len!=0 && len!=Len){
-		std::cout << "ERROR" << std::endl;
+	if (len!=0 && !eq<double>(len, Len, 1e-13)){
+		std::cout << "ERROR before: " << std::setprecision(20) << len << " after: " << Len << " difference: ";
+    PrintScientific2D(std::abs(len-Len));
+    std::cout << std::endl;
 	}
 	else{
     std::cout << "Total length: " << Len << std::endl;

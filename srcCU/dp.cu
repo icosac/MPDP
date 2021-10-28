@@ -246,6 +246,7 @@ bestAnglesMatrix(DP::Cell* matrix, int discr, int size, const std::vector<bool>&
     ret.push_back(matrix[nextID].th());
     nextID=matrix[nextID].next()+(i+1)*discr;
   }
+  ret.insert(ret.begin(), best->l());
   return ret;
 }
 
@@ -564,7 +565,6 @@ void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<
   }
 }
 
-
 std::vector<Angle> 
 solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles,
                 std::vector<real_type> params, Angle fullAngle, uint nThreads=0, uint ref=0){
@@ -775,7 +775,7 @@ std::vector<Angle> DP::solveDP(std::vector<Configuration2>& points, int discr, c
     if(saveAngles){
       for (uint j=0; j<angles.size(); j++){
         if (!fixedAngles[j]){
-          points[j].th(angles[j]);
+          points[j].th(angles[j+1]);
         }
       }
     }

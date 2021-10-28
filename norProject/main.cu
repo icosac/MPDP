@@ -18,13 +18,16 @@ int main(int argc, char const *argv[]) {
   }
 
   real_type Kmax=0.5;
-  std::vector<real_type> vtheta= DP::solveDP(points, 4, fixedAngles, std::vector<double>{Kmax}, 4, false, 2);
-  
+  std::vector<real_type> vtheta= DP::solveDP(points, 4, fixedAngles, std::vector<double>{Kmax}, 4, true, 1);
+  LEN_T len=vtheta[0];
+  std::cout << "len: " << len << std::endl;
+  vtheta.erase(vtheta.begin());
+
   std::cout << "Finished points" << std::endl;
   for (auto a : points){
     std::cout << a << std::endl;
   }
-  getMPMDInfo(points, Kmax, &vtheta);
+  getMPMDInfo(points, Kmax, &vtheta, len);
   drawSolution(points, Kmax, "provaCU.asy");
   return 0;
 }
