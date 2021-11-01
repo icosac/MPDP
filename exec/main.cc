@@ -90,9 +90,8 @@ int main (){
         fixedAngles.push_back(false);
       }
     }
-    std::vector<real_type> curveParamV={Ks[testID]};
-    real_type* curveParam=curveParamV.data();
-    
+    std::vector<real_type> curveParam={Ks[testID]};
+
     for (auto DISCR :  discrs){
       // if (DISCR!=4){continue;}
       for (auto r : refins){
@@ -102,7 +101,7 @@ int main (){
         std::vector<Configuration2>points=Tests[testID];
 
         tp.start();
-        std::vector<real_type> vtheta=DP::solveDP(points, DISCR, fixedAngles, r, curveParam); 
+        std::vector<real_type> vtheta=DP::solveDP(points, DISCR, fixedAngles, curveParam, r);
         auto time1=tp.getTime();
 
         LEN_T ComLength=vtheta[0];

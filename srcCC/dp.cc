@@ -234,7 +234,7 @@ void setSamplingAngles(int discr, const std::vector<bool>& fixedAngles, const st
   for (uint i=0; i<points.size(); ++i){
     MATRIX.reserve(discr+10);
     for (int j=0; j<discr; ++j){
-      MATRIX[i].push_back(DP::Cell(dtheta*j));
+      MATRIX[i].push_back(DP::Cell(points[i].th()+dtheta*j));
     }
     if (i>0){
       std::vector<DP::Cell> thPrev, thCur;

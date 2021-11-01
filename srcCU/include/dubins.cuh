@@ -113,6 +113,7 @@ public:
       case D_TYPE::RSL: { ret="RSL"; break; }
       case D_TYPE::LRL: { ret="LRL"; break; }
       case D_TYPE::RLR: { ret="RLR"; break; }
+      case D_TYPE::INVALID: default: ret=ret;
     }
     return ret;
   }

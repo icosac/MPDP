@@ -115,12 +115,12 @@ int main (int argc, char* argv[]){
         for (auto r : refins){
           //if (r!=16){continue;}
           //r=5;
-          //std::cout << DISCR << " " << r << " ";
+          std::cout << DISCR << " " << r << " ";
           TimePerf tp, tp1;
           tp.start();
 
           std::vector<Configuration2>points=Tests[testID];
-          DP::solveDP(points, DISCR, fixedAngles, curveParamV, 2, true, r); 
+          DP::solveDP(points, DISCR, fixedAngles, curveParamV, r, true, 2);
           auto time1=tp.getTime();
           LEN_T Length=0.0;
           LEN_T *Length1; cudaMallocManaged(&Length1, sizeof(LEN_T));
@@ -144,7 +144,9 @@ int main (int argc, char* argv[]){
           // printf("&%.16f\\\\\n", Length1[0]);
           printf("\\\\\n");
 
+          std::cout << "prova" << std::endl;
           cudaFree(Length1);
+          std::cout << "prova" << std::endl;
           //std::cout << "Length: " << std::setprecision(30) << Length << " " << std::setprecision(20) << (ABS<real_type>(Length*1000.0, dLen*1000.0)) << endl;
           //std::cout << "Elapsed: " << std::setw(10) << time1 << "ms\t" << std::endl; // std::setw(10) << time2 << "ms\t" << std::setw(10) << (time2-time1) << "ms" << endl;
         }
