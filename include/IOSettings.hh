@@ -8,11 +8,12 @@ namespace SET{
 				char* outfile		= ""; //.asy output file
 
 	//Curve parameters
-	const size_t nPoints 		= 10; //This needs to be set only if SET::generator is true
-	const K_T 	 Kmax 	 		= 0.5;
-	const size_t discr   		= 4;
-	const size_t nRef    		= 4;
-	const bool	 saveAngles = true;
+	const size_t nPoints 	 = 10; //This needs to be set only if SET::generator is true
+	const K_T 	 Kmax 	 	 = 0.5;
+	const size_t discr   	 = 4;
+	const size_t nRef    	 = 4;
+	const bool	 saveAngles  = true;
+	const short  CUDAFunType = 2;
 
 	//Generator: parameters used if SET::generator is true
 	const size_t xSize = 10;

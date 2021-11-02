@@ -13,7 +13,7 @@ namespace DP {
       /*!
        * Default void constructor which returns a cell initialized with ANGLE::FREE, max length and -1 as next cell.
        */
-      Cell() : _th(ANGLE::FREE), _l(std::numeric_limits<LEN_T>::max()), _nextID(0) {}
+      Cell() : _th(ANGLE::FREE), _l(MAX_LEN_T), _nextID(0) {}
 
       /*!
        * Constructor that takes in input an angle, a length and the next id and returns a DP::Cell.
@@ -227,7 +227,7 @@ std::vector<Angle> bestAngles(DP::Cell* matrix, int discr, int size){
   return ret;
 }
 
-std::vector<Angle> 
+std::pair<LEN_T, std::vector<Angle> >
 bestAnglesMatrix(DP::Cell* matrix, int discr, int size, const std::vector<bool>& fixedAngles){
   DP::Cell* best=&matrix[0];
 
@@ -240,14 +240,15 @@ bestAnglesMatrix(DP::Cell* matrix, int discr, int size, const std::vector<bool>&
 
   //std::cout << "In function Length: " << std::setw(20) << std::setprecision(17) << best->l() << std::endl;
 
-  std::vector<Angle> ret(1, best->th());
+  std::vector<real_type> ret={best->th()};
+//  std::vector<real_type> ret={best->l(), best->th()};
   int nextID=best->next()+discr;
   for (int i=1; i<size; i++){
     ret.push_back(matrix[nextID].th());
     nextID=matrix[nextID].next()+(i+1)*discr;
   }
-  ret.insert(ret.begin(), best->l());
-  return ret;
+  //ret.insert(ret.begin(), best->l());
+  return std::pair<LEN_T, std::vector<Angle> >(best->l(), ret);
 }
 
 __global__ void solveCol( DP::Cell* matrix, uint discr, uint size, const bool* fixedAngles, 
@@ -373,20 +374,16 @@ void solveDPMatrix (std::vector<Configuration2> points, DP::Cell* dev_matrix, ui
   }
 }
 
-std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, uint discr,
-                                           const std::vector<bool> fixedAngles, std::vector<real_type> params,
-                                           Angle fullAngle=2*M_PI, uint nThreads=0, uint ref=0){
+std::pair<LEN_T, std::vector<Angle> >
+solveDPMatrixAllocator (std::vector<Configuration2> points, uint discr,
+                        const std::vector<bool> fixedAngles, std::vector<real_type> params,
+                        Angle fullAngle=2*M_PI, uint nThreads=0, uint ref=0){
   size_t size=points.size();
   DP::Cell* matrix;
   bool* dev_fixedAngles=cudaSTDVectorToArray<bool>(fixedAngles);
   real_type* dev_params=cudaSTDVectorToArray<real_type>(params);  
   DP::Cell* dev_matrix;
-  
-  if (points.size()!=fixedAngles.size()){
-    cerr << "Number of points and number of fixed angles are not the same: " << points.size() << "!=" << fixedAngles.size() << endl;
-    return std::vector<Angle>();
-  }
-  
+
   int numberOfSMs; cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, cudaGetdeviceID());
   
   std::vector<std::set<Angle> > moreAngles;
@@ -402,15 +399,6 @@ std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, u
   discr+=addedAngles;
   cudaMallocHost(&matrix, (sizeof(DP::Cell)*size*discr));
   cudaMalloc(&dev_matrix, sizeof(DP::Cell)*size*discr);
-   
-  
-  //std::cout << "halveDiscr: " << (halveDiscr==true ? "true" : "false") << std::endl; 
-  //std::cout << "discr: " << discr << std::endl;
-  //std::cout << "size: " << size << std::endl;
-  //std::cout << "hrange: " << std::setw(20) << std::setprecision(17) << fullAngle << std::endl;
-  //std::cout << "dtheta: " << std::setw(20) << std::setprecision(17) << dtheta << std::endl;
-  //std::cout << "hn: " << halfDiscr << std::endl;
-  //std::cout << "pippo: " << matrix[discr].th()-fullAngle/2.0 << std::endl;
 
   for (uint i=0; i<size; i++){ //TODO change back, remove l=-1 if fixedAngles
     LEN_T l = (i==size-1 ? 0 : std::numeric_limits<LEN_T>::max());
@@ -452,16 +440,13 @@ std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, u
   cudaCheckError(cudaGetLastError());
 
 
-  //if (ref==8){
-  //  cout << "Printing " << endl;
-  //  printVM(matrix, size, discr)
-  //}
 #ifdef DEBUG
   //Retrieve angles
   cout << "Computing best angles" << endl;
 #endif
-  std::vector<Angle> bestA=bestAnglesMatrix(matrix, discr, size, fixedAngles);
+  std::pair<LEN_T, std::vector<Angle> > ret=bestAnglesMatrix(matrix, discr, size, fixedAngles);
 #ifdef DEBUG
+  std::vector<Angle> bestA=ret.second;
   printV(bestA)
 #endif
   
@@ -490,7 +475,7 @@ std::vector<Angle> solveDPMatrixAllocator (std::vector<Configuration2> points, u
   cudaFree(dev_params);
   cudaFree(dev_fixedAngles);
 
-  return bestA;
+  return ret;
 }
 
 
@@ -565,7 +550,7 @@ void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<
   }
 }
 
-std::vector<Angle> 
+std::pair<LEN_T, std::vector<Angle> >
 solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles,
                 std::vector<real_type> params, Angle fullAngle, uint nThreads=0, uint ref=0){
 
@@ -576,7 +561,7 @@ solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vecto
   uint addedAngles=0;
   std::vector<std::set<Angle> > moreAngles;
   addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
-  
+
   size_t size=points.size();
   //discr=(discr%2==0 ? discr+1 : discr); //So.... since we add always the angle in position 0, we'll always have an odd number of discretizionations... I'm not so sure about this, but ok
   uint halfDiscr=(uint)(discr/2);
@@ -594,13 +579,6 @@ solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vecto
   bool* dev_fixedAngles=cudaSTDVectorToArray<bool>(fixedAngles);
   real_type* dev_params=cudaSTDVectorToArray<real_type>(params);  
   Configuration2* dev_points=cudaSTDVectorToArray<Configuration2>(points);
-  
-  //std::cout << "halveDiscr: " << (ref!=0 ? "true" : "false") << std::endl;
-  //std::cout << "discr: " << discr << std::endl;
-  //std::cout << "halfDiscr: " << halfDiscr << std::endl;
-  //std::cout << "hrange: " << std::setw(20) << std::setprecision(17) << fullAngle << std::endl;
-  //std::cout << "dtheta: " << std::setw(20) << std::setprecision(17) << dtheta << std::endl;
-  //std::cout << "hn: " << halfDiscr << std::endl;
 
   for (uint i=0; i<size; i++){
     LEN_T l = (i==size-1 ? 0 : std::numeric_limits<LEN_T>::max());
@@ -613,24 +591,21 @@ solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vecto
     else{
       for (uint j=0; j<=halfDiscr; j++){
         COUT(j)
-        if(j==0) { matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1); 
+        if(j==0) { 
+          matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1); 
         }
         else{
           matrix[i*discr+j]          =DP::Cell(mod2pi(points[i].th()-(j*1.0)*dtheta), l, -1);
           matrix[i*discr+j+halfDiscr]=DP::Cell(mod2pi(points[i].th()+(j*1.0)*dtheta), l, -1); 
         }
       }
-      if (true){
-        uint j=discr-addedAngles;
-        if (!fixedAngles[i]){
-          for (std::set<Angle>::iterator it=moreAngles[i].begin(); it!=moreAngles[i].end(); ++it){
-            matrix[i*discr+j]=DP::Cell(*it, l, -1);
-            j++;
-          }
-        }
-        for (; j<discr; j++){
-          matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1);
-        }
+      uint j=discr-addedAngles;
+      for (std::set<Angle>::iterator it=moreAngles[i].begin(); it!=moreAngles[i].end(); ++it){
+        matrix[i*discr+j]=DP::Cell(*it, l, -1);
+        j++;
+      }
+      for (; j<discr; j++){
+        matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1);
       }
     }
   }
@@ -651,41 +626,21 @@ solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vecto
   cudaMallocHost(&results, sizeof(real_type)*jump*discr*discr);
   cudaMalloc(&dev_results1, sizeof(real_type)*jump*discr*discr);
   cudaMalloc(&dev_results2, sizeof(real_type)*jump*discr*discr);
-  //std::cout << "Iter: " << iter << std::endl;
-  //std::cout << "discr: " << discr << std::endl;
     
-  for (int i=iter-1; i>=0; i--){  
-    //cout << "computing: " << i << endl;
+  for (int i=iter-1; i>=0; i--){
     computeMore<<<blocks, threads>>>(dev_matrix, dev_results1, dev_fixedAngles, dev_params, dev_points, jump, discr, size, i);
     cudaDeviceSynchronize();
     cudaCheckError(cudaGetLastError());
-    //cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << endl;
-    //printResults<<<1, 1>>>(dev_results1, discr, jump);
-    //cudaDeviceSynchronize();
-    //cout << "<<<<<<<<<<<<<<<<<<<<<<<<" << endl;
     
     cudaMemcpy(results, dev_results1, sizeof(real_type)*jump*discr*discr, cudaMemcpyDeviceToHost);
     cudaCheckError(cudaGetLastError());
 
-    //for (int j=0; j<size; j++){
-    //  for (int h=0; h<discr; h++){
-    //    for (int k=0; k<discr; k++){
-    //      std::cout << "(" << std::setw(2) << (j*discr+h)*discr+k << "," << std::setw(3) << results[(j*discr+h)*discr+k] << ")";
-    //    }
-    //    std::cout << "\t";
-    //  }
-    //  std::cout << std::endl;
-    //}
-    
     dev_resultsapp=dev_results1;
     dev_results1=dev_results2;
     dev_results2=dev_resultsapp;
 
     bestAnglesPerCell(matrix, results, fixedAngles, size, discr, i, jump, nThreads, numberOfSMs);
     cudaMemcpy(dev_matrix, matrix, sizeof(real_type)*size*discr, cudaMemcpyHostToDevice);
-//    bestAnglesPerCell<<<blocks, threads>>>(dev_matrix, dev_results2, dev_fixedAngles, size, discr, i, jump);
-//
-    //printMatrix<<<1, 1>>>(matrix, discr, size);
     cudaDeviceSynchronize();
     cudaCheckError(cudaGetLastError());
     
@@ -693,25 +648,13 @@ solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vecto
     printf("\n");
     #endif
   }
-  //cudaMemcpy(matrix, dev_matrix, sizeof(DP::Cell)*size*discr, cudaMemcpyDeviceToHost);
-  //cudaCheckError(cudaGetLastError());
-  //for(int i=0; i<size; i++){
-  //  for(int j=0; j<discr; j++){
-  //    printf("%5d ", matrix[i*discr+j].next()); 
-  //  }
-  //  std::cout << std::endl;
-  //}
-
-  //if (ref==8){
-  //  cout << "Printing " << endl;
-  //  printVM(matrix, size, discr)
-  //}
 #ifdef DEBUG
   //Retrieve angles
   cout << "Computing best angles" << endl;
 #endif
-  std::vector<Angle> bestA=bestAnglesMatrix(matrix, discr, size, fixedAngles);
+  std::pair<LEN_T, std::vector<Angle> > ret=bestAnglesMatrix(matrix, discr, size, fixedAngles);
 #ifdef DEBUG
+  std::vector<Angle> bestA=ret.second;
   printV(bestA)
 #endif
   
@@ -744,58 +687,41 @@ solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vecto
   cudaFree(dev_results1);
   cudaFree(dev_results2);
 
-  return bestA;
+  return ret;
 }
 
-std::vector<Angle> DP::solveDP(std::vector<Configuration2>& points, int discr, const std::vector<bool> fixedAngles,
-                               std::vector<real_type> params, uint nRefs, bool saveAngles,
-                               short type, uint threads, Angle _fullAngle){
+std::pair<LEN_T, std::vector<Angle> >
+DP::solveDP(std::vector<Configuration2>& points, const std::vector<bool> fixedAngles,
+            std::vector<real_type> params, int discr, uint nRefs, bool saveAngles,
+            short type, uint threads, Angle _fullAngle){
+  ////std::cout << "ciao2.1\n";
   if (points.size()!=fixedAngles.size()){
     std::cerr << "Number of points and number of fixed angles are not the same: " << points.size() << "!=" << fixedAngles.size() << std::endl;
-    return std::vector<Angle>();
+    return std::pair<LEN_T, std::vector<Angle> >(MAX_LEN_T, std::vector<Angle>());
   }
 
   Angle fullAngle=_fullAngle;
-  std::vector<Angle> angles; 
-  //Passing the functions as pointers doesn't work for reasons I don't know
-  //std::vector<Angle>(*func)(std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles, std::vector<real_type> params, Angle fullAngle, bool halveDiscr, bool guessInitialAnglesVal)=NULL;
+  std::pair<LEN_T, std::vector<Angle> > ret;
+
   for(uint i=0; i<nRefs+1; ++i){
-    //std::cout << "Refinement: " << i << std::endl;
-    //std::cout << std::endl;
     switch(type){
       case 1:{
-        angles=solveDPMatrixAllocator (points, discr, fixedAngles, params, fullAngle, threads, i);
+        ret=solveDPMatrixAllocator (points, discr, fixedAngles, params, fullAngle, threads, i);
         break;
       }
       case 2: default:{
-        angles=solveDPAllIn1          (points, discr, fixedAngles, params, fullAngle, threads, i);
+        ret=solveDPAllIn1          (points, discr, fixedAngles, params, fullAngle, threads, i);
       }
     }
+    std::vector<Angle> angles=ret.second;
 
     if(saveAngles){
       for (uint j=0; j<angles.size(); j++){
         if (!fixedAngles[j]){
-          points[j].th(angles[j+1]);
+          points[j].th(angles[j]);
         }
       }
     }
-    //std::cout << "< ";
-    //for (auto v : angles){
-    //std::cout << std::setw(20) << std::setprecision(17) << mod2pi(v) << " ";
-    //}
-    //std::cout << ">" << std::endl;
-    //
-    //LEN_T* Length;
-    //cudaMallocManaged(&Length, sizeof(LEN_T));
-    //for (unsigned int h=points.size()-1; h>0; ){
-    //  dubinsWrapper<<<1,1>>>(points[h-1], points[h], params[0], Length);
-    //  cudaDeviceSynchronize();
-    //  //std::cout << std::setw(20) << std::setprecision(17) << c.l() << std::endl;
-    //  //Length+=c.l();
-    //  h--;
-    //}
-    //std::cout << "Length: " << std::setw(20) << std::setprecision(17) << Length[0] << " " << std::endl; // setprecision(20) << (ABS<real_type>(Length, dLen)) << endl;
-    //cudaFree(Length);
 
     if (i==0){
       fullAngle=fullAngle/(discr)*1.5;
@@ -804,8 +730,9 @@ std::vector<Angle> DP::solveDP(std::vector<Configuration2>& points, int discr, c
     else{
       fullAngle=fullAngle/(discr-1)*1.5;
     }
+    angles.clear();
   }
-  return angles;
+  return ret;
 }
 
 #endif //CUDA_ON

@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 include(GoogleTest)
 
 project(MPMD LANGUAGES CXX)
-set(LIB MPMD)
-set(APP_EXEC MPMD_exec)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(${CUDA_ON} MATCHES ON)
+  set(LIB "MPMDCU")
+  set(APP_EXEC "MPMDCU_exec")
   #Define files to be compiled
   enable_language(CUDA)
 
@@ -28,14 +28,16 @@ IF(${CUDA_ON} MATCHES ON)
 
   #Set compiler options
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_FLAGS}")
-  set_target_properties(${LIB} PROPERTIES CUDA_SEPARABLE_COMPILATION ${CUDA_SEP_COMP})
+  set_target_properties(${LIB} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
   set_target_properties(${LIB} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
-  set_target_properties(${APP_EXEC} PROPERTIES CUDA_SEPARABLE_COMPILATION ${CUDA_SEP_COMP})
+  set_target_properties(${APP_EXEC} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
   set_target_properties(${APP_EXEC} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
 
   message(STATUS "Compiling CUDA with: " ${CUDA_FLAGS})
   message(STATUS "${MPMDSrc}")
 ELSE()
+  set(LIB "MPMDCC")
+  set(APP_EXEC "MPMDCC_exec")
   #Define files to be compiled
   set(SRC "srcCC")
   set(SRCF "${SRC}/*.cc")

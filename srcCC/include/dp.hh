@@ -27,10 +27,11 @@ namespace DP {
    * @param params A list of refinements, that is the number of parameters to pass to the curve constructor.
    * @param nRefinements The number of times the algorithm should be called back in order to narrow the sampling intervals finding more precise final values. Default is 1.
    * @param saveAngles If set to `true`, then the points angles are changed to the best angles found at the end of the algorithm, otherwise, they are only returned. Default is true.
-   * @return A vector containing the total length of the path and the best angles in the rest of the positions.
+   * @return A pair where the first element is the computed length of the curve and the second one is a vector containing the best angles.
    */
-  std::vector<real_type> solveDP (std::vector<Configuration2>& points, int discr, const std::vector<bool>& fixedAngles,
-                                  std::vector<real_type> params, int nRefinements, bool saveAngles=true);
+  std::pair<LEN_T, std::vector<Angle> >
+  solveDP(std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles, 
+          std::vector<real_type> params, int discr, int nRefinements, bool saveAngles=true);
   
 } //namespace DP
 

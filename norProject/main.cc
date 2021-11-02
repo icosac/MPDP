@@ -27,9 +27,9 @@ int main(int argc, char const *argv[]) {
     std::cout << a << std::endl;
   }
 
-  std::vector<real_type> vtheta= DP::solveDP(points, SET::discr, fixedAngles, std::vector<real_type>(1, SET::Kmax), SET::nRef, SET::saveAngles);
-  LEN_T len=vtheta[0];
-  vtheta.erase(vtheta.begin());
+  std::pair<LEN_T, std::vector<Angle> >ret= DP::solveDP(points, fixedAngles, std::vector<real_type>(1, SET::Kmax), SET::discr, SET::nRef, SET::saveAngles);
+  LEN_T len=ret.first;
+  std::vector<Angle> vtheta=ret.second;
 
   std::cout << "Finished points" << std::endl;
 

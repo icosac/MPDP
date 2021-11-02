@@ -5,7 +5,7 @@ CLR=clear && clear && clear
 CC=g++
 CCFLAGS=-std=c++11 -O2 -fopenmp
 CU=nvcc
-CUFLAGS=-std=c++11 -O2 -arch=sm_75 -dc -DCUDA_ON --compiler-options="-std=c++11 -Wall -Wno-reorder"
+CUFLAGS=-std=c++11 -O2 -arch=sm_75 -rdc=true -DCUDA_ON --compiler-options="-std=c++11 -Wall -Wno-reorder"
 
 AR=ar rcs
 
@@ -16,8 +16,8 @@ CUOBJ=$(subst srcCU/,srcCU/obj/cu/,$(patsubst %.cu,%.o, $(CUSRC)))
 
 TESTCCSRC=$(filter-out exec/generate.cc, $(wildcard exec/*.cc))
 TESTCUSRC=$(wildcard exec/*.cu)
-TESTCCEXEC=$(subst exec/,bin/cc/,$(patsubst %.cc,%.out, $(TESTCCSRC)))
-TESTCUEXEC=$(subst exec/,bin/cu/,$(patsubst %.cu,%.out, $(TESTCUSRC)))
+TESTCCEXEC=$(subst exec/,./bin/cc/,$(patsubst %.cc,%.out, $(TESTCCSRC)))
+TESTCUEXEC=$(subst exec/,./bin/cu/,$(patsubst %.cu,%.out, $(TESTCUSRC)))
 
 INCLUDECC=srcCC/include
 INCLUDECU=srcCU/include

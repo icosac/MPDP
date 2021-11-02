@@ -75,8 +75,6 @@ std::string nameTest(std::string name, std::string add="", std::string conc=" ")
 
 
 int main (){
-  cout << "C++" << endl;
-
   for (uint testID=0; testID<Tests.size(); testID++){
     // if (testID!=3){continue;}
     real_type dLen=exampleLenghts[testID];
@@ -101,11 +99,10 @@ int main (){
         std::vector<Configuration2>points=Tests[testID];
 
         tp.start();
-        std::vector<real_type> vtheta=DP::solveDP(points, DISCR, fixedAngles, curveParam, r);
+        std::pair<LEN_T, std::vector<Angle> >ret=DP::solveDP(points, fixedAngles, curveParam, DISCR, r);
         auto time1=tp.getTime();
-
-        LEN_T ComLength=vtheta[0];
-        vtheta.erase(vtheta.begin());
+        LEN_T ComLength=ret.first;
+        std::vector<Angle> vtheta=ret.second;
 
         LEN_T Length;
         for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
