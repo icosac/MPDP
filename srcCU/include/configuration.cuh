@@ -6,8 +6,6 @@
 #include <ostream>
 #include <string>
 
-using namespace std;
-
 #include <typedefs.hh>
 
 class Configuration2{

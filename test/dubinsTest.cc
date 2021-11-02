@@ -5,8 +5,6 @@
 #include<dp.hh>
 #include <utils.hh>
 
-using namespace std;
-
 #define DISCR 720
 #define EPSILON 1e-4
 

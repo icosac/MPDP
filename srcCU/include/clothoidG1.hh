@@ -3,7 +3,6 @@
 
 #include <cmath>
 #include <iostream>
-using namespace std;
 
 #include <curve.cuh>
 #include <utils.cuh>

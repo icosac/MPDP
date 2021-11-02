@@ -218,7 +218,7 @@ std::vector<Angle> bestAngles(DP::Cell* matrix, int discr, int size){
     }
   }
   //Retrieve best angles
-  vector<Angle> ret(1, best->th());
+  std::vector<Angle> ret(1, best->th());
   uint nextID=best->next();
   while (nextID!=0){
     ret.push_back(matrix[nextID].th());

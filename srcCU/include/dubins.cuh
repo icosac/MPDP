@@ -104,8 +104,8 @@ public:
    * Function to print the stringy word of the Dubins.
    * @return A string containing the word of the computed Dubins.
    */
-  string type_to_string() {
-    string ret="INVALID";
+  std::string type_to_string() {
+    std::string ret="INVALID";
     switch(this->_type){
       case D_TYPE::LSL: { ret="LSL"; break; }
       case D_TYPE::LSR: { ret="LSR"; break; }

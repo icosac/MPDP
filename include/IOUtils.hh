@@ -69,7 +69,7 @@ std::vector<std::string> splitString(std::string str){
  * @return Returns a pair where the first element is vector of `Configuration2` and the second element is a vector of booleans for the fixed angles.
  */
 std::pair<std::vector<Configuration2>, std::vector<bool> > 
-readConfigurationsFromFile(fstream& inputFile, int type=0, bool close=true){
+readConfigurationsFromFile(std::fstream& inputFile, int type=0, bool close=true){
 	std::vector<Configuration2> points;
 	std::vector<bool> fixedAngles;
 
@@ -172,7 +172,7 @@ readConfigurationsFromFile(const char* filename, int type=0){
  * @return Returns a pair where the first element is vector of `Configuration2` and the second element is a vector of booleans for the fixed angles.
  */
 std::pair<std::vector<Configuration2>, std::vector<bool> >
-readPointsFromFile(fstream& inputFile, Angle thi=ANGLE::FREE, Angle thf=ANGLE::FREE, int type=0, bool close=true){
+readPointsFromFile(std::fstream& inputFile, Angle thi=ANGLE::FREE, Angle thf=ANGLE::FREE, int type=0, bool close=true){
 	std::vector<Configuration2> points;
 	
 	if (type==0){
