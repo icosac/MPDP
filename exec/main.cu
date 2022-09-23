@@ -9,36 +9,9 @@
 #include<dubins.cuh>
 #include<dp.cuh>
 #include<timeperf.hh>
+#include<utilities.hh>
 
 #include<tests.hh>
-
-
-void PrintScientific1D(real_type d){
-  if (d == 0)
-  {
-    printf ("%*d", 6, 0);
-    return;
-  }
-
-  int exponent  = (int)floor(log10( fabs(d)));  // This will round down the exponent
-  real_type base   = d * pow(10, -1.0*exponent);
-
-  printf("%1.1lfe%+01d", base, exponent);
-}
-
-void PrintScientific2D(real_type d){
-  if (d == 0)
-  {
-    printf ("%*d", 7, 0);
-    return;
-  }
-
-  int exponent  = (int)floor(log10( fabs(d)));  // This will round down the exponent
-  real_type base   = d * pow(10, -1.0*exponent);
-
-  printf("%1.1lfe%+02d", base, exponent);
-}
-
 
 std::vector<Configuration2> example1 = {
   Configuration2(0,0,-2.0*M_PI/8.0),
@@ -87,6 +60,8 @@ int main (int argc, char* argv[]){
   cudaGetDeviceCount(&devicesCount);
   cudaDeviceProp deviceProperties;
   cudaGetDeviceProperties(&deviceProperties, 0);
+
+  std::cout << "Running CUDA" << std::endl;
 
   if (argc==1){
     for (int testID=0; testID<6; testID++){

@@ -6,6 +6,7 @@ project(MPMD LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(${CUDA_ON} MATCHES ON)
+#  include(CMakeMSCuda.cmake)
   set(LIB "MPMDCU")
   set(APP_EXEC "MPMDCU_exec")
   #Define files to be compiled
@@ -33,7 +34,7 @@ IF(${CUDA_ON} MATCHES ON)
   set_target_properties(${APP_EXEC} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
   set_target_properties(${APP_EXEC} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
 
-  message(STATUS "Compiling CUDA with: " ${CUDA_FLAGS})
+  message(FATAL "Compiling CUDA with: " ${CUDA_FLAGS})
   message(STATUS "${MPMDSrc}")
 ELSE()
   set(LIB "MPMDCC")
@@ -62,7 +63,6 @@ ELSE()
     target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
   endif()
 ENDIF()
-
 
 
 #add_subdirectory(test)

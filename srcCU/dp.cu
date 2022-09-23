@@ -349,17 +349,6 @@ void solveDPMatrix (std::vector<Configuration2> points, DP::Cell* dev_matrix, ui
     size_t threads=discr>nThreads ? nThreads : discr;
     size_t blocks=((int)(discr/threads)+1)*numberOfSMs; 
     
-    //size_t nBlocksGivenThreads=(int)(discr/threads);
-    //size_t blocks=1;
-    //if (nBlocksGivenThreads>0 && nBlocksGivenThreads<numberOfSMs){
-    //  blocks=nBlocksGivenThreads;
-    //}
-    //else if (nBlocksGivenThreads==0){
-    //  blocks=1;
-    //}
-    //else{
-    //  blocks=((int)(nBlocksGivenThreads/numberOfSMs))*numberOfSMs;
-    //}
     if(fixedAngles[i]){
       threads=1;
       blocks=1;
