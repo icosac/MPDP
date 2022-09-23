@@ -3,9 +3,9 @@ OS=$(shell uname)
 CLR=clear && clear && clear
 
 CC=g++
-CCFLAGS=-std=c++11 -O3
+CCFLAGS=-std=c++11 -O2 -fopenmp
 CU=nvcc
-CUFLAGS=-std=c++11 -O3 -arch=sm_62 -rdc=true -DCUDA_ON --compiler-options -std=c++11
+CUFLAGS=-std=c++11 -O2 -arch=sm_75 -rdc=true -DCUDA_ON --compiler-options="-std=c++11 -Wall -Wno-reorder"
 
 AR=ar rcs
 
@@ -16,36 +16,55 @@ CUOBJ=$(subst srcCU/,srcCU/obj/cu/,$(patsubst %.cu,%.o, $(CUSRC)))
 
 TESTCCSRC=$(filter-out exec/generate.cc, $(wildcard exec/*.cc))
 TESTCUSRC=$(wildcard exec/*.cu)
-TESTCCEXEC=$(subst exec/,bin/cc/,$(patsubst %.cc,%.out, $(TESTCCSRC)))
-TESTCUEXEC=$(subst exec/,bin/cu/,$(patsubst %.cu,%.out, $(TESTCUSRC)))
+TESTCCEXEC=$(subst exec/,./bin/cc/,$(patsubst %.cc,%.out, $(TESTCCSRC)))
+TESTCUEXEC=$(subst exec/,./bin/cu/,$(patsubst %.cu,%.out, $(TESTCUSRC)))
 
 INCLUDECC=srcCC/include
 INCLUDECU=srcCU/include
 INCCC=-I./lib/includeCC
 INCCU=-I./lib/includeCU
-LIBSCC=-L./lib $(INCCC) -lClothoidsCC
-LIBSCU=-L./lib $(INCCU) -lClothoidsCU
-LIBCC=libClothoidsCC.a #LIB_DUBINS
-LIBCU=libClothoidsCU.a #LIB_DUBINS
-MORE_FLAGS=
+LIBSCC=-L./lib -lMPMDCC
+LIBSCU=-L./lib -lMPMDCU
+LIBCC=libMPMDCC.a 
+LIBCU=libMPMDCU.a 
+MORE_FLAGS_OBJ_CC=
+MORE_FLAGS_OBJ_CU=
+MORE_FLAGS_BIN_CC=
+MORE_FLAGS_BIN_CU=
 
 srcCC/obj/cc/%.o: srcCC/%.cc
-	$(CC) $(CCFLAGS) $(MORE_FLAGS) -c -o $@ $< $(LIBSCC)
+	$(CC) $(CCFLAGS) $(MORE_FLAGS_OBJ_CC) $(INCCC) -c -o $@ $<
 
 srcCU/obj/cu/%.o: srcCU/%.cu
-	$(CU) $(CUFLAGS) $(MORE_FLAGS) -c -o $@ $< $(LIBSCU)
+	$(CU) $(CUFLAGS) $(MORE_FLAGS_OBJ_CU) $(INCCU) -c -o $@ $<
 
 bin/cc/%.out: exec/%.cc
-	$(CC) $(CCFLAGS) $(MORE_FLAGS) -o $@ $< $(LIBSCC)
+	$(CC) $(CCFLAGS) $(MORE_FLAGS_BIN_CC) $(INCCC) -o $@ $< $(LIBSCC)
 
-exec/%.cu.o: exec/%.cu
-	$(CU) $(CUFLAGS) $(MORE_FLAGS) -c -o $@ $< $(LIBSCU)
+# exec/%.cu.o: exec/%.cu
+# 	$(CU) $(MORE_FLAGS_OBJ_CU) $(CUFLAGS) -c -o $@ $< $(LIBSCU)
 
-bin/cu/%.out: exec/%.cu.o 
-	$(CU) $(CUFLAGS) $(MORE_FLAGS) -o $@ $< $(LIBSCU)
+bin/cu/%.out: exec/%.cu
+	$(CU) $(CUFLAGS) $(MORE_FLAGS_BIN_CU) $(INCCU) -o $@ $< $(LIBSCU)
 
 
 all: echo CPU GPU 
+
+norProj: clean_nor lib/$(LIBCC) lib/$(LIBCU)
+
+norProjCU: lib/$(LIBCU)
+	$(MKDIR) norProject/lib
+	$(MKDIR) norProject/inc
+	cp -f include/*.hh norProject/inc
+	cp -f $(INCLUDECU)/*.cuh norProject/inc
+	cp -f lib/$(LIBCU) norProject/lib/$(LIBCU)
+
+norProjCC: lib/$(LIBCC) 
+	$(MKDIR) norProject/lib
+	$(MKDIR) norProject/inc
+	cp -f include/*.hh norProject/inc
+	cp -f $(INCLUDECC)/*.hh norProject/inc
+	cp -f lib/$(LIBCC) norProject/lib/$(LIBCC)
 
 CPU: lib/$(LIBCC) $(TESTCCEXEC)
 
@@ -68,16 +87,14 @@ mvlibCC:
 	$(MKDIR) lib/includeCC
 	cp -f include/*.hh lib/includeCC
 	cp -f $(INCLUDECC)/*.hh lib/includeCC
-	cp -f $(INCLUDECC)/*.tt lib/includeCC
 
 mvlibCU:
 	@rm -rf lib/includeCU
 	$(MKDIR) lib/includeCU
 	cp -f include/*.hh lib/includeCU
-	cp -f $(INCLUDECU)/*.cut lib/includeCU
 	cp -f $(INCLUDECU)/*.cuh lib/includeCU
 
-lib/$(LIBCC): mvlibCC obj/ bin/ $(CCOBJ) #TODO add CUDA support
+lib/$(LIBCC): mvlibCC obj/ bin/ $(CCOBJ) 
 	$(AR) lib/$(LIBCC) $(CCOBJ)
 
 lib/$(LIBCU): mvlibCU obj/ bin/ $(CUOBJ) 
@@ -92,6 +109,10 @@ clean_obj:
 
 clean_bin:
 	rm -rf bin
+
+clean_nor:
+	rm -rf norProject/lib
+	rm -rf norProject/inc
 
 clean: clean_lib clean_bin clean_obj
 

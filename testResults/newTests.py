@@ -12,14 +12,53 @@ import re
 
 from matplotlib import rc
 #rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-rc('font',**{'family':'serif','serif':['Times'],'size':12})
+rc('font',**{'family':'serif','serif':['Times'],'size':14})
 rc('text', usetex=True)
+LEGENDSIZE=13
+AXESSIZE=15
+TITLESIZE=AXESSIZE
+
+def myCmp(a, b, c=1):
+    d=a<b
+    return (d or c) and (not(d) or not(c)) #XOR
 
 def timesF(arr1, arr2):
     ret=[]
     for a in arr1:
         for b in arr2:
             ret.append((a,b))
+    return ret
+
+def giveLabels(old, auto=True):
+    newLabels=[n for n in old]
+    ret=[]
+    if auto:
+        for l in newLabels:
+            if l=="XavierFunc2":
+                ret.append("Nvidia® Xavier GPU")
+            elif l=="XavierCPUOpenMP":
+                ret.append("Nvidia® Xavier CPU OpenMP")
+            elif l=="XavierCPUNOOpenMP":
+                ret.append("Nvidia® Xavier CPU no OpenMP")
+            
+            elif l=="NUCi7NOOpenMP":
+                ret.append("Intel® NUC7i7BNH no OpenMP")
+            elif l=="NUCi7OpenMP":
+                ret.append("Intel® NUC7i7BNH OpenMP")
+
+            elif l=="NUCAtomOpenMP":
+                ret.append("Bqeel Z83-II OpenMP")
+
+            elif l=="TX2Func1":
+                ret.append("Nvidia® Jetson TX2 GPU")
+            elif l=="TX2CPUOpenMP":
+                ret.append("Nvidia® Jetson TX2 CPU OpenMP")
+            elif l=="TX2Func2":
+                ret.append("Nvidia® Jetson TX2 GPU function 2")
+    else:
+        for i in range(len(newLabels)):
+            l=input(newLabels[i]+" -> ")
+            ret.append(l)
     return ret
 
 class Run:
@@ -314,6 +353,7 @@ def main():
     i=0
     for r in runs:
         if r.n>1:
+            print(r.n, r.name)
             r.time=(r.time/r.n)
             maxL=0
             for i in range(len(r.power_cons)): #Find the longest log
@@ -422,17 +462,17 @@ def main():
                                 ax[nGraphs].set_yticks(x)
                                 ax[nGraphs].set_yticklabels(labels)
                                 if func!=2:
-                                    ax[nGraphs].set_title(testNames[tn]+", threads: "+str(th)+" func: "+str(fn)+", jump: 0")
+                                    ax[nGraphs].set_title(testNames[tn]+", threads: "+str(th)+" func: "+str(fn)+", jump: 0", fontsize=TITLESIZE)
                                 else:
-                                    ax[nGraphs].set_title(testNames[tn]+", threads: "+str(th)+" func: "+str(fn)+", jump: "+str(j))
-                                ax[nGraphs].legend()
+                                    ax[nGraphs].set_title(testNames[tn]+", threads: "+str(th)+" func: "+str(fn)+", jump: "+str(j), fontsize=TITLESIZE)
+                                ax[nGraphs].legend(fontsize=LEGENDSIZE)
                         nGraphs+=1
                 for vv in valuess[0:2]:
                     print("<", end="")
                     for v in vv:
                         print(v, end=", ")
                     print(">")
-                #ax.legend()
+                #ax.legend(fontsize=LEGENDSIZE)
                 plt.show()
 
     choice=input("Do you want to show the diagrams of times for each example and discretization without OpenMP? [Y/n] ")
@@ -440,13 +480,19 @@ def main():
         print(names)
         Discrs=[d for d in discrs if d in [90,360,720]]
         Refs=[r for r in defRefinements if r in [1,4,16]]
-        Names=[n for n in names if ("NOOpenMP" in n or "XavierFunc2" in n or "TX2Func1" in n)]
+        #Names=[n for n in names if ("NOOpenMP" in n or "XavierFunc2" in n or "TX2Func1" in n)]
+        Names=[]
+        for n in names:
+            if "NOOpenMP" in n or "XavierFunc2" in n or "TX2Func1" in n:
+                print("ok: "+n)
+                Names.append(n)
+            else:
+                print("no: "+n+" "+str("NOOpenMP" in n))
         newLabels=[]
         print(Names)
         nGraphs=0
         for tn in range(len(testNames)):
             if testNames[tn]!="Kaya Example 4" and testNames[tn]!="Omega":
-                print("tn: "+testNames[tn])
                 continue
             else: 
                 for dis in Discrs:
@@ -458,12 +504,9 @@ def main():
                     if newLabels==[]:
                         print(Names)
                         choiceC=input("These are the labels in list, do you want to choose new labels? [N/y] ")
-                        newLabels=[n for n in Names]
                         if choiceC=="Y" or choiceC=="y":
-                            for i in range(len(Names)):
-                                l=input(Names[i]+" -> ")
-                                newLabels[i]=l
-                    print(Names)
+                            newLabels=giveLabels([n for n in Names])
+                        print(newLabels)
 
                     width=0.1
                     fig, ax=plt.subplots()
@@ -476,24 +519,22 @@ def main():
                                     r.refinements==ref and r.threads in threadD and r.functionType in funcD and \
                                     (r.functionType!=2 or (r.functionType==2 and r.jump in jumpD)):
                                     #print(r)
-                                    values.append(r.time)
-                        print(values)
-                        print(x)
+                                    values.append(r.time/1000.0)
                         a=1
-                        if len(names)%2!=1:
+                        if len(newLabels)%2!=1:
                             a=0.5
                         if n%2==0:
                             ax.bar(x-width*(a+int(n/2)), values, width, label=newLabels[n], color=colors[n])
                         else:
                             ax.bar(x+width*(a+int(n/2)), values, width, label=newLabels[n], color=colors[n])
 
-                    ax.set_title(testNames[tn]+", discretization: "+str(dis))
-                    ax.set_xlabel("Refinements $m$")
+                    ax.set_title(testNames[tn]+", discretization: "+str(dis), fontsize=TITLESIZE)
+                    ax.set_xlabel("Refinements $m$", fontsize=AXESSIZE)
                     ax.set_xticklabels([str(r) for r in Refs])
-                    ax.set_ylabel("Time (ms)")
+                    ax.set_ylabel("Time (s)", fontsize=AXESSIZE)
                     ax.set_xticks(x)
-                    ax.legend()
-                    plt.savefig("timesGraphsSeparatedNOOpenMP"+str(nGraphs)+".pdf", transparent=True, bbox_inches='tight', pad_inches=0)
+                    ax.legend(fontsize=LEGENDSIZE)
+                    plt.savefig("images/timesGraphsSeparatedNOOpenMP"+str(nGraphs)+"s", format="pgf", transparent=True, bbox_inches='tight', pad_inches=0.1)
                     nGraphs+=1
 
     choice=input("Do you want to show the diagrams of times for each example and discretization? [Y/n] ")
@@ -518,6 +559,12 @@ def main():
                     width=0.1
                     fig, ax=plt.subplots()
                     valuess=[]
+                    if newLabels==[]:
+                        print(Names)
+                        choiceC=input("These are the labels in list, do you want to choose new labels? [N/y] ")
+                        if choiceC=="Y" or choiceC=="y":
+                            newLabels=giveLabels([n for n in Names])
+                            
                     for n in range(len(Names)):
                         values=[]
                         x=np.arange(len(Refs))
@@ -539,34 +586,27 @@ def main():
                                                         #print(" r.functionType")
                                                         if r.functionType!=2 or (r.functionType==2 and r.jump in jumpD):
                                                             #print("r.jump")
-                                                            values.append(r.time)
+                                                            values.append(r.time/1000.0)
                   
                         print(values)
                         print(x)
                         a=1
-                        if len(names)%2!=1:
+                        if len(newLabels)%2!=1:
                             a=0.5
+                        print(a)
                         if n%2==0:
-                            ax.bar(x-width*(a+int(n/2)), values, width, label=Names[n], color=colors[n])
+                            ax.bar(x-width*(a+int(n/2)), values, width, label=newLabels[n], color=colors[n])
                         else:
-                            ax.bar(x+width*(a+int(n/2)), values, width, label=Names[n], color=colors[n])
-                    
-                    if newLabels==[]:
-                        print(Names)
-                        choiceC=input("These are the labels in list, do you want to choose new labels? [N/y] ")
-                        newLabels=[n for n in Names]
-                        if choiceC=="Y" or choiceC=="y":
-                            for i in range(len(Names)):
-                                l=input(Names[i]+" -> ")
-                                newLabels[i]=l
-
-                    ax.set_title(testNames[tn]+", discretization: "+str(dis))
-                    ax.set_xlabel("Refinements $m$")
+                            ax.bar(x+width*(a+int(n/2)), values, width, label=newLabels[n], color=colors[n])
+                                        
+                    ax.set_title(testNames[tn]+", discretization: "+str(dis), fontsize=TITLESIZE)
+                    ax.set_xlabel("Refinements $m$", fontsize=AXESSIZE)
                     ax.set_xticklabels([str(r) for r in Refs])
-                    ax.set_ylabel("Time (ms)")
+                    ax.set_ylabel("Time (s)", fontsize=AXESSIZE)
                     ax.set_xticks(x)
-                    ax.legend()
-                    plt.savefig("timesGraphsSeparated"+str(nGraphs)+".pdf", transparent=True, bbox_inches='tight', pad_inches=0)
+                    ax.tick_params(labelsize=AXESSIZE)
+                    ax.legend(fontsize=LEGENDSIZE)
+                    plt.savefig("images/timesGraphsSeparated"+str(nGraphs)+"s.pdf", transparent=True, bbox_inches='tight', pad_inches=0.1)
                     nGraphs+=1
 
 
@@ -627,12 +667,12 @@ def main():
                     else:
                         ax.bar(x+width*(a+int(n/2)), values, width, label=Names[n], color=colors[n])
                 
-                ax.set_title(testNames[tn])
-                ax.set_xlabel("Disc $k$, ref $m$")
+                ax.set_title(testNames[tn], fontsize=TITLESIZE)
+                ax.set_xlabel("Disc $k$, ref $m$", fontsize=AXESSIZE)
                 ax.set_xticklabels([0]+[str((d,r)) for (d,r) in labels ])
-                ax.set_ylabel("Logarithmic times")
-                ax.legend()
-                plt.savefig("timesGraphsAllInOneLog"+str(nGraphs)+".pdf", transparent=True, bbox_inches='tight', pad_inches=0)
+                ax.set_ylabel("Logarithmic times", fontsize=AXESSIZE)
+                ax.legend(fontsize=LEGENDSIZE)
+                plt.savefig("images/timesGraphsAllInOneLog"+str(nGraphs)+".pdf", transparent=True, bbox_inches='tight', pad_inches=0.1)
                 nGraphs+=1
 
 
@@ -789,7 +829,7 @@ def main():
                                 for l in data['power']:
                                     if l['time']>r.initTime and l['time']<r.endTime:
                                         watts.append(l['power'])
-                                        ts.append(l['time']-r.initTime)
+                                        ts.append((l['time']-r.initTime)/1000.0)
                                         if l['power']>maxV:
                                             maxV=l['power']
                             values.append(watts)
@@ -798,26 +838,178 @@ def main():
             if newLabels==[]:
                 print(labels)
                 choiceC=input("These are the labels in list, do you want to choose new labels? [N/y] ")
-                newLabels=labels
                 if choiceC=="Y" or choiceC=="y":
-                    for i in range(len(labels)):
-                        l=input(labels[i]+" -> ")
-                        newLabels[i]=l
-            
+                    newLabels=giveLabels([l for l in labels])
+                else:
+                    newLabels=labels
+                    
             fig, ax=plt.subplots()
             print(len(times))
             for i in range(len(times)):
                 ax.plot(times[i], values[i], color=colors[i], label=newLabels[i])
 
-            ax.set_title(ltestName[tn]+", k=360, m=16")
-            ax.set_xlabel("Time (ms)")
-            ax.set_ylabel("Power (W)")
+            ax.set_title(ltestName[tn]+", k=360, m=16", fontsize=TITLESIZE)
+            ax.set_xlabel("Time (s)", fontsize=AXESSIZE)
+            ax.set_ylabel("Power (W)", fontsize=AXESSIZE)
             #ax.ylim(0, 13/9*maxV)
-            ax.legend(loc="upper right")
+            ax.legend(fontsize=LEGENDSIZE, loc="upper right")
             if filename!="":
-                fig.savefig(filename+str(tn)+".pdf", transparent=True, bbox_inches='tight', pad_inches=0.1)
+                fig.savefig("images/"+filename+str(tn)+".pdf", transparent=True, bbox_inches='tight', pad_inches=0.1)
             else:
                 fig.show()
+
+    choice=input("Do you want to show the graph for normalized power consumption? [Y/n] ")
+    if choice=="Y" or choice=="y" or choice=="":
+        print(names)
+        lNamesC=input("These are the devices in list, do you want to show all of them? Otherwise write a coma-separated list [Y/list] ")
+        lNames=[]
+        if lNamesC=="Y" or lNamesC=="y" or lNamesC=="":
+            lNames=names
+        else:
+            lNames=lNamesC.split(",")
+        print("lNames: "+str(lNames))
+        print(discrs)
+        ldiscrsC=input("These are the discriminations in list, do you want to show all of them? Otherwise write a coma-separated list [Y/list] ")
+        ldiscrs=[]
+        if ldiscrsC=="Y" or ldiscrsC=="y" or ldiscrsC=="":
+            ldiscrs=discrs
+        else:
+            ldiscrs=[int(d) for d in ldiscrsC.split(",")]
+        print("ldiscrs "+str(ldiscrs))
+
+        print(refs)
+        lrefsC=input("These are the refinements in list, do you want to show all of them? Otherwise write a coma-separated list [Y/list] ")
+        lrefs=[]
+        if lrefsC=="Y" or lrefsC=="y" or lrefsC=="":
+            lrefs=refs
+        else:
+            lrefs=[int(d) for d in lrefsC.split(",")]
+        print("lrefs "+str(lrefs))
+
+        print(threads)
+        lthreadsC=input("These are the threads in list, do you want to show all of them? Otherwise write a coma-separated list [Y/list] ")
+        lthreads=[]
+        if lthreadsC=="Y" or lthreadsC=="y" or lthreadsC=="":
+            lthreads=threads
+        else:
+            lthreads=lthreadsC.split(",")
+
+        print(funcs)
+        lfuncsC=input("These are the function types in list, do you want to show all of them? Otherwise write a coma-separated list [Y/list] ")
+        lfuncs=[]
+        if lfuncsC=="Y" or lfuncsC=="y" or lfuncsC=="":
+            lfuncs=funcs
+        else:
+            lfuncs=lfuncsC.split(",")
+
+        print(jumps)
+        ljumpsC=input("These are the jumps in list, do you want to show all of them? Otherwise write a coma-separated list [Y/list] ")
+        ljumps=[]
+        if ljumpsC=="Y" or ljumpsC=="y" or ljumpsC=="":
+            ljumps=jumps
+        else:
+            ljumps=ljumpsC.split(",")
+
+        print(testNames)
+        ltestNameC=input("These are the test names in list. Default is [\"Circuit\"], do you want to choose another? Otherwise write a coma-separated list [N/list] ")
+        ltestName=["Circuit"]
+        if ltestNameC!="N" and ltestNameC!="n" and ltestNameC!="":
+            ltestName=ltestNameC.split(",")
+
+        choice=input("Do you want to show the figures or to save it? [Y/<file_name>.pdf] ")
+        filename=""
+        if choice!="Y" and choice!="y" and choice!="":
+            filename=choice
+
+        newLabels=[]
+        results=[]
+        labels=[]
+        maxV=0
+        for dni in range(len(lNames)):
+            dn=lNames[dni]
+            results.append([])
+            for tn in range(len(ltestName)):
+                watts=[]
+                timeM=0
+                
+                for r in runs:
+                    if r.devName==dn and r.refinements in lrefs and r.discr in ldiscrs:
+                        goOn=False
+                        #If it's CPU then check only the name
+                        if r.threads==0 and r.functionType==0 and r.guessInitialAngles==False and r.jump==0:
+                            goOn=True
+                        #Else check also threads, jumps and functiontype
+                        elif r.threads in lthreads and r.functionType in lfuncs and (r.functionType==1 and r.jump==0 or r.jump in ljumps):
+                                goOn=True
+                        if goOn:
+                            if r.test_name==ltestName[tn]:
+                                powerFile=r.power_file
+                                times=[]
+
+                                with open(powerFile, "r") as powerJson:
+                                    data=json.load(powerJson)
+                                    for l in data['power']:
+                                        if l['time']>r.initTime and l['time']<r.endTime:
+                                            times.append((l['time']-r.initTime)/1000.0)
+                                            if len(times)>1:
+                                                watts.append(l['power']*(times[-1]-times[-2]))
+                                            else:
+                                                watts.append(l['power']*times[-1])
+
+                                            if l['power']>maxV:
+                                                maxV=l['power']
+
+                                timeM=times[-1]
+                                if r.devName not in labels:
+                                    labels.append(r.devName)
+
+                sum=0.0
+                for v in watts:
+                    sum+=v
+                results[-1].append(sum/timeM)
+
+
+
+        if newLabels==[]:
+            print(labels)
+            choiceC=input("These are the labels in list, do you want to choose new labels? [N/y] ")
+            if choiceC=="Y" or choiceC=="y":
+                newLabels=giveLabels([l for l in labels])
+            else:
+                newLabels=labels
+        
+        final=[]
+        for resi in range(len(results)):
+            res=results[resi]
+            print(newLabels[resi],res)
+            sum=0.0
+            for r in res:
+                sum+=r
+            final.append(sum/len(res))
+
+        fig, ax=plt.subplots()
+        x=np.arange(len(newLabels))
+
+        dics=[]
+        for i in range(len(final)):
+            dics.append({"final" : final[i], "color" : colors[i], "label" : newLabels[i]})
+        dics.sort(key=lambda x : x['final'], reverse=True)
+
+        for i in range(len(dics)):
+            print(str(dics[i]))
+            ax.bar(i, dics[i]['final'], width=0.5, color=dics[i]['color'], label=dics[i]['label'])
+        ax.set_title("Normalised power consumption over seconds", fontsize=TITLESIZE)
+        ax.set_xlabel("Devices", fontsize=AXESSIZE)
+        ax.set_ylabel("$\\left({}^W/_s\\right)$", fontsize=AXESSIZE)
+        ax.set_xticklabels([])
+        ax.set_xticks([])
+        ax.legend(fontsize=LEGENDSIZE, loc="upper right")
+        #ax.ylim(0, 13/9*maxV)
+        if filename!="":
+            fig.savefig("images/"+filename+".pdf", transparent=True, bbox_inches='tight', pad_inches=0.1)
+        else:
+            fig.show()
+
 
 
     choice=input("Do you want to print the table of errors? [Y/n] ")
@@ -880,143 +1072,9 @@ def main():
     if choice=="N" or choice=="n" or choice=="":
         sys.exit(0)
     else:
-        os.system("python3 readSPE.py")
-    speRuns=[]
-    with open("spe.json") as f:
-        data=json.load(f)['SPE']
-        for l in data:
-            r=Run(p['name'], p['test_name'], p['discr'], p['time'], p['length'], p['err'], p['refinements'], p['threads'], p['functionType'], p['jump'], p['guessInitialAngles'], initialTime, finalTime)
-            found=False
-            for i in range(len(speRuns)):
-                if speRuns[i]==r:
-                    speRuns[i].time+=r.time 
-                    speRuns[i].n+=1
-                    found=True
-            if not found:
-                speRuns.append(r)
-                print(speRuns[-1])
-    testNames=[]
-    discrs=[]
-    refs=[]
-    for r in speRuns:
-        if r.test_name not in testNames:
-            testNames.append(r.test_name)
-        if r.discr not in discrs:
-            discrs.append(r.discr)
-        if r.refinements not in refs:
-            refs.append(r.refinements)
-        if r.n>1:
-            r.time/=r.n
-        print(r)
+        import readSPE
+        readSPE.main()
 
-    #for tn in testNames:
-    #    for discr in discrs:
-    #        for ref in refs:
-    #            for dv in deviceNames:
-    #                for r in runs:
-
-
-
-
-
-
-
-
-    choice=input("Do you want to show the diagram with the simulation time? [Y/n] ")
-    if choice=="Y" or choice=="y" or choice=="":
-        pass
-
-
-#    import pandas
-#    df = pandas.DataFrame(dict(graph=['Item one', 'Item two', 'Item three'],
-#                               n=[3, 5, 2], m=[6, 1, 3])) 
-#
-#    ind = np.arange(len(df))
-#    width = 0.4
-#
-#    fig, ax = plt.subplots()
-#    ax.barh(ind, df.n, width, color='red', label='N')
-#    ax.barh(ind + width, df.m, width, color='green', label='M')
-#
-#    ax.set(yticks=ind + width, yticklabels=df.graph, ylim=[2*width - 1, len(df)])
-#    ax.legend()
-#
-#    plt.show()
-#        
-
-#for l in range(len(logs)):
-#                p, f, t, m=scan(logs[l])
-#                ax[d].step(t, p, label=dev_names[l], color=colors[devices.index(dev_names[l])])
-#                ax[d].step(t, [m for time in t], label="mean W "+dev_names[l], color=colors[devices.index(dev_names[l])])
-#                if t[-1]>longest_x:
-#                    longest_x=t[-1]
-#                if max(p)>longest_y:
-#                    longest_y=max(p)
-#        
-
-#    for i in range(len(tests)):
-#        labels = 
-#        x = np.arange(len(labels))  # the label locations
-#        width = 0.1  # the width of the bars
-#
-#        rects=[]
-#
-#        fig=plt.figure(figsize=(6.4*3, 4.8*3), constrained_layout=True)
-#        spec=fig.add_gridspec((int((len(discrs)+1)/2)+1), 2)
-#        ax=[]
-#        newL=len(discrs)+1
-#        for d in range(newL):
-#            if d==0:
-#                ax.append(fig.add_subplot(spec[0, :]))
-#            else:
-#                x_=int((d+1)/2)
-#                y_=1
-#                if d%2==1:
-#                    y_=0
-#                ax.append(fig.add_subplot(spec[x_, y_]))
-#        l=len(devices)
-#        for j in range(l):
-#            values=matrix[i][j]
-#            rect=ax[0].bar(x+(j-(l-1)/2)*width, values, width, label=devices[j], color=colors[j])
-#            rects.append(rect)
-#
-#        ax[0].set_ylabel('Times in ms')
-#        ax[0].set_xlabel('#Discretizations')
-#        ax[0].set_title(tests[i])
-#        ax[0].set_xticks(x)
-#        ax[0].set_xticklabels(labels)
-#        ax[0].legend()
-#
-#        longest_x=0.0
-#        longest_y=0.0
-#        for d in range(1, newL):
-#            ax[d].set_ylabel("Power (W)")
-#            ax[d].set_xlabel("Time in ms")
-#            ax[d].set_title(str(discrs[d-1])+" discretizations")
-#
-#            logs=[]
-#            dev_names=[]
-#            for r in runs:
-#                if r.power_file!="" and (r.discr==discrs[d-1] and r.test_name==tests[i] and r.devName in names):
-#                    logs.append(r.power_file)
-#                    dev_names.append(r.devName)
-#            names_index=[sorted(names).index(dev_n) for dev_n in dev_names]
-#            for l in range(len(logs)):
-#                p, f, t, m=scan(logs[l])
-#                ax[d].step(t, p, label=dev_names[l], color=colors[devices.index(dev_names[l])])
-#                ax[d].step(t, [m for time in t], label="mean W "+dev_names[l], color=colors[devices.index(dev_names[l])])
-#                if t[-1]>longest_x:
-#                    longest_x=t[-1]
-#                if max(p)>longest_y:
-#                    longest_y=max(p)
-#        for d in range(1, newL):
-#            ax[d].set_xticks(list(np.arange(0, longest_x, int(longest_x/10)))+[longest_x])
-#            ax[d].set_yticks(list(np.arange(0, longest_y, longest_y/5))+[longest_y])
-#            ax[d].legend()
-#        # plt.show()
-#        plt.savefig("images/"+(str(i)+"_b.png"), transparent=True)
-#
-#
 
 
 if __name__=="__main__":

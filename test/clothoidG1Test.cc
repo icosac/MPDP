@@ -2,11 +2,10 @@
 #include <utils.hh>
 #include <fstream>
 
-using namespace std;
 
 //This is similar to what Contiki does. Since the beginning of the loop is similar for both BOOST and GoogleTest, then I can define it 
 #define READ_FROM_FILE()                                                  \
-  ifstream input("build_clothoid.txt");                                   \
+  std::ifstream input("build_clothoid.txt");                                   \
     float x0, y0, th0, x1, y1, th1, k, dk, l;                             \
     int i=0;                                                              \
     while (input >> x0 >> y0 >> th0 >> x1 >> y1 >> th1 >> k >> dk >> l){  \

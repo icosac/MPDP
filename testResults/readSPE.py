@@ -158,6 +158,9 @@ def main():
         plt.savefig("SPEtimesGraphsAllInOneLog"+str(nGraphs)+".pdf", transparent=True)
         nGraphs+=1
 
+    print(deviceNames)
+    deviceNames.sort(reverse=True)
+    print(deviceNames)
     print("\\subsection{Simulation Data}")
     print("\\begin{center}")
     print("\\begin{tabular}{c|c|c", end="")
@@ -187,9 +190,9 @@ def main():
                     for r in speRuns:
                         if r.name==deviceNames[dv] and r.test_name==tn and r.discr==discr and r.refinements==ref:
                             if dv!=len(deviceNames)-1:
-                                print("{:.1f}".format(r.time), end="&")
+                                print("{:.2f}".format(r.time/1000.0), end="&")
                             else:
-                                print("{:.1f}".format(r.time), end="\\\\\n")
+                                print("{:.2f}".format(r.time/1000.0), end="\\\\\n")
 
         print("\n\\hline")
     print("\\end{tabular}")

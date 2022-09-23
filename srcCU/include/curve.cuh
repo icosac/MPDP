@@ -1,25 +1,23 @@
-#ifndef CURVE_HH
-#define CURVE_HH
+#ifndef CURVE_CUH
+#define CURVE_CUH
 
 #include <configuration.cuh>
 
-/*!
- * Type-parameter for the `Configuration2`, i.e., specifies the coordinate's type.
- * @tparam T1
- */
-template<class T1>
 class Curve{
+public: 
+  enum CURVE_TYPE { INVALID, CLOTHOID, DUBINS, DUBINS_ARC }; ///< Possible types of CURVE
+  
 private:
-  Configuration2<T1> _ci; ///<Initial `Configuration`
-  Configuration2<T1> _cf; ///<Final `Configuration`
-  CURVE_TYPE _type;       ///<Type of curve
-  real_type* _params;     ///<Parameters of curve
+  Configuration2 _ci; ///<Initial `Configuration`
+  Configuration2 _cf; ///<Final `Configuration`
+  CURVE_TYPE _type;   ///<Type of curve
+  real_type* _params; ///<Parameters of curve
 
 public:
   /*!
    * @brief Void constructor.
    */
-  Curve() : _ci(), _cf(), _type(CURVE_TYPE::INVALID), _params(NULL) {}
+  BOTH Curve() : _ci(Configuration2()), _cf(Configuration2()), _type(CURVE_TYPE::INVALID), _params(NULL) {}
   /*!
    * @brief Constructor to only set the type of the curve.
    */
@@ -32,10 +30,10 @@ public:
    * @param type Type of the curve.
    * @param params The parameters of the curve, such as the curvature.
    */
-  BOTH Curve(Configuration2<T1> ci, Configuration2<T1> cf, CURVE_TYPE type=CURVE_TYPE::INVALID, real_type* params=NULL) : _ci(ci), _cf(cf), _type(type), _params(params) {}
+  BOTH Curve(Configuration2 ci, Configuration2 cf, CURVE_TYPE type=CURVE_TYPE::INVALID, real_type* params=NULL) : _ci(ci), _cf(cf), _type(type), _params(params) {}
 
-  BOTH Configuration2<T1>* ci() { return &(this->_ci); }   ///< Returns a pointer to the initial `Configuration2`.
-  BOTH Configuration2<T1>* cf() { return &(this->_cf); }   ///< Returns a pointer to the final `Configuration2`.
+  BOTH Configuration2* ci() { return &(this->_ci); }   ///< Returns a pointer to the initial `Configuration2`.
+  BOTH Configuration2* cf() { return &(this->_cf); }   ///< Returns a pointer to the final `Configuration2`.
 
   CURVE_TYPE type () const { return this->_type; }         ///< Returns type of curve.
   
@@ -44,4 +42,4 @@ public:
   BOTH virtual LEN_T l() const = 0;                        ///< Returns the length of the curve.
 };
 
-#endif //CURVE_HH
+#endif //CURVE_CUH

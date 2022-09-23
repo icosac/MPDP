@@ -1,9 +1,8 @@
-#ifndef CLOTHOID_HH
-#define CLOTHOID_HH
+#ifndef CLOTHOID_CUH
+#define CLOTHOID_CUH
 
 #include <cmath>
 #include <iostream>
-using namespace std;
 
 #include <curve.cuh>
 #include <utils.cuh>
@@ -409,4 +408,4 @@ public:
 };
 
 
-#endif //CLOTHOID_HH
+#endif //CLOTHOID_CUH

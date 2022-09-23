@@ -1,45 +1,69 @@
-cmake_minimum_required(VERSION 3.10)
-#set(CMAKE_CUDA_COMPILER "/usr/local/cuda-10.0/bin/nvcc") #Sometimes one needs to set the path to the compiler
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 include(GoogleTest)
 
-project(DynamicCurve LANGUAGES CXX)
-set(LIB libDynamicCurve)
-set(APP_EXEC dynamicCurve)
+project(MPMD LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wall -O3")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF(${CUDA_ON} MATCHES ON)
+#  include(CMakeMSCuda.cmake)
+  set(LIB "MPMDCU")
+  set(APP_EXEC "MPMDCU_exec")
+  #Define files to be compiled
   enable_language(CUDA)
-  file(GLOB dynamicCurveExec "exec/main.cu")
-  add_definitions(-DCUDA_ON)
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 -O3 -arch=sm_72 -DCUDA_ON --default-stream per-thread --compiler-options -Wall")
-  set(CUDA_SEPARABLE_COMPILATION ON)
+
   set(SRC "srcCU")
   set(SRCF "${SRC}/*.cu")
+  file(GLOB MPMDSrc ${SRCF})
+  file(GLOB MPMDExec "exec/main.cu")
+  file(GLOB includeFiles "${SRC}/include/*.cuh" "./include/*.hh")
+
+  #What should be compiled
+  include_directories(${SRC}/include include)
+  add_library(${LIB} ${MPMDSrc})
+  add_executable(${APP_EXEC} ${MPMDExec})
+  target_link_libraries(${APP_EXEC} PUBLIC ${LIB})
+
+  #What should be installed
+  install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
+
+  #Set compiler options
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_FLAGS}")
+  set_target_properties(${LIB} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
+  set_target_properties(${LIB} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
+  set_target_properties(${APP_EXEC} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
+  set_target_properties(${APP_EXEC} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
+
+  message(FATAL "Compiling CUDA with: " ${CUDA_FLAGS})
+  message(STATUS "${MPMDSrc}")
 ELSE()
-  file(GLOB dynamicCurveExec "exec/main.cc")
+  set(LIB "MPMDCC")
+  set(APP_EXEC "MPMDCC_exec")
+  #Define files to be compiled
   set(SRC "srcCC")
   set(SRCF "${SRC}/*.cc")
+  file(GLOB MPMDSrc ${SRCF})
+  file(GLOB MPMDExec "exec/main.cc")
+  file(GLOB includeFiles "${SRC}/include/*.hh" "./include/*.hh")  
+  
+  message(STATUS "Compiling C++ with: " ${CXX_FLAGS})
+  message(STATUS "${MPMDSrc}")
+
+  #Compile 
+  include_directories(${SRC}/include include)
+  add_library(${LIB} STATIC ${MPMDSrc})
+  add_executable(${APP_EXEC} ${MPMDExec})
+  target_link_libraries(${APP_EXEC} ${LIB})
+  
+  #What should be installed
+  install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
+  
+  find_package(OpenMP)
+  if (OpenMP_CXX_FOUND)
+    target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
 ENDIF()
 
-message(STATUS "Compiling C++ with: " -std=c++${CMAKE_CXX_STANDARD} ${CMAKE_CXX_FLAGS})
-message(STATUS "Compiling CUDA with: " ${CMAKE_CUDA_FLAGS})
-
-include_directories(${SRC}/include include)
-
-file(GLOB dynamicCurveSrc ${SRCF})
-
-message(STATUS "${dynamicCurveSrc}")
-
-add_library(${LIB} STATIC ${dynamicCurveSrc})
-
-#add_executable(${APP_SRC} ${dynamicCurveSrc})
-add_executable(${APP_EXEC} ${dynamicCurveExec})
-
-target_link_libraries(${APP_EXEC} ${LIB})
-target_include_directories(${APP_EXEC} PRIVATE src/include/)
 
 #add_subdirectory(test)
 

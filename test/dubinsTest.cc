@@ -5,8 +5,6 @@
 #include<dp.hh>
 #include <utils.hh>
 
-using namespace std;
-
 #define DISCR 720
 #define EPSILON 1e-4
 
@@ -92,8 +90,8 @@ BOOST_AUTO_TEST_SUITE(MultiDubinsTest)
 BOOST_AUTO_TEST_CASE(KayaExample1){
   vector<Configuration2<real_type> > kaya1={
           Configuration2<real_type> (0, 0, -M_PI/3.0),
-          Configuration2<real_type> (-0.1, 0.3, ANGLE::INVALID),
-          Configuration2<real_type> (0.2, 0.8, ANGLE::INVALID),
+          Configuration2<real_type> (-0.1, 0.3, ANGLE::FREE),
+          Configuration2<real_type> (0.2, 0.8, ANGLE::FREE),
           Configuration2<real_type> (1, 1, -M_PI/6.0)
   };
   LEN_T len=solve(kaya1, 3.0);
@@ -105,10 +103,10 @@ BOOST_AUTO_TEST_CASE(KayaExample1){
 BOOST_AUTO_TEST_CASE(KayaExample2){
   vector<Configuration2<real_type> > kaya2={
           Configuration2<real_type> (0, 0, -M_PI/3.0),
-          Configuration2<real_type> (-0.1, 0.3, ANGLE::INVALID),
-          Configuration2<real_type> (0.2, 0.8, ANGLE::INVALID),
-          Configuration2<real_type> (1, 1, ANGLE::INVALID),
-          Configuration2<real_type> (0.5, 0.5, ANGLE::INVALID),
+          Configuration2<real_type> (-0.1, 0.3, ANGLE::FREE),
+          Configuration2<real_type> (0.2, 0.8, ANGLE::FREE),
+          Configuration2<real_type> (1, 1, ANGLE::FREE),
+          Configuration2<real_type> (0.5, 0.5, ANGLE::FREE),
           Configuration2<real_type> (0.5, 0, -M_PI/6.0)
   };
   LEN_T len=solve(kaya2, 3.0);
@@ -120,24 +118,24 @@ BOOST_AUTO_TEST_CASE(KayaExample2){
 BOOST_AUTO_TEST_CASE(KayaExample3){
   vector<Configuration2<real_type> > kaya3={
          Configuration2<real_type>(0.5, 1.2, 5.0*M_PI/6.0),
-         Configuration2<real_type>(0, 0.8, ANGLE::INVALID),
-         Configuration2<real_type>(0, 0.4, ANGLE::INVALID),
-         Configuration2<real_type>(0.1, 0, ANGLE::INVALID),
-         Configuration2<real_type>(0.4, 0.2, ANGLE::INVALID),
-         Configuration2<real_type>(0.5, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(0.6, 1, ANGLE::INVALID),
-         Configuration2<real_type>(1, 0.8, ANGLE::INVALID),
-         Configuration2<real_type>(1, 0, ANGLE::INVALID),
-         Configuration2<real_type>(1.4, 0.2, ANGLE::INVALID),
-         Configuration2<real_type>(1.2, 1, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 1.2, ANGLE::INVALID),
-         Configuration2<real_type>(2, 1.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0.8, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0, ANGLE::INVALID),
-         Configuration2<real_type>(1.7, 0.6, ANGLE::INVALID),
-         Configuration2<real_type>(1.9, 1, ANGLE::INVALID),
-         Configuration2<real_type>(2, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.9, 0, ANGLE::INVALID),
+         Configuration2<real_type>(0, 0.8, ANGLE::FREE),
+         Configuration2<real_type>(0, 0.4, ANGLE::FREE),
+         Configuration2<real_type>(0.1, 0, ANGLE::FREE),
+         Configuration2<real_type>(0.4, 0.2, ANGLE::FREE),
+         Configuration2<real_type>(0.5, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(0.6, 1, ANGLE::FREE),
+         Configuration2<real_type>(1, 0.8, ANGLE::FREE),
+         Configuration2<real_type>(1, 0, ANGLE::FREE),
+         Configuration2<real_type>(1.4, 0.2, ANGLE::FREE),
+         Configuration2<real_type>(1.2, 1, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 1.2, ANGLE::FREE),
+         Configuration2<real_type>(2, 1.5, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0.8, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0, ANGLE::FREE),
+         Configuration2<real_type>(1.7, 0.6, ANGLE::FREE),
+         Configuration2<real_type>(1.9, 1, ANGLE::FREE),
+         Configuration2<real_type>(2, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(1.9, 0, ANGLE::FREE),
          Configuration2<real_type>(2.5, 0.6, 0),
   };
   LEN_T len=solve(kaya3, 5.0);
@@ -149,16 +147,16 @@ BOOST_AUTO_TEST_CASE(KayaExample3){
 BOOST_AUTO_TEST_CASE(KayaExample4){
   vector<Configuration2<real_type> > kaya4={
          Configuration2<real_type>(0.5, 1.2, 5*M_PI/6.0),
-         Configuration2<real_type>(0.0, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(0.5, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.0, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(2.0, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(2.0, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(1.0, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(0.5, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(0.0, 0.0, ANGLE::INVALID),
+         Configuration2<real_type>(0.0, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(0.5, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(1.0, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(2.0, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(2.0, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(1.0, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(0.5, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(0.0, 0.0, ANGLE::FREE),
          Configuration2<real_type>(0.0, -0.5, 0)
   };
   LEN_T len=solve(kaya4, 3.0);
@@ -198,8 +196,8 @@ TEST(DubinsTest, OneDubins){//TODO Find bug for which ctest shows this test pass
 TEST(DubinsTest, KayaExample1){
   vector<Configuration2<real_type> > kaya1={
           Configuration2<real_type> (0, 0, -M_PI/3.0),
-          Configuration2<real_type> (-0.1, 0.3, ANGLE::INVALID),
-          Configuration2<real_type> (0.2, 0.8, ANGLE::INVALID),
+          Configuration2<real_type> (-0.1, 0.3, ANGLE::FREE),
+          Configuration2<real_type> (0.2, 0.8, ANGLE::FREE),
           Configuration2<real_type> (1, 1, -M_PI/6.0)
   };
   LEN_T len=solve(kaya1, 3.0);
@@ -209,10 +207,10 @@ TEST(DubinsTest, KayaExample1){
 TEST(DubinsTest, KayaExample2){
   vector<Configuration2<real_type> > kaya2={
           Configuration2<real_type> (0, 0, -M_PI/3.0),
-          Configuration2<real_type> (-0.1, 0.3, ANGLE::INVALID),
-          Configuration2<real_type> (0.2, 0.8, ANGLE::INVALID),
-          Configuration2<real_type> (1, 1, ANGLE::INVALID),
-          Configuration2<real_type> (0.5, 0.5, ANGLE::INVALID),
+          Configuration2<real_type> (-0.1, 0.3, ANGLE::FREE),
+          Configuration2<real_type> (0.2, 0.8, ANGLE::FREE),
+          Configuration2<real_type> (1, 1, ANGLE::FREE),
+          Configuration2<real_type> (0.5, 0.5, ANGLE::FREE),
           Configuration2<real_type> (0.5, 0, -M_PI/6.0)
   };
   LEN_T len=solve(kaya2, 3.0);
@@ -222,24 +220,24 @@ TEST(DubinsTest, KayaExample2){
 TEST(DubinsTest, KayaExample3){
   vector<Configuration2<real_type> > kaya3={
          Configuration2<real_type>(0.5, 1.2, 5.0*M_PI/6.0),
-         Configuration2<real_type>(0, 0.8, ANGLE::INVALID),
-         Configuration2<real_type>(0, 0.4, ANGLE::INVALID),
-         Configuration2<real_type>(0.1, 0, ANGLE::INVALID),
-         Configuration2<real_type>(0.4, 0.2, ANGLE::INVALID),
-         Configuration2<real_type>(0.5, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(0.6, 1, ANGLE::INVALID),
-         Configuration2<real_type>(1, 0.8, ANGLE::INVALID),
-         Configuration2<real_type>(1, 0, ANGLE::INVALID),
-         Configuration2<real_type>(1.4, 0.2, ANGLE::INVALID),
-         Configuration2<real_type>(1.2, 1, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 1.2, ANGLE::INVALID),
-         Configuration2<real_type>(2, 1.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0.8, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0, ANGLE::INVALID),
-         Configuration2<real_type>(1.7, 0.6, ANGLE::INVALID),
-         Configuration2<real_type>(1.9, 1, ANGLE::INVALID),
-         Configuration2<real_type>(2, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.9, 0, ANGLE::INVALID),
+         Configuration2<real_type>(0, 0.8, ANGLE::FREE),
+         Configuration2<real_type>(0, 0.4, ANGLE::FREE),
+         Configuration2<real_type>(0.1, 0, ANGLE::FREE),
+         Configuration2<real_type>(0.4, 0.2, ANGLE::FREE),
+         Configuration2<real_type>(0.5, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(0.6, 1, ANGLE::FREE),
+         Configuration2<real_type>(1, 0.8, ANGLE::FREE),
+         Configuration2<real_type>(1, 0, ANGLE::FREE),
+         Configuration2<real_type>(1.4, 0.2, ANGLE::FREE),
+         Configuration2<real_type>(1.2, 1, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 1.2, ANGLE::FREE),
+         Configuration2<real_type>(2, 1.5, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0.8, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0, ANGLE::FREE),
+         Configuration2<real_type>(1.7, 0.6, ANGLE::FREE),
+         Configuration2<real_type>(1.9, 1, ANGLE::FREE),
+         Configuration2<real_type>(2, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(1.9, 0, ANGLE::FREE),
          Configuration2<real_type>(2.5, 0.6, 0),
   };
   LEN_T len=solve(kaya3, 5.0);
@@ -249,16 +247,16 @@ TEST(DubinsTest, KayaExample3){
 TEST(DubinsTest, KayaExample4){
   vector<Configuration2<real_type> > kaya4={
          Configuration2<real_type>(0.5, 1.2, 5*M_PI/6.0),
-         Configuration2<real_type>(0.0, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(0.5, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.0, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(2.0, 0.5, ANGLE::INVALID),
-         Configuration2<real_type>(2.0, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(1.5, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(1.0, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(0.5, 0.0, ANGLE::INVALID),
-         Configuration2<real_type>(0.0, 0.0, ANGLE::INVALID),
+         Configuration2<real_type>(0.0, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(0.5, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(1.0, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(2.0, 0.5, ANGLE::FREE),
+         Configuration2<real_type>(2.0, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(1.5, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(1.0, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(0.5, 0.0, ANGLE::FREE),
+         Configuration2<real_type>(0.0, 0.0, ANGLE::FREE),
          Configuration2<real_type>(0.0, -0.5, 0)
   };
   LEN_T len=solve(kaya4, 3.0);

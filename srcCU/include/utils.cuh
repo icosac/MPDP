@@ -1,5 +1,5 @@
-#ifndef UTILS_HH
-#define UTILS_HH
+#ifndef UTILS_CUH
+#define UTILS_CUH
 
 #include <iostream>
 #include <vector>
@@ -11,10 +11,9 @@
 #include <typedefs.hh>
 
 //#define DEBUG
-#define MYM_PI 3.14159265358979323846264338328
 
 #ifdef DEBUG
-#define COUT(x) cout << x;
+#define COUT(x) std::cout << #x << ": " << x << std::endl;
 #else
 #define COUT(x)
 #endif
@@ -30,12 +29,12 @@
     }
 #endif //ASSERT
 
-extern real_type const epsi        ;
-extern real_type const m_pi        ; // pi
-extern real_type const m_pi_2      ; // pi/2
-extern real_type const m_2pi       ; // 2*pi
-extern real_type const m_1_pi      ; // 1/pi
-extern real_type const m_1_sqrt_pi ; // 1/sqrt(pi)
+//extern real_type const epsi        ;
+//extern real_type const m_pi        ; // pi
+//extern real_type const m_pi_2      ; // pi/2
+//extern real_type const m_2pi       ; // 2*pi
+//extern real_type const m_1_pi      ; // 1/pi
+//extern real_type const m_1_sqrt_pi ; // 1/sqrt(pi)
 
 #define printCV(v, d)       \
   printf("<");              \
@@ -86,7 +85,12 @@ BOTH inline bool eq(const T x, const T y, const T EPSI=std::numeric_limits<T>::e
   return ((ABS<double>(x, y)>(EPSI)) ? false : true);
 }
 
-BOTH inline Angle
+/*!
+ * Function to standardize an angle between 0 and 2*\pi.
+ * @param ang The angle to be standardized.
+ * @return The standardized angle.
+ */
+BOTH inline Angle //TODO this should move into a file called MathsUtils
 mod2pi(Angle ang){
   while (ang < 0) {ang += M_PI*2;}
   while (ang >=  2*M_PI) {ang -= M_PI*2;}
@@ -129,4 +133,4 @@ inline int cudaGetdeviceID(){
   return deviceID;
 }
 
-#endif //UTILS_HH
+#endif //UTILS_CUH

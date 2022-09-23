@@ -1,0 +1,73 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 12,
+    "patch": 2
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "generator": "Unix Makefiles",
+      "displayName": "Default Config",
+      "description": "Default build meant for Linux or Unix-like systems",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-O2 --std=c++11 -Wall -Wno-reorder"
+
+      }
+    },
+
+    {
+      "name": "cuda" ,
+      "inherits": "default",
+      "displayName": "CUDA",
+      "description": "Compile with CUDA support",
+      "cacheVariables": {
+        "CUDA_ON": "ON",
+        "CUDA_FLAGS": "-O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=\"-Wall -Wno-reorder\"",
+        "CUDA_ARCH": "72;75",
+        "CUDA_SEP_COMP": "ON"
+      }
+    },
+
+    {
+      "name": "ninja",
+      "displayName": "Ninja",
+      "description": "Ninja generator",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "/O2 /std=c++11 /Wall /Wno-reorder"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    },
+    {
+      "name": "defaultLib",
+      "configurePreset": "default",
+      "targets": "MPMD"
+    },
+    {
+      "name": "cuda",
+      "configurePreset": "cuda"
+    },
+    {
+      "name": "cudaLib",
+      "configurePreset": "cuda",
+      "targets": "MPMD"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ]
+}
