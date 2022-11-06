@@ -1,0 +1,27 @@
+[
+{
+  "directory": "/home/enrico/Projects/researchProject/cmake-cu-debug",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  -I/home/enrico/Projects/researchProject/srcCU/include -I/home/enrico/Projects/researchProject/include  -O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=-Wall --generate-code=arch=compute_72,code=[compute_72,sm_72] --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++11 -x cu -dc /home/enrico/Projects/researchProject/srcCU/asyplot.cu -o CMakeFiles/MPMDCU.dir/srcCU/asyplot.cu.o",
+  "file": "/home/enrico/Projects/researchProject/srcCU/asyplot.cu"
+},
+{
+  "directory": "/home/enrico/Projects/researchProject/cmake-cu-debug",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  -I/home/enrico/Projects/researchProject/srcCU/include -I/home/enrico/Projects/researchProject/include  -O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=-Wall --generate-code=arch=compute_72,code=[compute_72,sm_72] --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++11 -x cu -dc /home/enrico/Projects/researchProject/srcCU/dp.cu -o CMakeFiles/MPMDCU.dir/srcCU/dp.cu.o",
+  "file": "/home/enrico/Projects/researchProject/srcCU/dp.cu"
+},
+{
+  "directory": "/home/enrico/Projects/researchProject/cmake-cu-debug",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  -I/home/enrico/Projects/researchProject/srcCU/include -I/home/enrico/Projects/researchProject/include  -O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=-Wall --generate-code=arch=compute_72,code=[compute_72,sm_72] --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++11 -x cu -dc /home/enrico/Projects/researchProject/srcCU/dubins.cu -o CMakeFiles/MPMDCU.dir/srcCU/dubins.cu.o",
+  "file": "/home/enrico/Projects/researchProject/srcCU/dubins.cu"
+},
+{
+  "directory": "/home/enrico/Projects/researchProject/cmake-cu-debug",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  -I/home/enrico/Projects/researchProject/srcCU/include -I/home/enrico/Projects/researchProject/include  -O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=-Wall --generate-code=arch=compute_72,code=[compute_72,sm_72] --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++11 -x cu -dc /home/enrico/Projects/researchProject/srcCU/utils.cu -o CMakeFiles/MPMDCU.dir/srcCU/utils.cu.o",
+  "file": "/home/enrico/Projects/researchProject/srcCU/utils.cu"
+},
+{
+  "directory": "/home/enrico/Projects/researchProject/cmake-cu-debug",
+  "command": "/opt/cuda/bin/nvcc -forward-unknown-to-host-compiler  -I/home/enrico/Projects/researchProject/srcCU/include -I/home/enrico/Projects/researchProject/include  -O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=-Wall --generate-code=arch=compute_72,code=[compute_72,sm_72] --generate-code=arch=compute_75,code=[compute_75,sm_75] -std=c++11 -x cu -dc /home/enrico/Projects/researchProject/exec/main.cu -o CMakeFiles/MPMDCU_exec.dir/exec/main.cu.o",
+  "file": "/home/enrico/Projects/researchProject/exec/main.cu"
+}
+]

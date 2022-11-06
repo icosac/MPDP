@@ -5,7 +5,7 @@ project(MPMD LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-IF(${CUDA_ON} MATCHES ON)
+if(${CUDA_ON} MATCHES ON)
 #  include(CMakeMSCuda.cmake)
   set(LIB "MPMDCU")
   set(APP_EXEC "MPMDCU_exec")
@@ -36,7 +36,7 @@ IF(${CUDA_ON} MATCHES ON)
 
   message(FATAL "Compiling CUDA with: " ${CUDA_FLAGS})
   message(STATUS "${MPMDSrc}")
-ELSE()
+else()
   set(LIB "MPMDCC")
   set(APP_EXEC "MPMDCC_exec")
   #Define files to be compiled
@@ -62,49 +62,58 @@ ELSE()
   if (OpenMP_CXX_FOUND)
     target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
   endif()
-ENDIF()
+endif()
 
 
-#add_subdirectory(test)
+if(DEFINED TEST)
+  set(TEST_NAMES
+      configurationTest
+      dubinsTest
+      clothoidG1Test)
 
-IF(${TEST} MATCHES "GTEST")
+  if(${TEST} MATCHES "GTEST")
     #GTEST_TEST
     add_definitions(-DGTEST)
     add_subdirectory(ExternalLibs/googletest)
     enable_testing()
 
-    add_executable(ConfigurationTest test/configurationTest.cc)
-    add_executable(DubinsTest test/dubinsTest.cc)
-    add_executable(ClothoidG1Test test/clothoidG1Test.cc)
+    foreach( S ${TEST_NAMES} )
+      message(STATUS "Adding test ${S}")
+      add_executable(${S} test/${S}.cc)
+      target_link_libraries(${S} gtest gtest_main ${LIB})
+      target_include_directories(${S} PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+      gtest_discover_tests(${S})
+    endforeach()
 
-    target_link_libraries(ConfigurationTest gtest gtest_main)
-    target_link_libraries(DubinsTest gtest gtest_main ${LIB})
-    target_link_libraries(ClothoidG1Test gtest gtest_main ${LIB})
-    target_include_directories(ConfigurationTest PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-    target_include_directories(DubinsTest PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-    target_include_directories(ClothoidG1Test PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-
-    gtest_discover_tests(ConfigurationTest)
-    gtest_discover_tests(DubinsTest)
-    gtest_discover_tests(ClothoidG1Test)
-
-ELSEIF(${TEST} MATCHES "BOOST")
+  elseif(${TEST} MATCHES "BOOST")
     #BOOST_TEST
     add_definitions(-DBOOST)
     add_definitions(-DBOOST_TEST_DYN_LINK)
-    
+
     enable_testing()
     find_package(Boost COMPONENTS system filesystem unit_test_framework REQUIRED)
     set(Boost_USE_MULTITHREADED TRUE)
-    
-    add_executable(ConfigurationTest test/configurationTest.cc)
-    add_executable(ClothoidG1Test test/clothoidG1Test.cc)
-    add_executable(DubinsTest test/dubinsTest.cc)
-    target_link_libraries(ConfigurationTest ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-    target_link_libraries(ClothoidG1Test ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-    target_link_libraries(DubinsTest ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
-    add_test(NAME ConfigurationTest COMMAND ConfigurationTest)
-    add_test(NAME ClothoidG1Test COMMAND ClothoidG1Test)
-    add_test(NAME DubinsTest COMMAND DubinsTest)
-ENDIF()
+    foreach( S ${TEST_NAMES} )
+      message(STATUS "Adding test ${S}")
+      add_executable(${S} test/${S}.cc)
+      target_link_libraries(${S} ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+      add_test(NAME ${S} COMMAND ${S})
+    endforeach()
+
+#    add_executable(ConfigurationTest test/configurationTest.cc)
+#    add_executable(ClothoidG1Test test/clothoidG1Test.cc)
+#    add_executable(DubinsTest test/dubinsTest.cc)
+#    target_link_libraries(ConfigurationTest ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+#    target_link_libraries(ClothoidG1Test ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+#    target_link_libraries(DubinsTest ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+#
+#    add_test(NAME ConfigurationTest COMMAND ConfigurationTest)
+#    add_test(NAME ClothoidG1Test COMMAND ClothoidG1Test)
+#    add_test(NAME DubinsTest COMMAND DubinsTest)
+  endif()
+
+  add_custom_command(TARGET dubinsTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_SOURCE_DIR}/test/dubinsTest.txt ${CMAKE_CURRENT_BINARY_DIR}/test/dubinsTest.txt)
+
+endif()

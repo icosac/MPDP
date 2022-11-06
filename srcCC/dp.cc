@@ -329,6 +329,7 @@ Curve* solveP2P(Configuration2 ci, Configuration2 cf, std::vector<real_type> &pa
     }
     case CURVE_TYPE::DUBINS: {
       curve = dynamic_cast<Curve*> (new Dubins(ci, cf, params));
+      break;
     }
     default:
       throw std::runtime_error("The curve type specified is not valid.");
@@ -357,8 +358,9 @@ solveDPInner (std::vector<Configuration2>& points, std::vector<real_type> &param
       for (uint j=0; j<MATRIX[idx].size(); ++j){ //Consider the next angle
         //Compute Dubins
         Curve* dub = solveP2P(Configuration2(c0->x(), c0->y(), MATRIX[idx-1][i].th()), Configuration2(c1->x(), c1->y(), MATRIX[idx][j].th()), params);
-//        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), params);
         LEN_T curL=dub->l();
+//        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), params);
+//        LEN_T curL=dub.l();
         if (idx==(points.size()-1) && i==1){
           COUT(MATRIX[idx-1][i])  
           COUT(MATRIX[idx][j])  

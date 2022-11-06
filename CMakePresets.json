@@ -13,7 +13,7 @@
       "description": "Default build meant for Linux or Unix-like systems",
       "binaryDir": "${sourceDir}/cmake-cc-debug/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-O2 --std=c++11 -Wall -Wno-reorder"
+        "CMAKE_CXX_FLAGS": "--std=c++11 -Wall -Wno-reorder"
       }
     },
 
@@ -24,6 +24,18 @@
       "description": "Default build meant for Linux or Unix-like systems",
       "binaryDir": "${sourceDir}/cmake-cc-release/",
       "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-O2 --std=c++11"
+      }
+    },
+
+    {
+      "name": "GTEST",
+      "generator": "Unix Makefiles",
+      "displayName": "GTEST",
+      "description": "Build meant for Linux or Unix-like systems testing with Google suite for testing",
+      "binaryDir": "${sourceDir}/cmake-cc-GTEST/",
+      "cacheVariables": {
+        "TEST" : "GTEST",
         "CMAKE_CXX_FLAGS": "-O2 --std=c++11"
       }
     },
@@ -86,6 +98,11 @@
       "name": "CudaDebug",
       "configurePreset": "CudaDebug",
       "jobs": 1
+    },
+
+    {
+      "name" : "GTEST",
+      "configurePreset": "GTEST"
     }
   ],
   "testPresets": [
