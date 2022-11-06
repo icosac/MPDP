@@ -144,6 +144,7 @@ namespace DP {
   } //Anonymous namespace to hide information
 
   std::vector<std::vector<DP::Cell> >matrix; ///<The matrix used for the dynamic programming algorithm.
+  CURVE_TYPE curveType;
 } //Namespace DP
 
 
@@ -319,6 +320,22 @@ bestAngles(std::vector<Configuration2>* points=nullptr){
   return std::pair<LEN_T, std::vector<Angle> >(bestL, vtheta);
 }
 
+Curve* solveP2P(Configuration2 ci, Configuration2 cf, std::vector<real_type> &params){
+  Curve* curve;
+  switch (DP::curveType){
+    case CURVE_TYPE::RS: {
+      curve = dynamic_cast<Curve*> (new RS(ci, cf, params));
+      break;
+    }
+    case CURVE_TYPE::DUBINS: {
+      curve = dynamic_cast<Curve*> (new Dubins(ci, cf, params));
+    }
+    default:
+      throw std::runtime_error("The curve type specified is not valid.");
+  }
+  return curve;
+}
+
 /*!
  * Function that computes the point to point curves and finds the best values for each initial angle considering the rest of the curve.
  * @param points The list of points which the multi-point path should go through.
@@ -339,8 +356,9 @@ solveDPInner (std::vector<Configuration2>& points, std::vector<real_type> &param
 
       for (uint j=0; j<MATRIX[idx].size(); ++j){ //Consider the next angle
         //Compute Dubins
-        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), &params[0]);
-        LEN_T curL=dub.l();
+        Curve* dub = solveP2P(Configuration2(c0->x(), c0->y(), MATRIX[idx-1][i].th()), Configuration2(c1->x(), c1->y(), MATRIX[idx][j].th()), params);
+//        Dubins dub=Dubins(c0->x(), c0->y(), MATRIX[idx-1][i].th(), c1->x(), c1->y(), MATRIX[idx][j].th(), params);
+        LEN_T curL=dub->l();
         if (idx==(points.size()-1) && i==1){
           COUT(MATRIX[idx-1][i])  
           COUT(MATRIX[idx][j])  
@@ -376,8 +394,10 @@ solveDPInner (std::vector<Configuration2>& points, std::vector<real_type> &param
  * @return A pair where the first element is the computed length of the curve and the second one is a vector containing the best angles.
  */
 std::pair<LEN_T, std::vector<Angle> >
-DP::solveDP(std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles,
+DP::solveDP(CURVE_TYPE curveT, std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles,
             std::vector<real_type> params, int discr, int nRef, bool saveAngles){
+  curveType = curveT;
+
   MATRIX.clear();
 
   Kmax=params[0];

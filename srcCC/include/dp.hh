@@ -10,6 +10,7 @@
 #include <configuration.hh>
 #include <clothoidG1.hh>
 #include <dubins.hh>
+#include <rs.hh>
 
 #include <iostream>
 #include <cmath>
@@ -30,7 +31,7 @@ namespace DP {
    * @return A pair where the first element is the computed length of the curve and the second one is a vector containing the best angles.
    */
   std::pair<LEN_T, std::vector<Angle> >
-  solveDP(std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles, 
+  solveDP(CURVE_TYPE curveType, std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles,
           std::vector<real_type> params, int discr, int nRefinements, bool saveAngles=true);
   
 } //namespace DP

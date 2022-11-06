@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <limits>
+#include <cmath>
 
 #include <typedefs.hh>
 
@@ -86,6 +87,39 @@ inline T ABS(T x, T y) {return (x>y ? (x-y) : (y-x)); }
 template<class T>
 inline bool eq(const T x, const T y, const T EPSI=std::numeric_limits<T>::epsilon()) {
   return ((ABS(x, y)>(EPSI)) ? false : true);
+}
+
+/*!
+ * Function to standardize an angle between 0 and 2*\pi.
+ * @param ang The angle to be standardized.
+ * @return The standardized angle.
+ */
+inline Angle
+mod2pi(Angle ang){
+  while (ang < 0) ang += m_2pi;
+  while (ang >=  2*m_pi) ang -= m_2pi;
+  return ang;
+}
+
+inline double sinc(double x) {
+  if (std::abs(x) < 0.002) {
+    double xs = x * x;
+    return 1 - xs / 6. * (1 - xs / 20.0);
+  }
+  else
+  {
+    return std::sin(x) / x;
+  }
+}
+
+inline double f(double ell, double k, double th) {
+  double tmp = k * ell*0.5;
+  return ell * sinc(tmp)*std::cos(th + tmp);
+}
+
+inline double g(double ell, double k, double th) {
+  double tmp = k * ell*0.5;
+  return ell * sinc(tmp)*std::sin(th + tmp);
 }
 
 #endif //UTILS_HH

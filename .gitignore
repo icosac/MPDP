@@ -1,3 +1,4 @@
+cmake-cc*
 bin/
 lib/
 *.o

@@ -1,11 +1,13 @@
 #ifndef DUBINS_HH
 #define DUBINS_HH
 
+// Library includes
 #include <curve.hh>
 #include <utils.hh>
 
 #define DUBINS_DEFAULT_KMAX 0.01
 
+// System includes
 #include <cmath>
 #include <limits>
 
@@ -58,11 +60,11 @@ public:
    * @param cf The final `Configuration2`
    * @param params Additional parameters to pass. Default is `nullptr`, in such case DUBINS_DEFAULT_KMAX==0.01 is used.
    */
-  Dubins(Configuration2 ci, Configuration2 cf, real_type* params=nullptr) :
+  Dubins(Configuration2 ci, Configuration2 cf, std::vector<real_type> params = {}) :
     Curve(ci, cf, CURVE_TYPE::DUBINS, params),
     _type(D_TYPE::INVALID)
   {
-    if (params==nullptr)  { this->_kmax = DUBINS_DEFAULT_KMAX; }
+    if (params.empty())   { this->_kmax = DUBINS_DEFAULT_KMAX; }
     else                  { this->_kmax = params[0]; }
     solve();
   }
@@ -77,11 +79,11 @@ public:
    * @param th1 The final angle.
    * @param params Additional parameters to pass. Default is `nullptr`, in such case DUBINS_DEFAULT_KMAX==0.01 is used.
    */
-  Dubins(real_type x0, real_type y0, Angle th0, real_type x1, real_type y1, real_type th1, real_type* params=nullptr) :
+  Dubins(real_type x0, real_type y0, Angle th0, real_type x1, real_type y1, real_type th1, std::vector<real_type> params = {}) :
     Curve(Configuration2(x0, y0, th0), Configuration2(x1, y1, th1), CURVE_TYPE::DUBINS, params),
     _type(D_TYPE::INVALID)
   {
-    if (params==nullptr)  { this->_kmax = DUBINS_DEFAULT_KMAX; }
+    if (params.empty())  { this->_kmax = DUBINS_DEFAULT_KMAX; }
     else                  { this->_kmax = params[0]; }
     solve();
   }

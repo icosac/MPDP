@@ -40,6 +40,8 @@ public:
   real_type* params () const { return this->_params; }     ///< Returns the parameters of the curve.
 
   BOTH virtual LEN_T l() const = 0;                        ///< Returns the length of the curve.
+
+  BOTH virtual void solver () = 0;                         ///< Solves the curve depending on the type.
 };
 
 #endif //CURVE_CUH

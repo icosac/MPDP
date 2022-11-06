@@ -99,7 +99,7 @@ int main (){
         std::vector<Configuration2>points=Tests[testID];
 
         tp.start();
-        std::pair<LEN_T, std::vector<Angle> >ret=DP::solveDP(points, fixedAngles, curveParam, DISCR, r);
+        std::pair<LEN_T, std::vector<Angle> >ret=DP::solveDP(CURVE_TYPE::DUBINS, points, fixedAngles, curveParam, DISCR, r);
         auto time1=tp.getTime();
         LEN_T ComLength=ret.first;
         std::vector<Angle> vtheta=ret.second;

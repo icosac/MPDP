@@ -2,18 +2,6 @@
 #include<dubins.hh>
 
 /*!
- * Function to standardize an angle between 0 and 2*\pi.
- * @param ang The angle to be standardized.
- * @return The standardized angle.
- */
-static inline Angle
-mod2pi(Angle ang){
-	while (ang < 0) ang += m_2pi;
-	while (ang >=  2*m_pi) ang -= m_2pi;
-	return ang;
-}
-
-/*!
  * Function to scale to a standard settings the values. Credit to Marco Frego & Paolo Bevilacqua.
  */
 void Dubins::scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax){
