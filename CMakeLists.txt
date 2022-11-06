@@ -69,7 +69,8 @@ if(DEFINED TEST)
   set(TEST_NAMES
       configurationTest
       dubinsTest
-      clothoidG1Test)
+      clothoidG1Test
+      RSTest)
 
   if(${TEST} MATCHES "GTEST")
     #GTEST_TEST
@@ -115,5 +116,8 @@ if(DEFINED TEST)
 
   add_custom_command(TARGET dubinsTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
       ${CMAKE_SOURCE_DIR}/test/dubinsTest.txt ${CMAKE_CURRENT_BINARY_DIR}/test/dubinsTest.txt)
+
+  add_custom_command(TARGET RSTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
+      ${CMAKE_SOURCE_DIR}/test/RSDataset.txt ${CMAKE_CURRENT_BINARY_DIR}/test/RSDataset.txt)
 
 endif()

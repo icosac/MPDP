@@ -113,6 +113,14 @@ public:
     return l;
   }
 
+  [[nodiscard]] inline std::string getManTypeS() const {
+    std::string ret = this->ManType[0];
+    for(int i=1; i<this->getNseg(); i++){
+      ret+=this->ManType[i];
+    }
+    return ret;
+  }
+
   void setKmax (K_T k) { this->_kmax = k; }
 
   std::string to_string(int prec = 16) const
