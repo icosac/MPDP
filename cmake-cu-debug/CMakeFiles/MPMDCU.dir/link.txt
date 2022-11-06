@@ -1,2 +1,0 @@
-/usr/bin/ar qc libMPMDCU.a CMakeFiles/MPMDCU.dir/srcCU/asyplot.cu.o CMakeFiles/MPMDCU.dir/srcCU/dp.cu.o CMakeFiles/MPMDCU.dir/srcCU/dubins.cu.o CMakeFiles/MPMDCU.dir/srcCU/utils.cu.o
-/usr/bin/ranlib libMPMDCU.a

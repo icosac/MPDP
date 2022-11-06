@@ -1,1 +1,0 @@
-/opt/cuda/bin/g++ CMakeFiles/MPMDCU_exec.dir/exec/main.cu.o CMakeFiles/MPMDCU_exec.dir/cmake_device_link.o -o MPMDCU_exec  libMPMDCU.a -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/opt/cuda/targets/x86_64-linux/lib/stubs" -L"/opt/cuda/targets/x86_64-linux/lib"

@@ -1,6 +1,0 @@
-/opt/clion/bin/cmake/linux/bin/cmake -G "Unix Makefiles" "-DCMAKE_CXX_FLAGS=-O2 --std=c++11" -DCUDA_ON=ON -DCUDA_SEP_COMP=ON "-DCUDA_FLAGS=-O2 -std=c++11 -DCUDA_ON --default-stream per-thread" -DCUDA_ARCH=72;75 /home/enrico/Projects/researchProject
-FATALCompiling CUDA with: -O2 -std=c++11 -DCUDA_ON --default-stream per-thread
--- /home/enrico/Projects/researchProject/srcCU/asyplot.cu;/home/enrico/Projects/researchProject/srcCU/dp.cu;/home/enrico/Projects/researchProject/srcCU/dubins.cu;/home/enrico/Projects/researchProject/srcCU/utils.cu
--- Configuring done
--- Generating done
--- Build files have been written to: /home/enrico/Projects/researchProject/cmake-cu-release
