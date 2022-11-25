@@ -1,27 +1,27 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 include(GoogleTest)
 
-project(MPMD LANGUAGES CXX)
+project(MPDP LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(${CUDA_ON} MATCHES ON)
 #  include(CMakeMSCuda.cmake)
-  set(LIB "MPMDCU")
-  set(APP_EXEC "MPMDCU_exec")
+  set(LIB "MPDPCU")
+  set(APP_EXEC "MPDPCU_exec")
   #Define files to be compiled
   enable_language(CUDA)
 
   set(SRC "srcCU")
   set(SRCF "${SRC}/*.cu")
-  file(GLOB MPMDSrc ${SRCF})
-  file(GLOB MPMDExec "exec/main.cu")
+  file(GLOB MPDPSrc ${SRCF})
+  file(GLOB MPDPExec "exec/main.cu")
   file(GLOB includeFiles "${SRC}/include/*.cuh" "./include/*.hh")
 
   #What should be compiled
   include_directories(${SRC}/include include)
-  add_library(${LIB} ${MPMDSrc})
-  add_executable(${APP_EXEC} ${MPMDExec})
+  add_library(${LIB} ${MPDPSrc})
+  add_executable(${APP_EXEC} ${MPDPExec})
   target_link_libraries(${APP_EXEC} PUBLIC ${LIB})
 
   #What should be installed
@@ -35,24 +35,24 @@ if(${CUDA_ON} MATCHES ON)
   set_target_properties(${APP_EXEC} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
 
   message(FATAL "Compiling CUDA with: " ${CUDA_FLAGS})
-  message(STATUS "${MPMDSrc}")
+  message(STATUS "${MPDPSrc}")
 else()
-  set(LIB "MPMDCC")
-  set(APP_EXEC "MPMDCC_exec")
+  set(LIB "MPDPCC")
+  set(APP_EXEC "MPDPCC_exec")
   #Define files to be compiled
   set(SRC "srcCC")
   set(SRCF "${SRC}/*.cc")
-  file(GLOB MPMDSrc ${SRCF})
-  file(GLOB MPMDExec "exec/main.cc")
+  file(GLOB MPDPSrc ${SRCF})
+  file(GLOB MPDPExec "exec/main.cc")
   file(GLOB includeFiles "${SRC}/include/*.hh" "./include/*.hh")  
   
   message(STATUS "Compiling C++ with: " ${CXX_FLAGS})
-  message(STATUS "${MPMDSrc}")
+  message(STATUS "${MPDPSrc}")
 
   #Compile 
   include_directories(${SRC}/include include)
-  add_library(${LIB} STATIC ${MPMDSrc})
-  add_executable(${APP_EXEC} ${MPMDExec})
+  add_library(${LIB} STATIC ${MPDPSrc})
+  add_executable(${APP_EXEC} ${MPDPExec})
   target_link_libraries(${APP_EXEC} ${LIB})
   
   #What should be installed
