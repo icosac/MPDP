@@ -1,4 +1,4 @@
-# Enrico Saccon's Research Project on Parallel Dynamic Programming.
+# Framework to compute multipoint using dynamic programming, even GPU enhanced.
 
 ## Compile
 
