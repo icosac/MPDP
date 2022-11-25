@@ -334,6 +334,7 @@ Curve* solveP2P(Configuration2 ci, Configuration2 cf, std::vector<real_type> &pa
     default:
       throw std::runtime_error("The curve type specified is not valid.");
   }
+  curve->solve();
   return curve;
 }
 
@@ -402,6 +403,7 @@ DP::solveDP(CURVE_TYPE curveT, std::vector<Configuration2>& points, const std::v
 
   MATRIX.clear();
 
+  // TODO this should be independent of the params argument
   Kmax=params[0];
 
   std::pair<LEN_T, std::vector<Angle> > ret;

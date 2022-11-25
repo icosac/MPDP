@@ -158,7 +158,8 @@ public:
     out << data.to_string().str();
     return out;
   }
-  
+
+  void draw() override;
 };
 
 #endif //DUBINS_HH
