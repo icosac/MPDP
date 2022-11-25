@@ -153,8 +153,9 @@ public:
     return out;
   }
 
+#ifdef MPDP_DRAW
   void draw() override;
-
+#endif
 };
 
 #endif //MPMD_RS_HH

@@ -1577,8 +1577,8 @@ double RS::reeds_shepp(int Nman, std::vector<double>* debug) {
   return length;
 }
 
+#ifdef MPDP_DRAW
 void RS::draw() {
-
-}
+#endif //MPDP_DRAW
 
 #endif // CUDA_ON

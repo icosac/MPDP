@@ -159,7 +159,9 @@ public:
     return out;
   }
 
+#ifdef MPDP_DRAW
   void draw() override;
+#endif
 };
 
 #endif //DUBINS_HH

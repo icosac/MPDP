@@ -158,8 +158,11 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   this->k3(sk3*this->kmax());
 }
 
+#ifdef MPDP_DRAW
 void Dubins::draw() {
 
 }
+#endif //MPDP_DRAW
+
 
 #endif //CUDA_ON

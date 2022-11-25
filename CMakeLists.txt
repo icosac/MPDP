@@ -5,6 +5,8 @@ project(MPDP LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(MPDP_DRAW OFF)
+
 if(${CUDA_ON} MATCHES ON)
 #  include(CMakeMSCuda.cmake)
   set(LIB "MPDPCU")
@@ -57,10 +59,15 @@ else()
   
   #What should be installed
   install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
-  
+
   find_package(OpenMP REQUIRED)
   if (OpenMP_CXX_FOUND)
     target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+
+  if (${MPDP_DRAW})
+    include_directories(ExternalLibs/clothoids)
+    add_compile_definitions(MPDP_DRAW)
   endif()
 endif()
 
@@ -102,16 +109,6 @@ if(DEFINED TEST)
       add_test(NAME ${S} COMMAND ${S})
     endforeach()
 
-#    add_executable(ConfigurationTest test/configurationTest.cc)
-#    add_executable(ClothoidG1Test test/clothoidG1Test.cc)
-#    add_executable(DubinsTest test/dubinsTest.cc)
-#    target_link_libraries(ConfigurationTest ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-#    target_link_libraries(ClothoidG1Test ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-#    target_link_libraries(DubinsTest ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-#
-#    add_test(NAME ConfigurationTest COMMAND ConfigurationTest)
-#    add_test(NAME ClothoidG1Test COMMAND ClothoidG1Test)
-#    add_test(NAME DubinsTest COMMAND DubinsTest)
   endif()
 
   add_custom_command(TARGET dubinsTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
