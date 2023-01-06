@@ -3,6 +3,9 @@
 
 // Library includes
 #include <configuration.hh>
+#ifdef MPDP_DRAW
+#include <clothoids/clothoidAsyPlot.hh>
+#endif
 
 // System includes
 #include <vector>
@@ -46,6 +49,10 @@ public:
   virtual LEN_T l() const = 0;                          ///< Returns the length of the curve.
 
   virtual void solve() = 0;                             ///< Solves the curve depending on the type.
+
+#ifdef MPDP_DRAW
+  virtual void draw() = 0;                              ///< Draws the curve.
+#endif
 };
 
 #endif //CURVE_HH

@@ -158,7 +158,10 @@ public:
     out << data.to_string().str();
     return out;
   }
-  
+
+#ifdef MPDP_DRAW
+  void draw() override;
+#endif
 };
 
 #endif //DUBINS_HH
