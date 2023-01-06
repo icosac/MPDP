@@ -26,8 +26,8 @@ Configuration2 RS::circleLine(double s, double dir, double kur, double kmax, Con
     sign = -1;
   }
   double xEnd, yEnd, thetaEnd;
-  xEnd = c.x() + f(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * M_PI));
-  yEnd = c.y() + g(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * M_PI));
+  xEnd = c.x() + f(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * MPI));
+  yEnd = c.y() + g(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * MPI));
   thetaEnd = mod2pi(c.th() + sign* kur * kmax * s);
   if (seg == 0) {
     X[seg] = c.x();
@@ -291,13 +291,13 @@ void RS::buildRS(int man) {
       ll = { _L1, _L2, _L2, _L3 };
       break;
 
-      // C | C(M_PI_2) S C
+      // C | C(MPIDIV2) S C
     case 25:
       // LpRnSnLn
       this->_Nseg = 4;
       dir = { F,B,B,B}; // fwd-back-back-back
       kk = {len, R, S, len }; // len R S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 26:
@@ -305,7 +305,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = {F,B,B,B }; // fwd-back-back-back
       kk = {R, len, S, R }; // R len S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 27:
@@ -313,7 +313,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F }; // back-fwd-fwd-fwd
       kk = {len, R, S, len }; // len R S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 28:
@@ -321,7 +321,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F }; // back-fwd-fwd-fwd
       kk = {R, len, S, R }; // R len S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 29:
@@ -329,7 +329,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,B,B,B }; // fwd-back-back-back
       kk = {len, R, S, R }; // len R S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 30:
@@ -337,7 +337,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = {F,B,B,B}; // fwd-back-back-back
       kk = {R, len, S, len }; // R len S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 31:
@@ -345,7 +345,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F }; // back-fwd-fwd-fwd
       kk = {len, R, S, R }; // len R S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 32:
@@ -353,18 +353,18 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F}; //  back-fwd-fwd-fwd
       kk = {R, len, S, len }; // R len S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
 
-      // C |  C(M_PI_2) S  C(M_PI_2) | C
+      // C |  C(MPIDIV2) S  C(MPIDIV2) | C
 
     case 33:
       // LpRnSnLnRp
       this->_Nseg = 5;
       dir = { F,B,B,B,F }; //  fwd-back-back-back-fwd
       kk = {len, R, S, len, R }; // len R S len R
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 34:
@@ -372,7 +372,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 5;
       dir = { F,B,B,B,F }; //  fwd-back-back-back-fwd
       kk = {R, len, S, R, len }; // R len S R len
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 35:
@@ -380,7 +380,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 5;
       dir = {B,F,F,F,B }; //  back-fwd-fwd-fwd-back
       kk = {len, R, S, len, R }; // len R S len R
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 36:
@@ -388,7 +388,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 5;
       dir = { B,F,F,F,B }; //  back-fwd-fwd-fwd-back
       kk = {R, len, S, R, len }; // R len S R len
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
 
@@ -426,14 +426,14 @@ void RS::buildRS(int man) {
       break;
 
 
-      // C S C(M_PI_2) | C
+      // C S C(MPIDIV2) | C
 
     case 41:
       // LpSpRpLn
       this->_Nseg = 4;
       dir = {F,F,F,B }; //  fwd-fwd-fwd-back
       kk = {len, S, R, len }; // len S R len
-      ll = { _L1, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 42:
@@ -441,7 +441,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,F,F,B }; //  fwd-fwd-fwd-back
       kk = {R, S, len, R }; // R S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 43:
@@ -449,7 +449,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {len, S, R, len }; // len S R len
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 44:
@@ -457,7 +457,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {R, S, len, R }; // R S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 45:
@@ -465,7 +465,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,F,F,B }; //  back-back-back-fwd
       kk = {len, S, len, R }; // len S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 46:
@@ -473,7 +473,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,F,F,B }; //  fwd-fwd-fwd-back
       kk = {R, S, R, len }; // R S R len
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 47:
@@ -481,7 +481,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {len, S, len, R }; // len S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 48:
@@ -489,7 +489,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {R, S, R, len }; // R S R len
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     default:

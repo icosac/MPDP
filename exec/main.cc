@@ -105,7 +105,7 @@ int main (){
         LEN_T ComLength=ret.first;
         std::vector<Angle> vtheta=ret.second;
 
-        LEN_T Length;
+        LEN_T Length = 0.0;
         for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
           points[idjijij-1].th(vtheta[idjijij-1]);
           points[idjijij].th(vtheta[idjijij]);
