@@ -75,7 +75,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/O2 /std=c++11 /Wall /Wno-reorder"
+        "CMAKE_CXX_FLAGS": "/O2 /std=c++11 /Wall"
       }
     }
   ],
