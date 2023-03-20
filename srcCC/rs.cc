@@ -1577,6 +1577,14 @@ double RS::reeds_shepp(int Nman, std::vector<double>* debug) {
   return length;
 }
 
+std::vector<RSSegment> RS::getSegmentsData() {
+  std::vector<RSSegment> ret (this->getNseg());
+  for (size_t i=0; i<this->getNseg(); i++) {
+    ret[i] = RSSegment (this->X[i], this->X[i], this->TH[i], this->TH[i+1], this->K[i], this->L[i], (int)this->D[i] );
+  }
+  return ret;
+}
+
 #ifdef MPDP_DRAW
 void RS::draw() {
 #endif //MPDP_DRAW

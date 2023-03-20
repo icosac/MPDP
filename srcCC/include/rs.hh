@@ -14,6 +14,29 @@
 #define SAVE_DEBUG(debug, var) if (debug != nullptr) { debug->push_back(var); }
 #endif
 
+struct RSSegment {
+  double x, y;
+  double thi, thf;
+  double l, k;
+  int dir;
+
+  RSSegment() {}
+
+  RSSegment(double _x, double _y, double _thi, double _thf, double _l, double _k, int _dir) :
+      x(_x), y(_y), l(_l), thi(_thi), thf(_thf), k(_k), dir(_dir) {}
+
+  std::string toString() const {
+    std::stringstream ss;
+    ss << "x: " << x << ", y: " << y << ", thi: " << thi << ", thf: " << thf << ", l: " << l << ", k: " << k << ", dir: " << dir;
+    return ss.str();
+  }
+
+  friend std::ostream & operator << (std::ostream & os, const RSSegment & seg) {
+    os << seg.toString();
+    return os;
+  }
+};
+
 class RS : public Curve {
 private:
   LEN_T _L1 = 0.0, _L2 = 0.0, _L3 = 0.0, _L = 1e100;
@@ -112,6 +135,8 @@ public:
     }
     return l;
   }
+
+  [[nodiscard]] std::vector<RSSegment> getSegmentsData();
 
   [[nodiscard]] inline std::string getManTypeS() const {
     std::string ret = this->ManType[0];
