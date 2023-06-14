@@ -5,11 +5,13 @@
 #include <curve.hh>
 #include <utils.hh>
 
+#define MPDP_DRAW
 #define DUBINS_DEFAULT_KMAX 0.01
 
 // System includes
 #include <cmath>
 #include <limits>
+#include <fstream>
 
 class Dubins : public Curve {
 public:
@@ -103,12 +105,43 @@ public:
   }
 
   K_T kmax() const { return this->_kmax; }                                 ///<Returns the maximum curvature.
+  inline K_T k(int id) const {
+    switch (id) {
+      case 1:
+        return this->k1();
+        break;
+      case 2:
+        return this->k2();
+        break;
+      case 3:
+        return this->k3();
+        break;
+      default:
+        return std::numeric_limits<K_T>::quiet_NaN();
+    }
+  }
+
   K_T k1() const { return this->_k1; }                                     ///<Returns the curvature of the first part of the Dubins.
   K_T k2() const { return this->_k2; }                                     ///<Returns the curvature of the middle part of the Dubins.
   K_T k3() const { return this->_k3; }                                     ///<Returns the curvature of the final part of the Dubins.
   LEN_T s1() const { return this->_s1; }                                   ///<Returns the length of the first part of the Dubins.
   LEN_T s2() const { return this->_s2; }                                   ///<Returns the length of the first part of the Dubins.
   LEN_T s3() const { return this->_s3; }                                   ///<Returns the length of the first part of the Dubins.
+  inline LEN_T L(int id) const {
+    switch (id) {
+      case 1:
+        return this->s1();
+        break;
+      case 2:
+        return this->s2();
+        break;
+      case 3:
+        return this->s3();
+        break;
+      default:
+        return std::numeric_limits<LEN_T>::quiet_NaN();
+    }
+  }
   LEN_T l() const override { return (this->s1()+this->s2()+this->s3()); }  ///<Returns the length of the Dubins.
   D_TYPE dtype() const { return this->_type; }                             ///<Returns the word of the Dubins.
 
@@ -160,7 +193,9 @@ public:
   }
 
 #ifdef MPDP_DRAW
-  void draw() override;
+  void draw(std::ofstream& file,
+            size_t width = 8, size_t height = 8,
+            bool solve = false, bool close = false);
 #endif
 };
 

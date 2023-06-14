@@ -13,7 +13,7 @@
       "description": "Default build meant for Linux or Unix-like systems",
       "binaryDir": "${sourceDir}/cmake-cc-debug/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "--std=c++11 -Wall -Wno-reorder"
+        "CMAKE_CXX_FLAGS": "--std=c++11 -Wall -Wno-reorder -DMPDP_DRAW"
       }
     },
 

@@ -1586,7 +1586,7 @@ std::vector<RSSegment> RS::getSegmentsData() {
 }
 
 #ifdef MPDP_DRAW
-void RS::draw() {
+void RS::draw() {}
 #endif //MPDP_DRAW
 
 #endif // CUDA_ON

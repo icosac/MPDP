@@ -1,6 +1,18 @@
 #ifndef CUDA_ON
 #include<dubins.hh>
 
+static Configuration2 circleLine(double s, double kur, Configuration2 c) {
+  double sigmaDir = 1,  sign = kur > 0? 1: -1;
+  double xEnd, yEnd, thetaEnd;
+  xEnd = c.x() - f(s, kur , mod2pi(c.th() + sigmaDir * m_pi));
+  yEnd = c.y() - g(s, kur , mod2pi(c.th() + sigmaDir * m_pi));
+  thetaEnd = mod2pi(c.th() + kur  * s);
+
+  Configuration2 res(xEnd, yEnd, thetaEnd, kur );
+
+  return res;
+}
+
 /*!
  * Function to scale to a standard settings the values. Credit to Marco Frego & Paolo Bevilacqua.
  */
@@ -158,9 +170,41 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   this->k3(sk3*this->kmax());
 }
 
-#ifdef MPDP_DRAW
-void Dubins::draw() {
 
+#ifdef MPDP_DRAW
+void Dubins::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close) {
+  if (solve) {
+    this->solve();
+  }
+
+  // Initial point
+  Configuration2 c = this->ci()[0];
+  file  << "p = clothoidPoints((" << c.x() << "," << c.y() << "), " << c.th()
+        << "," << this->k1() << ", 0, " << this->s1() << ");" << std::endl;
+  file << "draw(p,royalblue);" << std::endl;
+  file << "dot((" << c.x() << "," << c.y() << "), red);" << std::endl;
+
+  // Intermediate point
+  c = circleLine(this->s1(), this->k1(), c);
+  file  << "p = clothoidPoints((" << c.x() << "," << c.y() << "), " << c.th()
+        << "," << this->k2() << ", 0, " << this->s2() << ");" << std::endl;
+  file << "draw(p,royalblue);" << std::endl;
+  file << "dot((" << c.x() << "," << c.y() << "), red);" << std::endl;
+
+  // Final point
+  c = circleLine(this->s2(), this->k2(), c);
+  file  << "p = clothoidPoints((" << c.x() << "," << c.y() << "), " << c.th()
+        << "," << this->k3() << ", 0, " << this->s3() << ");" << std::endl;
+  file << "draw(p,royalblue);" << std::endl;
+  file << "dot((" << c.x() << "," << c.y() << "), red);" << std::endl;
+
+  // Plot points
+  file << "dot((" << this->ci()->x() << "," << this->ci()->y() << "), black);" << std::endl;
+  file << "dot((" << this->cf()->x() << "," << this->cf()->y() << "), purple+3bp);" << std::endl;
+
+  if (close){
+    file.close();
+  }
 }
 #endif //MPDP_DRAW
 

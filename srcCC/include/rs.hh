@@ -179,7 +179,7 @@ public:
   }
 
 #ifdef MPDP_DRAW
-  void draw() override;
+  void draw();
 #endif
 };
 
