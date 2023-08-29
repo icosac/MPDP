@@ -192,11 +192,9 @@ public:
     return out;
   }
 
-#ifdef MPDP_DRAW
   void draw(std::ofstream& file,
             size_t width = 8, size_t height = 8,
             bool solve = false, bool close = false);
-#endif
 };
 
 #endif //DUBINS_HH

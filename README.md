@@ -1,4 +1,4 @@
-# Framework to compute multipoint using dynamic programming, even GPU enhanced.
+# Framework to compute multipoint using dynamic programming, also GPU enhanced.
 
 ## Compile
 
