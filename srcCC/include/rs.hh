@@ -63,11 +63,11 @@ public:
    * @brief Constructor or the Reed-Shepp curve.
    * @detail The constructor depends on the number of `params`:
    *  - 0: then `Kmax` is set to `DEFAULT_KMAX` and the number of the manoeuvre to -1 so that all the possibilities are
-   *  considered
+   *  considered and computed
    *  - 1: then `Kmax` is set to `params[0]` and the number of the manoeuvre to -1 so that all the possibilities are
-   *  considered
+   *  considered and computed
    *  - 2: then `Kmax` is set to `params[0]` and the number of the manoeuvre to `params[1]` so that only that particular
-   *  manoeuvre is considered
+   *  manoeuvre is considered and computed
    *  - 5: then `Kmax` is set to `params[0]` and the number of the manoeuvre to `params[1]` so that only that particular
    *  manoeuvre is considered, plus `_L1`, `_L2` and `_L3` are set so that only the `buildRS` function needs to be
    *  called.
@@ -104,6 +104,9 @@ public:
     }
   }
 
+  /**
+   * @brief Function that computes the best manoeuvre for the given initial and final configuration.
+   */
   void solve () {
     this->reeds_shepp(this->_Nman);
     this->buildRS(this->_Nman);
