@@ -9,6 +9,7 @@
 #include <cmath>
 
 #include <typedefs.hh>
+#include <utilities.hh>
 
 //#define DEBUG
 

@@ -13,7 +13,7 @@
       "description": "Default build meant for Linux or Unix-like systems",
       "binaryDir": "${sourceDir}/cmake-cc-debug/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "--std=c++11 -Wall -Wno-reorder -DMPDP_DRAW"
+        "CMAKE_CXX_FLAGS": "--std=c++11 -Wall -Wno-reorder -DMPDP_DRAW -O0 -g"
       }
     },
 
@@ -22,10 +22,7 @@
       "generator": "Unix Makefiles",
       "displayName": "Default Config",
       "description": "Default build meant for Linux or Unix-like systems",
-      "binaryDir": "${sourceDir}/cmake-cc-release/",
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-O2 --std=c++11"
-      }
+      "binaryDir": "${sourceDir}/cmake-cc-release/"
     },
 
     {

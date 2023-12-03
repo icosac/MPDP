@@ -26,8 +26,8 @@ Configuration2 RS::circleLine(double s, double dir, double kur, double kmax, Con
     sign = -1;
   }
   double xEnd, yEnd, thetaEnd;
-  xEnd = c.x() + f(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * M_PI));
-  yEnd = c.y() + g(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * M_PI));
+  xEnd = c.x() + f(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * MPI));
+  yEnd = c.y() + g(s, sign*kur*kmax, mod2pi(c.th() + sigmaDir * MPI));
   thetaEnd = mod2pi(c.th() + sign* kur * kmax * s);
   if (seg == 0) {
     X[seg] = c.x();
@@ -100,13 +100,14 @@ void RS::buildRS(int man) {
       break;
 
 
-    case 2:
-      // LnRpLn
-      this->_Nseg = 3;
-      dir = { B,F,B }; // back-fwd-back
-      kk = {len, R, len}; // len R len
-      ll = { _L1, _L2, _L3 };
-      break;
+//    case 2:
+//      // Substituted by 3
+//      // LnRpLn
+//      this->_Nseg = 3;
+//      dir = { B,F,B }; // back-fwd-back
+//      kk = {len, R, len}; // len R len
+//      ll = { _L1, _L2, _L3 };
+//      break;
 
     case 3:
       // RpLnRp
@@ -116,13 +117,14 @@ void RS::buildRS(int man) {
       ll = { _L1, _L2, _L3 };
       break;
 
-    case 4:
-      // RnLpRn
-      this->_Nseg = 3;
-      dir = { B,F,B }; // back-fwd-back
-      kk = {R, len, R }; // R len R
-      ll = { _L1, _L2, _L3 };
-      break;
+//    case 4:
+//      // Substituted by 1
+//      // RnLpRn
+//      this->_Nseg = 3;
+//      dir = { B,F,B }; // back-fwd-back
+//      kk = {R, len, R }; // R len R
+//      ll = { _L1, _L2, _L3 };
+//      break;
 
       // C | C C
     case 5:
@@ -223,8 +225,6 @@ void RS::buildRS(int man) {
       break;
 
       // C C= | C= C
-
-
     case 17:
       // LpRpLnRn
       this->_Nseg = 4;
@@ -291,13 +291,13 @@ void RS::buildRS(int man) {
       ll = { _L1, _L2, _L2, _L3 };
       break;
 
-      // C | C(M_PI_2) S C
+      // C | C(MPIDIV2) S C
     case 25:
       // LpRnSnLn
       this->_Nseg = 4;
       dir = { F,B,B,B}; // fwd-back-back-back
       kk = {len, R, S, len }; // len R S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 26:
@@ -305,7 +305,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = {F,B,B,B }; // fwd-back-back-back
       kk = {R, len, S, R }; // R len S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 27:
@@ -313,7 +313,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F }; // back-fwd-fwd-fwd
       kk = {len, R, S, len }; // len R S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 28:
@@ -321,7 +321,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F }; // back-fwd-fwd-fwd
       kk = {R, len, S, R }; // R len S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 29:
@@ -329,7 +329,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,B,B,B }; // fwd-back-back-back
       kk = {len, R, S, R }; // len R S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 30:
@@ -337,7 +337,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = {F,B,B,B}; // fwd-back-back-back
       kk = {R, len, S, len }; // R len S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 31:
@@ -345,7 +345,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F }; // back-fwd-fwd-fwd
       kk = {len, R, S, R }; // len R S R
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
     case 32:
@@ -353,18 +353,18 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,F,F,F}; //  back-fwd-fwd-fwd
       kk = {R, len, S, len }; // R len S len
-      ll = { _L1, M_PI_2 * lambda, _L2/lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2/lambda, _L3 };
       break;
 
 
-      // C |  C(M_PI_2) S  C(M_PI_2) | C
+      // C |  C(MPIDIV2) S  C(MPIDIV2) | C
 
     case 33:
       // LpRnSnLnRp
       this->_Nseg = 5;
       dir = { F,B,B,B,F }; //  fwd-back-back-back-fwd
       kk = {len, R, S, len, R }; // len R S len R
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 34:
@@ -372,7 +372,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 5;
       dir = { F,B,B,B,F }; //  fwd-back-back-back-fwd
       kk = {R, len, S, R, len }; // R len S R len
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 35:
@@ -380,7 +380,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 5;
       dir = {B,F,F,F,B }; //  back-fwd-fwd-fwd-back
       kk = {len, R, S, len, R }; // len R S len R
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 36:
@@ -388,7 +388,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 5;
       dir = { B,F,F,F,B }; //  back-fwd-fwd-fwd-back
       kk = {R, len, S, R, len }; // R len S R len
-      ll = { _L1, M_PI_2 * lambda, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, MPIDIV2 * lambda, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
 
@@ -426,14 +426,14 @@ void RS::buildRS(int man) {
       break;
 
 
-      // C S C(M_PI_2) | C
+      // C S C(MPIDIV2) | C
 
     case 41:
       // LpSpRpLn
       this->_Nseg = 4;
       dir = {F,F,F,B }; //  fwd-fwd-fwd-back
       kk = {len, S, R, len }; // len S R len
-      ll = { _L1, _L2 / lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2 / lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 42:
@@ -441,7 +441,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,F,F,B }; //  fwd-fwd-fwd-back
       kk = {R, S, len, R }; // R S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 43:
@@ -449,7 +449,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {len, S, R, len }; // len S R len
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 44:
@@ -457,7 +457,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {R, S, len, R }; // R S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 45:
@@ -465,7 +465,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,F,F,B }; //  back-back-back-fwd
       kk = {len, S, len, R }; // len S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 46:
@@ -473,7 +473,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { F,F,F,B }; //  fwd-fwd-fwd-back
       kk = {R, S, R, len }; // R S R len
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 47:
@@ -481,7 +481,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {len, S, len, R }; // len S len R
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     case 48:
@@ -489,7 +489,7 @@ void RS::buildRS(int man) {
       this->_Nseg = 4;
       dir = { B,B,B,F }; //  back-back-back-fwd
       kk = {R, S, R, len }; // R S R len
-      ll = { _L1, _L2/lambda, M_PI_2 * lambda, _L3 };
+      ll = { _L1, _L2/lambda, MPIDIV2 * lambda, _L3 };
       break;
 
     default:
@@ -945,7 +945,7 @@ double RS::reeds_shepp(int Nman, std::vector<double>* debug) {
   if (Nman == -1 || Nman == 2) {
     var = c_c_c(RADCURV, -x, y, -phi, am, b1, &tn, &un, &vn);
     SAVE_DEBUG(debug, var)
-    if (var < length) {
+    if (var < length && false) {
       length = var;
       num = 2;
       t = tn;
@@ -971,7 +971,7 @@ double RS::reeds_shepp(int Nman, std::vector<double>* debug) {
   if (Nman == -1 || Nman == 4) {
     var = c_c_c(RADCURV, -x, -y, phi, ap, b1, &tn, &un, &vn);
     SAVE_DEBUG(debug, var)
-    if (var < length) {
+    if (var < length && false) {
       length = var;
       num = 4;
       t = tn;
@@ -1580,13 +1580,35 @@ double RS::reeds_shepp(int Nman, std::vector<double>* debug) {
 std::vector<RSSegment> RS::getSegmentsData() {
   std::vector<RSSegment> ret (this->getNseg());
   for (size_t i=0; i<this->getNseg(); i++) {
-    ret[i] = RSSegment (this->X[i], this->X[i], this->TH[i], this->TH[i+1], this->K[i], this->L[i], (int)this->D[i] );
+    ret[i] = RSSegment (this->X[i], this->Y[i], this->TH[i], this->TH[i+1], this->K[i], this->L[i], (int)this->D[i] );
   }
   return ret;
 }
 
 #ifdef MPDP_DRAW
-void RS::draw() {}
+void RS::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close, bool init) {
+  if (solve) {
+    this->solve();
+  }
+
+  if (init){
+    initAsyFile(file);
+  }
+
+  for (size_t i=0; i<this->getNseg(); i++) {
+    Configuration2 c = Configuration2(this->X[i], this->Y[i], this->TH[i]);
+    file  << "p = clothoidPoints((" << c.x() << "," << c.y() << "), " << c.th()
+          << "," << this->K[i] << ", 0, " << this->L[i] << ");" << std::endl;
+    file << "draw(p,royalblue);" << std::endl;
+    file << "dot((" << c.x() << "," << c.y() << "), red);" << std::endl;
+  }
+  // Final point
+  file  << "p = dot((" << this->cf()->x() << "," << this->cf()->y() << "), red);" << std::endl;
+
+  if (close){
+    file.close();
+  }
+}
 #endif //MPDP_DRAW
 
 #endif // CUDA_ON

@@ -106,6 +106,7 @@ namespace DP {
 
         return *this;
       }
+
       /*!
        * Overrides the assign operator (=) to make a deep copy of a cell to `this`.
        * @param d The cell to copy from.
@@ -399,7 +400,7 @@ solveDPInner (std::vector<Configuration2>& points, std::vector<real_type> &param
 std::pair<LEN_T, std::vector<Angle> >
 DP::solveDP(CURVE_TYPE curveT, std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles,
             std::vector<real_type> params, int discr, int nRef, bool saveAngles){
-  curveType = curveT;
+  DP::curveType = curveT;
 
   MATRIX.clear();
 

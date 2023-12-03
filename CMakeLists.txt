@@ -5,7 +5,7 @@ project(MPDP LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(MPDP_DRAW OFF)
+set(MPDP_DRAW ON)
 
 if(${CUDA_ON} MATCHES ON)
 #  include(CMakeMSCuda.cmake)
@@ -39,6 +39,8 @@ if(${CUDA_ON} MATCHES ON)
   message(FATAL "Compiling CUDA with: " ${CUDA_FLAGS})
   message(STATUS "${MPDPSrc}")
 else()
+  # find_package(Matlab REQUIRED)
+
   set(LIB "MPDPCC")
   set(APP_EXEC "MPDPCC_exec")
   #Define files to be compiled
@@ -47,16 +49,25 @@ else()
   file(GLOB MPDPSrc ${SRCF})
   file(GLOB MPDPExec "exec/main.cc")
   file(GLOB includeFiles "${SRC}/include/*.hh" "./include/*.hh")  
-  
-  message(STATUS "Compiling C++ with: " ${CXX_FLAGS})
+
+  message(STATUS "Compiling C++ with: `" ${CXX_FLAGS} "`")
   message(STATUS "${MPDPSrc}")
 
-  #Compile 
+  # include(ExternalLibs/RSPredict/CMakeLists.txt)
+  # include(ExternalLibs/SVMQuadraticPredict/CMakeLists.txt)
+  # include(ExternalLibs/NNWideCompactPredict/CMakeLists.txt)
+
+  #Compile
   include_directories(${SRC}/include include)
+  # include_directories(${Matlab_INCLUDE_DIRS})
+  # include_directories(ExternalLibs/RSPredict)
+  # include_directories(ExternalLibs/SVMQuadraticPredict)
+  # include_directories(ExternalLibs/NNWideCompactPredict)
+
   add_library(${LIB} STATIC ${MPDPSrc})
   add_executable(${APP_EXEC} ${MPDPExec})
-  target_link_libraries(${APP_EXEC} ${LIB})
-  
+  target_link_libraries(${APP_EXEC} PUBLIC ${LIB}) # RSPredict SVMQuadraticPredict NNWideCompactPredict)
+
   #What should be installed
   install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
 

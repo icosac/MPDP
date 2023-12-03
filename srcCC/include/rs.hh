@@ -1,6 +1,10 @@
 #ifndef MPMD_RS_HH
 #define MPMD_RS_HH
 
+#ifndef MPDP_DRAW
+#error MPDP_DRAW must be defined to use the draw function
+#endif
+
 // Library includes
 #include <curve.hh>
 #include <utils.hh>
@@ -9,6 +13,7 @@
 
 // System includes
 #include <exception>
+#include <fstream>
 
 #ifndef SAVE_DEBUG
 #define SAVE_DEBUG(debug, var) if (debug != nullptr) { debug->push_back(var); }
@@ -129,6 +134,13 @@ public:
   [[nodiscard]] std::vector<double> getTH()           const { return this->TH; }
   [[nodiscard]] std::vector<double> getD()            const { return this->D; }
   [[nodiscard]] std::vector<std::string> getManType() const { return this->ManType; }
+  [[nodiscard]] std::string getManTypeStr() const {
+    std::string str;
+    for (auto s : this->getManType()){
+      str+=s;
+    }
+    return str;
+  }
   [[nodiscard]] LEN_T l() const override { return this->_L; }
   [[nodiscard]] LEN_T sumL() const
   {
@@ -182,7 +194,9 @@ public:
   }
 
 #ifdef MPDP_DRAW
-  void draw();
+  void draw(std::ofstream& file,
+            size_t width = 8, size_t height = 8,
+            bool solve = false, bool close = false, bool init = false);
 #endif
 };
 

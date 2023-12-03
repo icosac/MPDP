@@ -5,7 +5,6 @@
 #include <curve.hh>
 #include <utils.hh>
 
-#define MPDP_DRAW
 #define DUBINS_DEFAULT_KMAX 0.01
 
 // System includes
@@ -192,9 +191,11 @@ public:
     return out;
   }
 
+#ifdef MPDP_DRAW
   void draw(std::ofstream& file,
             size_t width = 8, size_t height = 8,
-            bool solve = false, bool close = false);
+            bool solve = false, bool close = false, bool init = false);
+#endif //MPDP_DRAW
 };
 
 #endif //DUBINS_HH

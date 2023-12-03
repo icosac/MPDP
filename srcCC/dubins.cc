@@ -172,9 +172,13 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
 
 
 #ifdef MPDP_DRAW
-void Dubins::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close) {
+void Dubins::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close, bool init) {
   if (solve) {
     this->solve();
+  }
+
+  if (init) {
+    initAsyFile(file);
   }
 
   // Initial point
