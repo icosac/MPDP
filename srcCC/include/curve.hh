@@ -50,6 +50,10 @@ public:
 
   virtual void solve() = 0;                             ///< Solves the curve depending on the type.
 
+  virtual std::vector<std::vector<double>> split_wise() = 0; ///< Splits the curve.
+  
+  // virtual std::vector<Configuration2> split(int num_split) = 0; ///< Splits the curve into `num_split` parts.
+
 #ifdef MPDP_DRAW
 //  virtual void draw() = 0;                              ///< Draws the curve.
 #endif

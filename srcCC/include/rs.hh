@@ -117,6 +117,8 @@ public:
   double reeds_sheppa(std::vector<double>* debug = nullptr);
   double reeds_shepp(int Nman = -1, std::vector<double>* debug = nullptr);
 
+  std::vector<std::vector<double>> split_wise() override;
+
   [[nodiscard]] int getNseg()                         const { return this->_Nseg; }
   [[nodiscard]] int getNman()                         const { return this->_Nman; }
   [[nodiscard]] K_T getKmax()                         const { return this->_kmax; }

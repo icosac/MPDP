@@ -321,7 +321,7 @@ bestAngles(std::vector<Configuration2>* points=nullptr){
   return std::pair<LEN_T, std::vector<Angle> >(bestL, vtheta);
 }
 
-Curve* solveP2P(Configuration2 ci, Configuration2 cf, std::vector<real_type> &params){
+Curve* solveP2P(Configuration2 ci, Configuration2 cf, std::vector<real_type> params){
   Curve* curve;
   switch (DP::curveType){
     case CURVE_TYPE::RS: {
@@ -440,5 +440,35 @@ DP::solveDP(CURVE_TYPE curveT, std::vector<Configuration2>& points, const std::v
 
   return ret;
 }
+
+std::vector<std::vector<double>>
+DP::split_wise(std::vector<Configuration2> points, const std::vector<Angle>& angles){
+  if (DP::curveType != CURVE_TYPE::DUBINS){
+    throw std::runtime_error("The curve type is invalid, it must be a Dubins.");
+  }
+
+  if (angles.size() != 0 && points.size() != angles.size()){
+    throw std::runtime_error("The number of points must be equal to the number of angles.");
+  }
+
+  // If angles is not empty, then set the angles to the points
+  if (angles.size() != 0){
+    for (uint i=0; i<points.size(); i++){
+      points[i].th(angles[i]);
+    }
+  }
+
+  // For each pair of points compute the curve and split it
+  std::vector<std::vector<double>> ret = {};
+  for (uint i=1; i<points.size(); i++){
+    Curve* curve = solveP2P(points[i-1], points[i], {Kmax});
+    for (auto p : curve->split_wise()){
+      ret.push_back(p);
+    }
+  }
+
+  return ret;
+}
+
 
 #endif 

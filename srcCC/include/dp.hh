@@ -34,6 +34,11 @@ namespace DP {
   solveDP(CURVE_TYPE curveType, std::vector<Configuration2>& points, const std::vector<bool>& fixedAngles,
           std::vector<real_type> params, int discr, int nRefinements, bool saveAngles=true);
   
+  std::vector<std::vector<double>>
+  split_wise(std::vector<Configuration2> points, const std::vector<Angle>& angles = {});
+
+  std::vector<std::vector<double>>
+  split(const std::vector<Configuration2>& points, int num_split, const std::vector<Angle>& angles = {});
 } //namespace DP
 
 

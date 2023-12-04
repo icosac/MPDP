@@ -170,6 +170,39 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   this->k3(sk3*this->kmax());
 }
 
+std::vector<std::vector<double>> Dubins::split_wise() {
+  std::vector<std::vector<double>> res;
+  uint n_split = 5;
+  std::vector<double> tmp;
+
+  Configuration2 curr = *this->ci();  
+  for (uint seg=1; seg<4; seg++){
+    // If the segment has length 0, skip it
+    if (this->L(seg) == 0) continue;
+
+    // If the segment is a straight line, add only the beginning and the end
+    Configuration2 next_goal_c = circleLine(this->L(seg), this->k(seg), curr);
+    if (this->k(seg) == 0 && next_goal_c.th() == curr.th()){
+      tmp = {curr.x(), curr.y(), curr.th(), this->k(seg), this->L(seg)};
+      res.push_back(tmp);
+      curr = circleLine(this->L(seg), this->k(seg), curr);
+    }
+    // If the segment is a circle, add n_split points
+    else {
+      // Dynamically change the value of n_split so that the points are at least 0.01 apart
+      n_split = std::min((uint) 3, (uint) std::ceil(this->L(seg)/0.01));
+
+      for (uint i=0; i<n_split; i++){
+        tmp = {curr.x(), curr.y(), curr.th(), this->k(seg), (this->L(seg)/n_split)};
+        res.push_back(tmp);
+        curr = circleLine(this->L(seg)/n_split, this->k(seg), curr);
+      }
+    }
+  }
+  
+  return res;
+}
+
 
 #ifdef MPDP_DRAW
 void Dubins::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close, bool init) {
