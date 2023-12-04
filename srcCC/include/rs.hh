@@ -1,10 +1,6 @@
 #ifndef MPMD_RS_HH
 #define MPMD_RS_HH
 
-#ifndef MPDP_DRAW
-#error MPDP_DRAW must be defined to use the draw function
-#endif
-
 // Library includes
 #include <curve.hh>
 #include <utils.hh>
