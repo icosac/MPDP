@@ -350,11 +350,6 @@ public:
 };
 
 #endif
-
-#pragma clang diagnostic pop
-
-
-
 #endif //DP_HH
 
 

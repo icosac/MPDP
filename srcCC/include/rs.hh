@@ -1,10 +1,6 @@
 #ifndef MPMD_RS_HH
 #define MPMD_RS_HH
 
-#ifndef MPDP_DRAW
-#error MPDP_DRAW must be defined to use the draw function
-#endif
-
 // Library includes
 #include <curve.hh>
 #include <utils.hh>
@@ -120,6 +116,8 @@ public:
   void buildRS(int man = -1);
   double reeds_sheppa(std::vector<double>* debug = nullptr);
   double reeds_shepp(int Nman = -1, std::vector<double>* debug = nullptr);
+
+  std::vector<std::vector<double>> split_wise() override;
 
   [[nodiscard]] int getNseg()                         const { return this->_Nseg; }
   [[nodiscard]] int getNman()                         const { return this->_Nman; }

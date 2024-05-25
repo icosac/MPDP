@@ -1585,6 +1585,10 @@ std::vector<RSSegment> RS::getSegmentsData() {
   return ret;
 }
 
+std::vector<std::vector<double>> RS::split_wise() {
+  return {};
+}
+
 #ifdef MPDP_DRAW
 void RS::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close, bool init) {
   if (solve) {

@@ -153,6 +153,8 @@ public:
   LEN_T s3(LEN_T s3) { this->_s3 = s3; return this->s3(); }                ///<Sets the length of the final part of the Dubins and returns the new set value.
   D_TYPE dtype(D_TYPE type) { this->_type = type; return this->dtype(); }  ///<Sets the word of the Dubins.
 
+  std::vector<std::vector<double>> split_wise() override;
+
   /*!
    * Function to print the stringy word of the Dubins.
    * @return A string containing the word of the computed Dubins.
