@@ -22,7 +22,10 @@
       "generator": "Unix Makefiles",
       "displayName": "Default Config",
       "description": "Default build meant for Linux or Unix-like systems",
-      "binaryDir": "${sourceDir}/cmake-cc-release/"
+      "binaryDir": "${sourceDir}/cmake-cc-release/",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "--std=c++11"
+      }
     },
 
     {

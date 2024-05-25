@@ -82,7 +82,8 @@ std::string nameTest(std::string name, std::string add="", std::string conc=" ")
 int allexamples (){
   std::cout << "DISCR & ref & dl & t\\" << std::endl;
   for (uint testID=0; testID<Tests.size(); testID++){
-//    if (testID!=0){continue;}
+    std::cout << "Test " << testID << std::endl;
+    if (testID!=2){continue;}
     real_type dLen=exampleLenghts[testID];
 
     std::vector<bool> fixedAngles;
@@ -105,7 +106,7 @@ int allexamples (){
         std::vector<Configuration2>points=Tests[testID];
 
         tp.start();
-        std::pair<LEN_T, std::vector<Angle> >ret=DP::solveDP(CURVE_TYPE::DUBINS, points, fixedAngles, curveParam, DISCR, r);
+        std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, DISCR, r);
         auto time1=tp.getTime();
         LEN_T ComLength=ret.first;
         std::vector<Angle> vtheta=ret.second;
@@ -115,6 +116,9 @@ int allexamples (){
           points[index-1].th(vtheta[index-1]);
           points[index].th(vtheta[index]);
           Dubins c(points[index-1], points[index], {Ks[testID]});
+          std::ofstream file;
+          file.open("kaya1RS.asy", std::ios::app);
+          c.draw(file, 100, 100, true, false, Length==0.0 ? true : false);
           // std::cout << c << std::endl;
           Length+=c.l();
         }
@@ -505,7 +509,7 @@ int example() {
   std::vector<double> parameters = {kmax};
 
   // Solve the multi-point problem
-  std::pair<LEN_T, std::vector<Angle> >ret=DP::solveDP(CURVE_TYPE::RS, points, fixedAngles, parameters, discretizations, refinements);
+  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, parameters, discretizations, refinements);
 
   std::cout << "Total length: " << ret.first << std::endl;
 
@@ -841,30 +845,71 @@ int generateDatasetRS(){
 
 
 void drawRS(){
-  RS curve = RS(Configuration2(0, 0, 0), Configuration2(1, 0, 0), {0.1});
-  curve.solve();
+//  RS curve = RS(Configuration2(0, 0, m_pi_2), Configuration2(1, 1, 0), {1});
+//  curve.solve();
+//  std::ofstream file("RS.asy");
+  Dubins curve = Dubins(Configuration2(1, 1, -m_pi), Configuration2(0, 0, -m_pi_2), {1});
+  std::ofstream file("Dubins.asy");
 
-  std::ofstream file("RS.asy");
+  std::cout << "Length: " << curve.l() << std::endl;
+
   initAsyFile(file);
   file << "path p;" << std::endl;
   curve.draw(file);
   file.close();
 
-  // system("asy -f pdf RS.asy && xdg-open RS.pdf");
+//   system("asy -f pdf RS.asy && xdg-open RS.pdf");
+}
+
+int testDubins(){
+  std::ifstream file2("tmp.txt");
+  std::string line;
+  double sx, sy, sth, ex, ey, eth, k, l, t;
+  double totDiff = 0.0, maxPosDiff = 0.0, maxNegDiff = 0.0;
+  int i = 0;
+  while (file2 >> sx >> sy >> sth >> ex >> ey >> eth >> k >> l >> t) {
+    Configuration2 start(sx, sy, sth);
+    Configuration2 end(ex, ey, eth);
+
+    std::vector<double> tmp = {k};
+
+    TimePerf tp; tp.start();
+    Dubins d(start, end, {k});
+//    Dubins d = DP::solveP2P<Dubins>(start, end, tmp);
+    auto time1=tp.getTime();
+
+    totDiff += time1 - t;
+    maxPosDiff = std::max(maxPosDiff, time1 - t);
+    maxNegDiff = std::min(maxNegDiff, time1 - t);
+
+    // If the two lengths differs for more than 1e-10 print an error with the same precision
+    if (std::abs(d.l() - l) > 1e-10) {
+      std::cout << "Error at line " << i << " with values: " << std::setprecision(12) << d.l() << " " << l << std::endl;
+    }
+    i++;
+  }
+  std::cout << "Total difference: " << totDiff << std::endl;
+  std::cout << "Average difference: " << totDiff / i << std::endl; // should be "0
+  std::cout << "Max positive difference: " << maxPosDiff << std::endl;
+  std::cout << "Max negative difference: " << maxNegDiff << std::endl;
+
+  return 0;
 }
 
 int main() {
 //  return
 //  tentaclesFigDubins();
 //  main3PMDBruteForce();
-//  allexamples();
+  allexamples();
 //  genDSDubinsP2P(true);
 //  example();
 //  generateDatasetRS();
 //  NNWideRS();
 //  SVMQuadraticRS();
 
-  drawRS();
+// drawRS();
+
+//testDubins();
   return 0;
 }
 

@@ -1,11 +1,11 @@
 #ifndef CUDA_ON
 #include<dubins.hh>
 
+
 static Configuration2 circleLine(double s, double kur, Configuration2 c) {
-  double sigmaDir = 1,  sign = kur > 0? 1: -1;
   double xEnd, yEnd, thetaEnd;
-  xEnd = c.x() - f(s, kur , mod2pi(c.th() + sigmaDir * m_pi));
-  yEnd = c.y() - g(s, kur , mod2pi(c.th() + sigmaDir * m_pi));
+  xEnd = c.x() - f(s, kur , mod2pi(c.th() + m_pi));
+  yEnd = c.y() - g(s, kur , mod2pi(c.th() + m_pi));
   thetaEnd = mod2pi(c.th() + kur  * s);
 
   Configuration2 res(xEnd, yEnd, thetaEnd, kur );
