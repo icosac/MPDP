@@ -118,7 +118,7 @@ int allexamples (){
           Dubins c(points[index-1], points[index], {Ks[testID]});
           std::ofstream file;
           file.open("kaya1RS.asy", std::ios::app);
-          c.draw(file, 100, 100, true, false, Length==0.0 ? true : false);
+          // c.draw(file, 100, 100, true, false, Length==0.0 ? true : false);
           // std::cout << c << std::endl;
           Length+=c.l();
         }
@@ -896,11 +896,62 @@ int testDubins(){
   return 0;
 }
 
+void main3PDP(){
+  Configuration2 pi(1,                  0,                  1.281515296194058);
+  Configuration2 pm(-0.923799223986150, -0.382877256784191, 3.913748061213308);
+  Configuration2 pf(-0.856568170220046,  0.516033884319510, 4.783614754798819);
+
+  K_T kmax = 1.628729661324742;
+
+  Dubins dub1 = Dubins(pi, pm, {kmax});
+  std::cout << std::endl << std::endl;
+  Dubins dub2 = Dubins(pm, pf, {kmax});
+  std::cout << std::endl << std::endl;
+
+  std::ofstream file("Dubins.asy");
+  initAsyFile(file);
+  dub1.draw(file, "P_i");
+  dub2.draw(file, "P_m");
+  file.close();
+
+  std::vector<bool> fixedAngles = {true, false, true};
+  std::vector<Configuration2> points = {pi, pm, pf};
+  std::vector<double> curveParam = {kmax};
+  TimePerf time1;
+  time1.start();
+  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 16, 8);
+  std::cout << "ms: " << time1.getTime() << std::endl;
+  std::cout << std::setprecision(12) << "Dub1: " << dub1.type_to_string() << " " << dub1.l() << std::endl;
+  std::cout << std::setprecision(12) << "Dub2: " << dub2.type_to_string() << " " << dub2.l() << std::endl;
+  std::cout << std::setprecision(12) << "Total length " << (dub1.l()+dub2.l()) << std::endl;
+  std::cout << std::endl << std::endl << "MPDP len: " << ret.first << std::endl;
+  for (auto angle : ret.second){
+    std::cout << angle << " ";
+  }
+  pm.th(ret.second[1]);
+  std::cout << pm.th() << std::endl;
+  Dubins curve1 = Dubins(pi, pm, {kmax});
+  std::cout << std::setprecision(12) << "Curve1: " << curve1.type_to_string() << " " << curve1.l() << std::endl;
+  std::cout << std::endl;
+  Dubins curve2 = Dubins(pm, pf, {kmax});
+  std::cout << std::setprecision(12) << "Curve2: " << curve2.type_to_string() << " " << curve2.l() << std::endl;
+  std::cout << std::endl;
+  std::cout << "Sum: " << (curve1.l()+curve2.l()) << std::endl;
+
+  std::ofstream file1("Dubins1.asy");
+  initAsyFile(file1);
+  curve1.draw(file1, "P_i");
+  curve2.draw(file1, "P_m");
+  file1.close();
+}
+
+
 int main() {
 //  return
 //  tentaclesFigDubins();
 //  main3PMDBruteForce();
-  allexamples();
+  main3PDP();
+  // allexamples();
 //  genDSDubinsP2P(true);
 //  example();
 //  generateDatasetRS();

@@ -37,7 +37,8 @@ inline void initAsyFile(std::ofstream& file){
   file << "import graph;\n"
        << "include \"clothoidLib.asylib\";\n"
        << "size(14cm,7cm);\n"
-       << "\n\n\n";
+       << "\n\n\n"
+       << "path p;\n";
 }
 
 

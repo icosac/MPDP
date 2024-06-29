@@ -194,7 +194,7 @@ public:
   }
 
 #ifdef MPDP_DRAW
-  void draw(std::ofstream& file,
+  void draw(std::ofstream& file, std::string label = "",
             size_t width = 8, size_t height = 8,
             bool solve = false, bool close = false, bool init = false);
 #endif //MPDP_DRAW

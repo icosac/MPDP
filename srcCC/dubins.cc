@@ -55,9 +55,31 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   real_type len = std::numeric_limits<real_type>::max();
   real_type temp1, temp2, temp3, t1, t2, t3, lc;
 
+  // LSR
+  real_type C = scos;
+  real_type S = 2*sKmax + ssin;
+  temp1 = std::atan2(-C, S);
+  temp2 = -2 + 4*Ksq + 2*dcos + 4*sKmax*ssin;
+  if (temp2 >= 0) {
+    t2    = invK * std::sqrt(temp2);
+    temp3 = -std::atan2(-2, (t2*sKmax));
+    t1    = invK * mod2pi(-th0 + temp1 + temp3);
+    t3    = invK * mod2pi(-th1 + temp1 + temp3);
+    lc    = t1+t2+t3;
+    std::cout << std::setprecision(12) << "LSR len: " << lc << std::endl;
+    if (lc < len) {
+      len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
+      sk1 = 1; sk2 = 0; sk3 = -1;
+      this->dtype(D_TYPE::LSR);
+    }
+  }
+  else {
+    std::cout << "Cannot find valid LSR" << std::endl;
+  }
+
   // LSL
-  real_type C = cos_1 - cos_0;
-  real_type S = 2*sKmax + dsin;
+  C = cos_1 - cos_0;
+  S = 2*sKmax + dsin;
   temp1 = std::atan2(C, S);
   temp2 = 2 + 4*Ksq - 2*dcos + 4*sKmax*dsin;
   if (temp2 >= 0) {
@@ -66,11 +88,15 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     t2    = temp3;
     t3    = invK * mod2pi(th1-temp1);
     lc    = t1+t2+t3;
+    std::cout << std::setprecision(12) << "LSL len: " << lc << std::endl;
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = 1; sk2 = 0; sk3 = 1;
       this->dtype(D_TYPE::LSL);
     }
+  }
+  else {
+    std::cout << "Cannot find valid LSL" << std::endl;
   }
 
   // RSR
@@ -84,29 +110,15 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     t2    = temp3;
     t3    = invK * mod2pi(temp1-th1);
     lc    = t1+t2+t3;
+    std::cout << std::setprecision(12) << "RSR len: " << lc << std::endl;
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = -1; sk2 = 0; sk3 = -1;
       this->dtype(D_TYPE::RSR);
     }
   }
-
-  // LSR
-  C = scos;
-  S = 2*sKmax + ssin;
-  temp1 = std::atan2(-C, S);
-  temp2 = -2 + 4*Ksq + 2*dcos + 4*sKmax*ssin;
-  if (temp2 >= 0) {
-    t2    = invK * std::sqrt(temp2);
-    temp3 = -std::atan2(-2, (t2*sKmax));
-    t1    = invK * mod2pi(-th0 + temp1 + temp3);
-    t3    = invK * mod2pi(-th1 + temp1 + temp3);
-    lc    = t1+t2+t3;
-    if (lc < len) {
-      len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
-      sk1 = 1; sk2 = 0; sk3 = -1;
-      this->dtype(D_TYPE::LSR);
-    }
+  else {
+    std::cout << "Cannot find valid RSR" << std::endl;
   }
 
   // RSL
@@ -120,11 +132,15 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     t1    = invK * mod2pi(th0 - temp1 + temp3);
     t3    = invK * mod2pi(th1 - temp1 + temp3);
     lc    = t1+t2+t3;
+    std::cout << std::setprecision(12) << "RSL len: " << lc << std::endl;
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = -1; sk2 = 0; sk3 = 1;
       this->dtype(D_TYPE::RSL);
     }
+  }
+  else {
+    std::cout << "Cannot find valid RSL" << std::endl;
   }
 
   // RLR
@@ -137,11 +153,15 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     t1 = invK * mod2pi(th0 - temp1 + 0.5*t2*sKmax);
     t3 = invK * mod2pi(dth+(t2-t1)*sKmax);
     lc = t1+t2+t3;
+    std::cout << std::setprecision(12) << "RLR len: " << lc << std::endl;
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = -1; sk2 = 1; sk3 = -1;
       this->dtype(D_TYPE::RLR);
     }
+  }
+  else {
+    std::cout << "Cannot find valid RLR" << std::endl;
   }
 
   // LRL
@@ -154,11 +174,15 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
     t1 = invK * mod2pi(-th0 + temp1 + 0.5*t2*sKmax);
     t3 = invK * mod2pi(-dth + (t2-t1)*sKmax);
     lc = t1+t2+t3;
+    std::cout << std::setprecision(12) << "LRL len: " << lc << std::endl;
     if (lc < len) {
       len = lc; ss1 = t1; ss2 = t2; ss3 = t3;
       sk1 = 1; sk2 = -1; sk3 = 1;
       this->dtype(D_TYPE::LRL);
     }
+  }
+  else {
+    std::cout << "Cannot find valid LRL" << std::endl;
   }
 
   //ScaleFromStandard
@@ -205,7 +229,7 @@ std::vector<std::vector<double>> Dubins::split_wise() {
 
 
 #ifdef MPDP_DRAW
-void Dubins::draw(std::ofstream& file, size_t width, size_t height, bool solve, bool close, bool init) {
+void Dubins::draw(std::ofstream& file, std::string label, size_t width, size_t height, bool solve, bool close, bool init) {
   if (solve) {
     this->solve();
   }
@@ -220,6 +244,9 @@ void Dubins::draw(std::ofstream& file, size_t width, size_t height, bool solve, 
         << "," << this->k1() << ", 0, " << this->s1() << ");" << std::endl;
   file << "draw(p,royalblue);" << std::endl;
   file << "dot((" << c.x() << "," << c.y() << "), red);" << std::endl;
+  if (label != ""){
+    file << "label(\"$" << label << "$\", (" << c.x() << ", " << c.y() << "));" << std::endl;
+  }
 
   // Intermediate point
   c = circleLine(this->s1(), this->k1(), c);
