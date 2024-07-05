@@ -41,6 +41,8 @@ public:
 
   Configuration2* ci() { return &(this->_ci); }   ///< Returns a pointer to the initial `Configuration2`.
   Configuration2* cf() { return &(this->_cf); }   ///< Returns a pointer to the final `Configuration2`.
+  void ci(Configuration2 ci) { this->_ci = ci; }  ///< Sets the initial `Configuration2`.
+  void cf(Configuration2 cf) { this->_cf = cf; }  ///< Sets the final `Configuration2`.
 
   CURVE_TYPE type () const { return this->_type; }      ///< Returns type of curve.
   

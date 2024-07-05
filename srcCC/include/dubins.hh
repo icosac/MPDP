@@ -14,12 +14,14 @@
 
 class Dubins : public Curve {
 public:
-  enum D_TYPE {INVALID, LSL, RSR, LSR, RSL, RLR, LRL}; ///<The possible types of Dubins.
+  // From LaValle's book the order is LRL RLR LSL LSR RSL RSR
+  enum D_TYPE {INVALID, LRL, RLR, LSL, LSR, RSL, RSR};                                 ///<The possible types of Dubins.
+  std::string D_TYPE_STR [7] = {"INVALID", "LRL", "RLR", "LSL", "LSR", "RSL", "RSR"};  ///<The possible types of Dubins as strings.
 
 private:
-  D_TYPE _type; ///<The possible types of Dubins.
+  D_TYPE _type;                             ///<The possible types of Dubins.
   K_T _kmax=0.0, _k1=0.0, _k2=0.0, _k3=0.0; ///<The maximum curvature and the curvature for each part of the Dubins.
-  LEN_T _s1=0.0, _s2=0.0, _s3=0.0; ///<The lengths of each part of the Dubins.
+  LEN_T _s1=0.0, _s2=0.0, _s3=0.0;          ///<The lengths of each part of the Dubins.
 
   /*!
    * Function to standardize the components. Credit to Marco Frego & Paolo Bevilacqua
@@ -42,9 +44,42 @@ private:
     real_type lambda;
     K_T sKmax;
     Angle phi, sth0, sth1;
-    scaleToStandard(phi, lambda, sth0, sth1, sKmax);
-    computeBest(sth0, sth1, lambda, sKmax);
+    this->scaleToStandard(phi, lambda, sth0, sth1, sKmax);
+    this->computeBest(sth0, sth1, lambda, sKmax);
   }
+
+  /**
+   * Struct to store the input data for the Dubins computation of the maneuvers.
+   */
+  static struct Man_input_data {
+    real_type th0;
+    real_type th1;
+    K_T sKmax;
+    real_type invK;
+    real_type cos_0;
+    real_type cos_1;
+    real_type Ksq;
+    real_type dcos;
+    real_type dcos2;
+    real_type dsin;
+    real_type scos;
+    real_type ssin;
+    real_type dth;
+  } Man_input_data;
+
+  /**
+   * Struct to store the output data for the Dubins computation of the maneuvers.
+   */
+  static struct Man_output_data {
+    real_type len;
+    real_type ss1;
+    real_type ss2;
+    real_type ss3;
+    real_type sk1;
+    real_type sk2;
+    real_type sk3;
+    D_TYPE type;
+  } Man_output_data;
 
 public:
   /*!
@@ -85,7 +120,7 @@ public:
     _type(D_TYPE::INVALID)
   {
     if (params.empty())  { this->_kmax = DUBINS_DEFAULT_KMAX; }
-    else                  { this->_kmax = params[0]; }
+    else                 { this->_kmax = params[0]; }
     solve();
   }
 
@@ -101,6 +136,20 @@ public:
     _kmax(kmax) 
   {
     solve();
+  }
+
+  /*!
+   * Constructor to initialize a Dubins object with an initial and a final `Configuration2` and additional possible parameters.
+   * @param ci The initial `Configuration2`.
+   * @param cf The final `Configuration2`
+   * @param kmax The curvature of the Dubins parts.
+   */
+  Dubins(Configuration2 ci, Configuration2 cf, std::vector<real_type> params, D_TYPE type) :
+      Curve(ci, cf, CURVE_TYPE::DUBINS, params),
+      _type(D_TYPE::INVALID),
+      _kmax(params[0])
+  {
+    this->comp_man(type);
   }
 
   K_T kmax() const { return this->_kmax; }                                 ///<Returns the maximum curvature.
@@ -124,8 +173,8 @@ public:
   K_T k2() const { return this->_k2; }                                     ///<Returns the curvature of the middle part of the Dubins.
   K_T k3() const { return this->_k3; }                                     ///<Returns the curvature of the final part of the Dubins.
   LEN_T s1() const { return this->_s1; }                                   ///<Returns the length of the first part of the Dubins.
-  LEN_T s2() const { return this->_s2; }                                   ///<Returns the length of the first part of the Dubins.
-  LEN_T s3() const { return this->_s3; }                                   ///<Returns the length of the first part of the Dubins.
+  LEN_T s2() const { return this->_s2; }                                   ///<Returns the length of the middle part of the Dubins.
+  LEN_T s3() const { return this->_s3; }                                   ///<Returns the length of the final part of the Dubins.
   inline LEN_T L(int id) const {
     switch (id) {
       case 1:
@@ -153,24 +202,23 @@ public:
   LEN_T s3(LEN_T s3) { this->_s3 = s3; return this->s3(); }                ///<Sets the length of the final part of the Dubins and returns the new set value.
   D_TYPE dtype(D_TYPE type) { this->_type = type; return this->dtype(); }  ///<Sets the word of the Dubins.
 
+  // LRL RLR LSL LSR RSL RSR
+  bool comp_LRL (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+  bool comp_RLR (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+  bool comp_LSL (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+  bool comp_LSR (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+  bool comp_RSL (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+  bool comp_RSR (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+  LEN_T comp_man (D_TYPE type);
+//  bool comp_man (D_TYPE type, const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
+
   std::vector<std::vector<double>> split_wise() override;
 
   /*!
    * Function to print the stringy word of the Dubins.
    * @return A string containing the word of the computed Dubins.
    */
-  std::string type_to_string() {
-    std::string ret="INVALID";
-    switch(this->_type){
-      case D_TYPE::LSL: { ret="LSL"; break; }
-      case D_TYPE::LSR: { ret="LSR"; break; }
-      case D_TYPE::RSR: { ret="RSR"; break; }
-      case D_TYPE::RSL: { ret="RSL"; break; }
-      case D_TYPE::LRL: { ret="LRL"; break; }
-      case D_TYPE::RLR: { ret="RLR"; break; }
-    }
-    return ret;
-  }
+  inline std::string man_to_string() const { return D_TYPE_STR[this->dtype()]; }
 
   /*!
    * Function to print the most essential info about `Dubins`.
@@ -179,7 +227,7 @@ public:
    */
   std::stringstream to_string (const std::string& str="") {
     std::stringstream out;
-    out << (str.empty() ? "" : str+" ") << "c0: " << this->ci()->to_string().str() << "\tc1: " << this->cf()->to_string().str() << "\tk: " << this->kmax() << "\tl: " << this->l() << "\ttype: " << this->type_to_string();
+    out << (str.empty() ? "" : str+" ") << "c0: " << this->ci()->to_string().str() << "\tc1: " << this->cf()->to_string().str() << "\tk: " << this->kmax() << "\tl: " << this->l() << "\ttype: " << this->man_to_string();
     return out;
   }
 
