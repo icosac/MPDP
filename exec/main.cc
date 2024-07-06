@@ -993,20 +993,17 @@ static std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3
   {"RSLLSR", {18, Dubins::D_TYPE::RSL, Dubins::D_TYPE::LSR}}
 };
 
-void generateDataset3PDP(){
+void generateDataset3PDP(int kmax_min = 1, int kmax_max = 10, int k_discr = 10, int angle_discr = 10){
   double theta_i;
   double theta_f;
   double alpha_m;
   double alpha_f;
   double kmax;
 
-  int angle_discr = 10;
-  int k_discr = 10;
-  int kmax_max = 10;
-  int kmax_min = 1;
-
   // Open file named 3PDS.csv
-  std::ofstream file("3PDS.csv");
+  std::string filename = "3PDS_" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_discr) + ".csv";
+  std::cout << "Writing to " << filename << std::endl;
+  std::ofstream file(filename);
   if (!file.is_open()) {
     std::cout << "Error opening file" << std::endl;
     return;
@@ -1018,7 +1015,8 @@ void generateDataset3PDP(){
 
   std::cout << "Generating " << tot_counter << " tests" << std::endl;
 
-  for (double kmax = kmax_max; kmax >= kmax_min; kmax-=(kmax_max-kmax_min)/(k_discr-1)){
+  kmax = kmax_max;
+  for (int k = 0; k<k_discr; k++){
     TimePerf time1; time1.start();
     theta_i=m_pi;
     for (int g = 0; g < angle_discr; g++){
@@ -1032,65 +1030,64 @@ void generateDataset3PDP(){
             Configuration2 pm = Configuration2(cos(alpha_m), sin(alpha_m), 0);
             Configuration2 pf = Configuration2(cos(alpha_f), sin(alpha_f), theta_f);
 
-             if ((pm.x()==pi.x() && pm.y()==pi.y()) || (pm.x()==pf.x() && pm.y()==pf.y())){
-               counter++;
-              continue;
-            }
-
-            // Solve multipoint problem
-            std::vector<Configuration2> points = {pi, pm, pf};
-            std::vector<bool> fixedAngles = {true, false, true};
-            std::vector<double> curveParam = {kmax};
-            int discr = 90;
-            int refinements = 4;
-            TimePerf time; time.start();
-            std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, discr, refinements);
-            if (ret.first == 0.0){
-              std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
-              throw std::runtime_error("Zero length");
-            }
-            auto dtime = time.getTime();
+            if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
+               // Solve multipoint problem
+               std::vector<Configuration2> points = {pi, pm, pf};
+               std::vector<bool> fixedAngles = {true, false, true};
+               std::vector<double> curveParam = {kmax};
+               int discr = 90;
+               int refinements = 4;
+               TimePerf time;
+               time.start();
+               std::pair<LEN_T, std::vector<Angle> > ret = DP().solveDP(points, fixedAngles, curveParam, discr,
+                                                                        refinements);
+               if (ret.first == 0.0) {
+                 std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
+                 throw std::runtime_error("Zero length");
+               }
+               auto dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find multi-point" << std::endl;
 
-            // Set angle for intermediate problem and compute the two Dubins
-            pm.th(ret.second[1]);
-            time.start();
-            Dubins dub1 = Dubins(pi, pm, {kmax});
-            Dubins dub2 = Dubins(pm, pf, {kmax});
-            dtime = time.getTime();
+               // Set angle for intermediate problem and compute the two Dubins
+               pm.th(ret.second[1]);
+               time.start();
+               Dubins dub1 = Dubins(pi, pm, {kmax});
+               Dubins dub2 = Dubins(pm, pf, {kmax});
+               dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
-            LEN_T len = dub1.l() + dub2.l();
+               LEN_T len = dub1.l() + dub2.l();
 
-            // Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
-            std::string man_comb = dub1.man_to_string()+dub2.man_to_string();
-            int id_man_comb = 19;
-            time.start();
-            auto search = P3DP_DICT.find(man_comb);
-            if (search == P3DP_DICT.end()) {
-              for (auto man: P3DP_DICT) {
-                Dubins::D_TYPE dub1_man = std::get<1>(man.second);
-                Dubins::D_TYPE dub2_man = std::get<2>(man.second);
-                try {
-                  Dubins dub1 = Dubins(pi, pm, {kmax}, dub1_man);
-                  Dubins dub2 = Dubins(pm, pf, {kmax}, dub2_man);
-                  if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
-                    id_man_comb = std::get<0>(man.second);
-                    break;
-                  }
-                }
-                catch (std::runtime_error& e) {
-                  continue;
-                }
-              }
-            }
-            else {
-              id_man_comb = std::get<0>(search->second);
-            }
-            dtime = time.getTime();
+               // Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
+               std::string man_comb = dub1.man_to_string() + dub2.man_to_string();
+               int id_man_comb = 19;
+               time.start();
+               auto search = P3DP_DICT.find(man_comb);
+               if (search == P3DP_DICT.end()) {
+                 for (auto man: P3DP_DICT) {
+                   Dubins::D_TYPE dub1_man = std::get<1>(man.second);
+                   Dubins::D_TYPE dub2_man = std::get<2>(man.second);
+                   try {
+                     Dubins dub1 = Dubins(pi, pm, {kmax}, dub1_man);
+                     Dubins dub2 = Dubins(pm, pf, {kmax}, dub2_man);
+                     if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
+                       id_man_comb = std::get<0>(man.second);
+                       break;
+                     }
+                   }
+                   catch (std::runtime_error &e) {
+                     continue;
+                   }
+                 }
+               } else {
+                 id_man_comb = std::get<0>(search->second);
+               }
+               dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find alternative" << std::endl;
 
-            // Write data to file
-            file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " " << alpha_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
+               // Write data to file
+               file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " "
+                    << alpha_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
+             }
 
             // Update the angle
             alpha_f -= 2.0*m_pi/angle_discr;
@@ -1110,13 +1107,14 @@ void generateDataset3PDP(){
       }
       theta_i -= 2.0*m_pi/angle_discr;
     }
+    kmax -= 1.0*(kmax_max-kmax_min)/k_discr;
   }
 
   file.close();
 }
 
 
-int main() {
+int main(int argc, char** argv){
   // Dubins
 //  testDubins();
 
@@ -1128,7 +1126,15 @@ int main() {
   // 3 points stuff
 //  main3PMDBruteForce();
 //  main3PDP();
-  generateDataset3PDP();
+  if (argc == 4) {
+    generateDataset3PDP(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]));
+  }
+  else if (argc == 5) {
+    generateDataset3PDP(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]));
+  }
+  else {
+    generateDataset3PDP();
+  }
 
 //  genDSDubinsP2P(true);
 //  example();
