@@ -17,6 +17,8 @@
 // #include<SVMQuadraticPredict.h>
 // #include<NNWideCompactPredict.h>
 
+
+
 void PrintScientific1D(real_type d){
   if (d == 0)
   {
@@ -992,21 +994,6 @@ static std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3
 };
 
 void generateDataset3PDP(){
-//  // Initialize double number random generator
-//  std::seed_seq seed{1,2,3,4,5,6,7,8,9};
-//  std::mt19937 eng(seed);
-//
-//  // Extract number from random generator
-//  std::uniform_real_distribution<> angleDist(-m_pi, m_pi);
-//  double init_ = std::numeric_limits<double>::epsilon();
-//  std::uniform_real_distribution<> kDist(init_, 10);
-//
-//  double theta_i = angleDist(eng);
-//  double theta_f = angleDist(eng);
-//  double alpha_m = angleDist(eng);
-//  double alpha_f = angleDist(eng);
-//  double kmax = kDist(eng);
-
   double theta_i;
   double theta_f;
   double alpha_m;
@@ -1015,6 +1002,8 @@ void generateDataset3PDP(){
 
   int angle_discr = 10;
   int k_discr = 10;
+  int kmax_max = 10;
+  int kmax_min = 1;
 
   // Open file named 3PDS.csv
   std::ofstream file("3PDS.csv");
@@ -1028,10 +1017,9 @@ void generateDataset3PDP(){
   uint64_t prev_counter = 0;
 
   std::cout << "Generating " << tot_counter << " tests" << std::endl;
-  TimePerf time1; time1.start();
 
-  kmax = 10.0;
-  for (int k = 0; k < k_discr && kmax > 0; k++) {
+  for (double kmax = kmax_max; kmax >= kmax_min; kmax-=(kmax_max-kmax_min)/(k_discr-1)){
+    TimePerf time1; time1.start();
     theta_i=m_pi;
     for (int g = 0; g < angle_discr; g++){
       theta_f=m_pi;
@@ -1044,14 +1032,16 @@ void generateDataset3PDP(){
             Configuration2 pm = Configuration2(cos(alpha_m), sin(alpha_m), 0);
             Configuration2 pf = Configuration2(cos(alpha_f), sin(alpha_f), theta_f);
 
-            if ((pm.x()==pi.x() && pm.y()==pi.y()) || (pm.x()==pf.x() && pm.y()==pf.y())){
+             if ((pm.x()==pi.x() && pm.y()==pi.y()) || (pm.x()==pf.x() && pm.y()==pf.y())){
+               counter++;
               continue;
             }
 
+            // Solve multipoint problem
             std::vector<Configuration2> points = {pi, pm, pf};
             std::vector<bool> fixedAngles = {true, false, true};
             std::vector<double> curveParam = {kmax};
-            int discr = 360;
+            int discr = 90;
             int refinements = 4;
             TimePerf time; time.start();
             std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, discr, refinements);
@@ -1061,6 +1051,8 @@ void generateDataset3PDP(){
             }
             auto dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find multi-point" << std::endl;
+
+            // Set angle for intermediate problem and compute the two Dubins
             pm.th(ret.second[1]);
             time.start();
             Dubins dub1 = Dubins(pi, pm, {kmax});
@@ -1068,6 +1060,8 @@ void generateDataset3PDP(){
             dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
             LEN_T len = dub1.l() + dub2.l();
+
+            // Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
             std::string man_comb = dub1.man_to_string()+dub2.man_to_string();
             int id_man_comb = 19;
             time.start();
@@ -1095,15 +1089,20 @@ void generateDataset3PDP(){
             dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find alternative" << std::endl;
 
-            file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " " << alpha_f << " " << id_man_comb << " " << pm.th() << " " << len << std::endl;
+            // Write data to file
+            file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " " << alpha_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
+
+            // Update the angle
             alpha_f -= 2.0*m_pi/angle_discr;
-            counter ++;
+
+            // Print time
             auto dtime1 = time1.getTime();
             if (counter % 1000 == 0) {
               std::cout << "\r" << 1.0 * counter / tot_counter * 100.0 << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
               prev_counter = counter;
               time1.start();
             }
+            counter ++;
           }
           alpha_m -= 2.0*m_pi/angle_discr;
         }
@@ -1111,8 +1110,8 @@ void generateDataset3PDP(){
       }
       theta_i -= 2.0*m_pi/angle_discr;
     }
-    kmax -= 10.0/k_discr;
   }
+
   file.close();
 }
 
@@ -1122,7 +1121,7 @@ int main() {
 //  testDubins();
 
   // MPDP Examples
-  // allexamples();
+//   allexamples();
 
   //  tentaclesFigDubins();
 

@@ -67,7 +67,9 @@ static K_T Kmax=DUBINS_DEFAULT_KMAX;
 #endif
 
 
-
+//#ifndef _OPENMP
+//#error "OpenMP is required for this library"
+//#endif
 
 /*!
  * This function returns (up to) two circles through two points, given the radius. Credit to Marco Frego & Paolo Bevilacqua.

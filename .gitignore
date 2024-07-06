@@ -1,3 +1,4 @@
+cmake-*/
 *.asy
 *.csv 
 .vscode/
