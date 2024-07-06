@@ -399,7 +399,7 @@ void Dubins::computeBest(Angle th0, Angle th1, real_type lambda, K_T& sKmax){
   }
 
   if (man_output_data.type == D_TYPE::INVALID){
-    throw std::runtime_error("No valid Dubins path found.");
+//    throw std::runtime_error("No valid Dubins path found.");
   }
 
   //ScaleFromStandard

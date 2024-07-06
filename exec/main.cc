@@ -967,67 +967,153 @@ void main3PDP(){
   }
   std::cout << "Shortest path with angle " << bestAngle << " and total length " << bestLen << " given man: " << bestMan << std::endl;
 }
+#include <map>
+#include <tuple>
 
-
-static 3P_DICT =
+static std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3DP_DICT = {
+  {"RLRRLR", {1, Dubins::D_TYPE::RLR, Dubins::D_TYPE::RLR}},
+  {"LRLLRL", {2, Dubins::D_TYPE::LRL, Dubins::D_TYPE::LRL}},
+  {"RLRRSR", {3, Dubins::D_TYPE::RLR, Dubins::D_TYPE::RSR}},
+  {"RLRRSL", {4, Dubins::D_TYPE::RLR, Dubins::D_TYPE::RSL}},
+  {"LRLLSL", {5, Dubins::D_TYPE::LRL, Dubins::D_TYPE::LSL}},
+  {"LRLLSR", {6, Dubins::D_TYPE::LRL, Dubins::D_TYPE::LSR}},
+  {"RSRRLR", {7, Dubins::D_TYPE::RSR, Dubins::D_TYPE::RLR}},
+  {"LSRRLR", {8, Dubins::D_TYPE::LSR, Dubins::D_TYPE::RLR}},
+  {"RSLLRL", {9, Dubins::D_TYPE::RSL, Dubins::D_TYPE::LRL}},
+  {"LSLLRL", {10, Dubins::D_TYPE::LSL, Dubins::D_TYPE::LRL}},
+  {"RSRRSR", {11, Dubins::D_TYPE::RSR, Dubins::D_TYPE::RSR}},
+  {"LSRRSR", {12, Dubins::D_TYPE::LSR, Dubins::D_TYPE::RSR}},
+  {"RSRRSL", {13, Dubins::D_TYPE::RSR, Dubins::D_TYPE::RSL}},
+  {"LSRRSL", {14, Dubins::D_TYPE::LSR, Dubins::D_TYPE::RSL}},
+  {"LSLLSL", {15, Dubins::D_TYPE::LSL, Dubins::D_TYPE::LSL}},
+  {"RSLLSL", {16, Dubins::D_TYPE::RSL, Dubins::D_TYPE::LSL}},
+  {"LSLLSR", {17, Dubins::D_TYPE::LSL, Dubins::D_TYPE::LSR}},
+  {"RSLLSR", {18, Dubins::D_TYPE::RSL, Dubins::D_TYPE::LSR}}
+};
 
 void generateDataset3PDP(){
-  // Initialize double number random generator
-  std::seed_seq seed{1,2,3,4,5,6,7,8,9};
-  std::mt19937 eng(seed);
+//  // Initialize double number random generator
+//  std::seed_seq seed{1,2,3,4,5,6,7,8,9};
+//  std::mt19937 eng(seed);
+//
+//  // Extract number from random generator
+//  std::uniform_real_distribution<> angleDist(-m_pi, m_pi);
+//  double init_ = std::numeric_limits<double>::epsilon();
+//  std::uniform_real_distribution<> kDist(init_, 10);
+//
+//  double theta_i = angleDist(eng);
+//  double theta_f = angleDist(eng);
+//  double alpha_m = angleDist(eng);
+//  double alpha_f = angleDist(eng);
+//  double kmax = kDist(eng);
 
-  // Extract number from random generator
-  std::uniform_real_distribution<> angleDist(-m_pi, m_pi);
-  double init_ = std::numeric_limits<double>::epsilon();
-  std::uniform_real_distribution<> kDist(init_, 10);
+  double theta_i;
+  double theta_f;
+  double alpha_m;
+  double alpha_f;
+  double kmax;
 
-  double theta_i = angleDist(eng);
-  double theta_f = angleDist(eng);
-  double alpha_m = angleDist(eng);
-  double alpha_f = angleDist(eng);
-  double kmax = kDist(eng);
-
-
-  int angle_discr = 100;
+  int angle_discr = 10;
   int k_discr = 10;
 
-  std::cout << "Generating " << (angle_discr*angle_discr*angle_discr*angle_discr*k_discr) << " tests" << std::endl;
+  // Open file named 3PDS.csv
+  std::ofstream file("3PDS.csv");
+  if (!file.is_open()) {
+    std::cout << "Error opening file" << std::endl;
+    return;
+  }
 
-  theta_i=m_pi;
-  for (int g = 0; g < angle_discr; g++){
-    theta_f=m_pi;
-    for (int h = 0; h < angle_discr; h++) {
-      alpha_m=m_pi;
-      for (int i = 0; i < angle_discr; i++) {
-        alpha_f=m_pi;
-        for (int j = 0; j < angle_discr; j++) {
-          kmax = 10.0;
-          for (int k = 0; k < k_discr; k++) {
+  uint64_t tot_counter = angle_discr*angle_discr*angle_discr*angle_discr*k_discr;
+  uint64_t counter = 0;
+  uint64_t prev_counter = 0;
+
+  std::cout << "Generating " << tot_counter << " tests" << std::endl;
+  TimePerf time1; time1.start();
+
+  kmax = 10.0;
+  for (int k = 0; k < k_discr && kmax > 0; k++) {
+    theta_i=m_pi;
+    for (int g = 0; g < angle_discr; g++){
+      theta_f=m_pi;
+      for (int h = 0; h < angle_discr; h++) {
+        alpha_m=m_pi;
+        for (int i = 0; i < angle_discr; i++) {
+          alpha_f=m_pi;
+          for (int j = 0; j < angle_discr; j++) {
             Configuration2 pi = Configuration2(1, 0, theta_i);
             Configuration2 pm = Configuration2(cos(alpha_m), sin(alpha_m), 0);
             Configuration2 pf = Configuration2(cos(alpha_f), sin(alpha_f), theta_f);
+
+            if ((pm.x()==pi.x() && pm.y()==pi.y()) || (pm.x()==pf.x() && pm.y()==pf.y())){
+              continue;
+            }
+
             std::vector<Configuration2> points = {pi, pm, pf};
             std::vector<bool> fixedAngles = {true, false, true};
             std::vector<double> curveParam = {kmax};
             int discr = 360;
             int refinements = 4;
+            TimePerf time; time.start();
             std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, discr, refinements);
+            if (ret.first == 0.0){
+              std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
+              throw std::runtime_error("Zero length");
+            }
+            auto dtime = time.getTime();
+//            std::cout << "Took " << dtime << " ms to find multi-point" << std::endl;
             pm.th(ret.second[1]);
-            TimePerf time;
             time.start();
-            std::vector<std::pair<LEN_T, int> > res;
-            for (int type1=1; type1<8; type1++){
-              for (int type2=1; type2<8; type2++) {
-                Dubins dub1= Dubins(pi, pm, {kmax}, Dubins::D_TYPE(type1));
-                Dubins dub2= Dubins(pm, pf, {kmax}, Dubins::D_TYPE(type2));
-
+            Dubins dub1 = Dubins(pi, pm, {kmax});
+            Dubins dub2 = Dubins(pm, pf, {kmax});
+            dtime = time.getTime();
+//            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
+            LEN_T len = dub1.l() + dub2.l();
+            std::string man_comb = dub1.man_to_string()+dub2.man_to_string();
+            int id_man_comb = 19;
+            time.start();
+            auto search = P3DP_DICT.find(man_comb);
+            if (search == P3DP_DICT.end()) {
+              for (auto man: P3DP_DICT) {
+                Dubins::D_TYPE dub1_man = std::get<1>(man.second);
+                Dubins::D_TYPE dub2_man = std::get<2>(man.second);
+                try {
+                  Dubins dub1 = Dubins(pi, pm, {kmax}, dub1_man);
+                  Dubins dub2 = Dubins(pm, pf, {kmax}, dub2_man);
+                  if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
+                    id_man_comb = std::get<0>(man.second);
+                    break;
+                  }
+                }
+                catch (std::runtime_error& e) {
+                  continue;
+                }
               }
             }
+            else {
+              id_man_comb = std::get<0>(search->second);
+            }
+            dtime = time.getTime();
+//            std::cout << "Took " << dtime << " ms to find alternative" << std::endl;
+
+            file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " " << alpha_f << " " << id_man_comb << " " << pm.th() << " " << len << std::endl;
+            alpha_f -= 2.0*m_pi/angle_discr;
+            counter ++;
+            auto dtime1 = time1.getTime();
+            if (counter % 1000 == 0) {
+              std::cout << "\r" << 1.0 * counter / tot_counter * 100.0 << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
+              prev_counter = counter;
+              time1.start();
+            }
           }
+          alpha_m -= 2.0*m_pi/angle_discr;
         }
+        theta_f -= 2.0*m_pi/angle_discr;
       }
+      theta_i -= 2.0*m_pi/angle_discr;
     }
+    kmax -= 10.0/k_discr;
   }
+  file.close();
 }
 
 
