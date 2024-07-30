@@ -93,13 +93,11 @@ int allexamples (){
         std::vector<Angle> vtheta=ret.second;
 
         LEN_T Length = 0.0;
-        for (unsigned int index=points.size()-1; index>0; index--){
-          points[index-1].th(vtheta[index-1]);
-          points[index].th(vtheta[index]);
-          Dubins c(points[index-1], points[index], {Ks[testID]});
-          std::ofstream file;
-          file.open("kaya1RS.asy", std::ios::app);
-          // c.draw(file, 100, 100, true, false, Length==0.0 ? true : false);
+
+        for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
+          points[idjijij-1].th(vtheta[idjijij-1]);
+          points[idjijij].th(vtheta[idjijij]);
+          RS c(points[idjijij-1], points[idjijij], {Ks[testID]});
           // std::cout << c << std::endl;
           Length+=c.l();
         }
