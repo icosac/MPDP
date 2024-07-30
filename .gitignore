@@ -1,3 +1,8 @@
+docs/
+cmake-*/
+*.asy
+*.csv 
+.vscode/
 cmake-c*
 bin/
 lib/
@@ -21,6 +26,7 @@ images/
 tabs/
 file*.txt
 inc/
+tmp.txt
 
 MPMD/
 

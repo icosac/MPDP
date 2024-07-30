@@ -1,3 +1,5 @@
+# NOTE: THIS IS DEPRECATED. USE CMAKE INSTEAD
+
 MKDIR=mkdir -p
 OS=$(shell uname)
 CLR=clear && clear && clear
