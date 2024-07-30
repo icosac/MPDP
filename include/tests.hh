@@ -1,7 +1,17 @@
+/**
+* @file tests.hh
+* @author Enrico Saccon <enricosaccon96@gmail.com>
+* @license This project is released under the GNU Public License Agero 3.0.
+* @copyright Copyright 2020 Enrico Saccon. All rights reserved.
+* @brief File containing tests run for (Frego et al., 2020).
+*/
+
 #pragma once
 
+// System includes
 #include<fstream>
 
+// Library includes
 #ifndef CUDA_ON
 #include<utils.hh>
 #else

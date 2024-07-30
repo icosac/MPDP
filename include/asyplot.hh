@@ -25,84 +25,98 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
- 
 
-using std::string;
 using std::ofstream;
+using std::string;
 
 class AsyPlot {
-public:
-	AsyPlot( string filename );
+ public:
+	AsyPlot (string filename);
 	~AsyPlot();
 
 	void
-	writeLine(string const & line) const;
-
-
-	void dot( double x, double y, string const & penna="black" ) const ;
-
+	writeLine (string const& line) const;
 
 	void
-	drawRect( double x0, double y0,
-				double x1, double y1,
-				double x2, double y2,
-				double x3, double y3,
-				string const & penna="black") const ;
+	dot (double x, double y, string const& penna = "black") const;
 
 	void
-	fillRect(double x0, double y0,
-	  			double x1, double y1,
-				double x2, double y2,
-				double x3, double y3,
-				string const & pennaBordo = "black",
-				string const & pennaRiemp = "white" ) const;
+	drawRect (
+			double x0,
+			double y0,
+			double x1,
+			double y1,
+			double x2,
+			double y2,
+			double x3,
+			double y3,
+			string const& penna = "black") const;
 
 	void
-	drawLine( double x0, double y0,
-				double x1, double y1,
-				std::string const & penna="black" ) const ;
+	fillRect (
+			double x0,
+			double y0,
+			double x1,
+			double y1,
+			double x2,
+			double y2,
+			double x3,
+			double y3,
+			string const& pennaBordo = "black",
+			string const& pennaRiemp = "white") const;
 
 	void
-	drawAngle(double s0, double th0,
-		double s1, double th1, double dk,
-		string const & penna, int npts = 100) const;
-
-
-	void
-	label( string const & text,
-			double      x,
-			double      y,
-			string const & placement = "",
-			string const & penna = "black" ) const ;
+	drawLine (
+			double x0, double y0, double x1, double y1, std::string const& penna = "black")
+			const;
 
 	void
-	draw(string const & text,
-			string const & penna) const;
+	drawAngle (
+			double s0,
+			double th0,
+			double s1,
+			double th1,
+			double dk,
+			string const& penna,
+			int npts = 100) const;
 
 	void
-	displayAxes( string const & labX,
-					string const & labY,
-					double      xmin,
-					double      xmax,
-					double      ymin,
-					double      ymax ) const ;
+	label (
+			string const& text,
+			double x,
+			double y,
+			string const& placement = "",
+			string const& penna			= "black") const;
 
 	void
-	xyLimits( double      xmin,
-				double      xmax,
-				double      ymin,
-				double      ymax,
-				bool           crop) const;
-private:
+	draw (string const& text, string const& penna) const;
+
+	void
+	displayAxes (
+			string const& labX,
+			string const& labY,
+			double xmin,
+			double xmax,
+			double ymin,
+			double ymax) const;
+
+	void
+	xyLimits (double xmin, double xmax, double ymin, double ymax, bool crop) const;
+
+ private:
 	mutable ofstream file;
-	string  filename;
+	string filename;
 	bool showAxes;
-	bool openFile();
-	bool closeFile();
-	void initFile();
-	void displayAxes() const ;
-	void compileFile();
+	bool
+	openFile();
+	bool
+	closeFile();
+	void
+	initFile();
+	void
+	displayAxes() const;
+	void
+	compileFile();
 };
-
 
 #endif

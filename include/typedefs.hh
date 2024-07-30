@@ -1,12 +1,20 @@
+/**
+ * @file typedefs.hh
+ * @author Enrico Saccon <enricosaccon96@gmail.com>
+ * @license This project is released under the GNU Public License Agero 3.0.
+ * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
+ * @brief Header file containing the typedefs.
+ */
+
 #ifndef TYPEDEFS_HH
 #define TYPEDEFS_HH
 
-typedef double real_type;  ///<Typedef to describe the real type
-typedef int int_type;      ///<Typedef to describe integers
-typedef unsigned int uint; ///<Typedef to abbreviate unsigned int
-typedef real_type Angle;   ///<Typedef if the Angle. This should have been a class.
-typedef double 	LEN_T;     ///<Typedef to describe the length
-typedef double 	K_T;       ///<Typedef to describe the curvature
+typedef double real_type;		///< Typedef to describe the real type
+typedef int int_type;				///< Typedef to describe integers
+typedef unsigned int uint;	///< Typedef to abbreviate unsigned int
+typedef real_type Angle;		///< Typedef of the Angle. This should have been a class.
+typedef double LEN_T;				///< Typedef to describe the length
+typedef double K_T;					///< Typedef to describe the curvature
 
 enum ANGLE { FREE = 0 };
 
@@ -16,4 +24,4 @@ enum ANGLE { FREE = 0 };
 #define BOTH
 #endif
 
-#endif //TYPEDEFS_HH
+#endif	// TYPEDEFS_HH

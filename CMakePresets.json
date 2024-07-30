@@ -9,8 +9,8 @@
     {
       "name": "Debug",
       "generator": "Unix Makefiles",
-      "displayName": "Default Config",
-      "description": "Default build meant for Linux or Unix-like systems",
+      "displayName": "Default Debug Config",
+      "description": "Default build meant for Linux or Unix-like systems for debugging",
       "binaryDir": "${sourceDir}/cmake-cc-debug/",
       "cacheVariables": {
         "CMAKE_CXX_FLAGS": "--std=c++11 -Wall -Wno-reorder -DMPDP_DRAW -O0 -g"
@@ -20,8 +20,8 @@
     {
       "name": "Release",
       "generator": "Unix Makefiles",
-      "displayName": "Default Config",
-      "description": "Default build meant for Linux or Unix-like systems",
+      "displayName": "Default Release Config",
+      "description": "Default build meant for Linux or Unix-like systems in release",
       "binaryDir": "${sourceDir}/cmake-cc-release/",
       "cacheVariables": {
         "CMAKE_CXX_FLAGS": "--std=c++11 -Wunknown-pragmas"
@@ -36,33 +36,33 @@
       "binaryDir": "${sourceDir}/cmake-cc-GTEST/",
       "cacheVariables": {
         "TEST" : "GTEST",
-        "CMAKE_CXX_FLAGS": "-O2 --std=c++11"
+        "CMAKE_CXX_FLAGS": "-O3 --std=c++11"
       }
     },
 
     {
-      "name": "CudaDebug" ,
+      "name": "DebugCuda" ,
       "inherits": "Debug",
-      "displayName": "CUDA",
-      "description": "Compile with CUDA support",
+      "displayName": "CUDA Debug",
+      "description": "Compile with CUDA support for debug",
       "binaryDir": "${sourceDir}/cmake-cu-debug/",
       "cacheVariables": {
         "CUDA_ON": "ON",
-        "CUDA_FLAGS": "-O2 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=\"-Wall -Wno-reorder\"",
+        "CUDA_FLAGS": "-O3 -std=c++11 -DCUDA_ON --default-stream per-thread --compiler-options=\"-Wall -Wno-reorder\"",
         "CUDA_ARCH": "72;75",
         "CUDA_SEP_COMP": "ON"
       }
     },
 
     {
-      "name": "CudaRelease" ,
+      "name": "ReleaseCuda" ,
       "inherits": "Release",
-      "displayName": "CUDA",
-      "description": "Compile with CUDA support",
+      "displayName": "CUDA Release",
+      "description": "Compile with CUDA support in release mode",
       "binaryDir": "${sourceDir}/cmake-cu-release/",
       "cacheVariables": {
         "CUDA_ON": "ON",
-        "CUDA_FLAGS": "-O2 -std=c++11 -DCUDA_ON --default-stream per-thread",
+        "CUDA_FLAGS": "-O3 -std=c++11 -DCUDA_ON --default-stream per-thread",
         "CUDA_ARCH": "72;75",
         "CUDA_SEP_COMP": "ON"
       }
@@ -75,7 +75,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/O2 /std=c++11 /Wall /Wno-reorder"
+        "CMAKE_CXX_FLAGS": "/O3 /std=c++11 /Wall /Wno-reorder"
       }
     }
   ],
@@ -85,8 +85,8 @@
       "configurePreset": "Release"
     },
     {
-      "name": "CudaRelease",
-      "configurePreset": "CudaRelease"
+      "name": "ReleaseCuda",
+      "configurePreset": "ReleaseCuda"
     },
 
     {
@@ -95,8 +95,8 @@
       "jobs": 1
     },
     {
-      "name": "CudaDebug",
-      "configurePreset": "CudaDebug",
+      "name": "DebugCuda",
+      "configurePreset": "DebugCuda",
       "jobs": 1
     },
 
