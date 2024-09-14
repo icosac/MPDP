@@ -71,10 +71,10 @@ else()
   #What should be installed
   install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
 
-  find_package(OpenMP REQUIRED)
-  if (OpenMP_CXX_FOUND)
-    target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
-  endif()
+  # find_package(OpenMP REQUIRED)
+  # if (OpenMP_CXX_FOUND)
+  #   target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
+  # endif()
 
   if (${MPDP_DRAW})
     include_directories(ExternalLibs/clothoids)

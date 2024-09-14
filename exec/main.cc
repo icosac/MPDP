@@ -17,8 +17,6 @@
 // #include<SVMQuadraticPredict.h>
 // #include<NNWideCompactPredict.h>
 
-
-
 void PrintScientific1D(real_type d){
   if (d == 0)
   {
@@ -43,6 +41,13 @@ void PrintScientific2D(real_type d){
   real_type base   = d * pow(10, -1.0*exponent);
 
   printf("%1.1lfe%+02d", base, exponent);
+}
+
+template<typename IntType = uint64_t>
+std::string PrintScientificLargeInt(IntType num){
+  std::stringstream sstream;
+  sstream << std::scientific << (double)num;
+  return std::string(sstream.str());
 }
 
 
@@ -903,9 +908,9 @@ int testDubins(){
 }
 
 void main3PDP(){
-  Configuration2 pi(1,                  0,                  1.281515296194058);
-  Configuration2 pm(-0.923799223986150, -0.382877256784191, 3.913748061213308);
-  Configuration2 pf(-0.856568170220046,  -0.516033884319510, 4.783614754798819);
+  Configuration2 pi(-1, 1, -2.51233);
+  Configuration2 pm( 0, 1, 1.5708);
+  Configuration2 pf( 1, 0, -m_pi);
 
   K_T kmax = 1.628729661324742;
 
@@ -993,7 +998,25 @@ static std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3
   {"RSLLSR", {18, Dubins::D_TYPE::RSL, Dubins::D_TYPE::LSR}}
 };
 
-void generateDataset3PDP(int kmax_min = 1, int kmax_max = 10, int k_discr = 10, int angle_discr = 10){
+
+void generateDataset3PDPCircle(int argc, char** argv){
+  int kmax_min = 1;
+  int kmax_max = 1;
+  int k_discr = 1;
+  int angle_discr = 5;
+
+  if (argc == 4) {
+    kmax_min = std::stoi(argv[1]);
+    kmax_max = std::stoi(argv[2]);
+    k_discr  = std::stoi(argv[3]);
+  }
+  else if (argc == 5) {
+    kmax_min = std::stoi(argv[1]);
+    kmax_max = std::stoi(argv[2]);
+    k_discr  = std::stoi(argv[3]);
+    angle_discr = std::stoi(argv[4]);
+  }
+
   double theta_i;
   double theta_f;
   double alpha_m;
@@ -1001,19 +1024,37 @@ void generateDataset3PDP(int kmax_min = 1, int kmax_max = 10, int k_discr = 10, 
   double kmax;
 
   // Open file named 3PDS.csv
-  std::string filename = "3PDS_" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_discr) + ".csv";
-  std::cout << "Writing to " << filename << std::endl;
-  std::ofstream file(filename);
-  if (!file.is_open()) {
-    std::cout << "Error opening file" << std::endl;
-    return;
-  }
+  std::string filename_base = "3PDS_" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_discr);
+  std::string filename = filename_base + ".csv";
+  std::string filename_log = filename_base + ".log";
 
   uint64_t tot_counter = angle_discr*angle_discr*angle_discr*angle_discr*k_discr;
   uint64_t counter = 0;
   uint64_t prev_counter = 0;
+  uint64_t actual_counter = 0;
 
-  std::cout << "Generating " << tot_counter << " tests" << std::endl;
+  std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
+
+  std::cout << "Writing entries to " << filename << std::endl;
+  std::ofstream file(filename);
+  if (!file.is_open()) {
+    std::cout << "Error opening db " << filename << std::endl;
+    return;
+  }
+
+  std::cout << "Writing log to " << filename_log << std::endl;
+  std::ofstream log_file(filename_log);
+  std::streambuf* coutbuf = nullptr;
+  if (!log_file.is_open()) {
+    std::cout << "Error opening log file " << filename_log << std::endl;
+    return;
+  }
+  else {
+    coutbuf = std::cout.rdbuf();
+    std::cout.rdbuf(log_file.rdbuf());
+  }
+
+  std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
 
   kmax = kmax_max;
   for (int k = 0; k<k_discr; k++){
@@ -1031,6 +1072,7 @@ void generateDataset3PDP(int kmax_min = 1, int kmax_max = 10, int k_discr = 10, 
             Configuration2 pf = Configuration2(cos(alpha_f), sin(alpha_f), theta_f);
 
             if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
+              actual_counter ++;
                // Solve multipoint problem
                std::vector<Configuration2> points = {pi, pm, pf};
                std::vector<bool> fixedAngles = {true, false, true};
@@ -1094,8 +1136,8 @@ void generateDataset3PDP(int kmax_min = 1, int kmax_max = 10, int k_discr = 10, 
 
             // Print time
             auto dtime1 = time1.getTime();
-            if (counter % 1000 == 0) {
-              std::cout << "\r" << 1.0 * counter / tot_counter * 100.0 << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
+            if (counter % (tot_counter/100000) == 0) {
+              std::cout << 1.0 * counter / tot_counter * 100.0 << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
               prev_counter = counter;
               time1.start();
             }
@@ -1110,9 +1152,214 @@ void generateDataset3PDP(int kmax_min = 1, int kmax_max = 10, int k_discr = 10, 
     kmax -= 1.0*(kmax_max-kmax_min)/k_discr;
   }
 
+  std::cout << "Generated " << PrintScientificLargeInt(actual_counter) << " entries to " << filename << std::endl;
+
+  if (coutbuf != nullptr){
+    std::cout.rdbuf(coutbuf);
+  }
+
   file.close();
 }
 
+#include <set>
+
+void generateDataset3PDPRect(int argc, char** argv){
+  int kmax_min = 1;
+  int kmax_max = 1;
+  int k_discr = 1;
+  int angle_discr = 5;
+  int xf_discr = 20;
+  int xm_discr = 10;
+  int ym_discr = 20;
+
+  if (argc == 4) {
+    kmax_min = std::stoi(argv[1]);
+    kmax_max = std::stoi(argv[2]);
+    k_discr  = std::stoi(argv[3]);
+  }
+  else if (argc == 8) {
+    kmax_min = std::stoi(argv[1]);
+    kmax_max = std::stoi(argv[2]);
+    k_discr  = std::stoi(argv[3]);
+    angle_discr = std::stoi(argv[4]);
+    xf_discr = std::stoi(argv[5]);
+    xm_discr = std::stoi(argv[6]);
+    ym_discr = std::stoi(argv[7]);
+  }
+
+  // Open file named 3PDS.csv
+  std::string filename_base = "3PDSRect_" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_discr);
+  std::string filename = filename_base + ".csv";
+  std::string filename_log = filename_base + ".log";
+
+  uint64_t tot_counter = angle_discr*angle_discr*xf_discr*xm_discr*ym_discr*k_discr;
+  uint64_t counter = 0;
+  uint64_t prev_counter = 0;
+  uint64_t actual_counter = 0;
+
+  std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
+
+  std::cout << "Writing entries to " << filename << std::endl;
+  std::ofstream file(filename);
+  if (!file.is_open()) {
+    std::cout << "Error opening db " << filename << std::endl;
+    return;
+  }
+
+  std::cout << "Writing log to " << filename_log << std::endl;
+  std::ofstream log_file(filename_log);
+  std::streambuf* coutbuf = nullptr;
+  if (!log_file.is_open()) {
+    std::cout << "Error opening log file " << filename_log << std::endl;
+    return;
+  }
+  else {
+    coutbuf = std::cout.rdbuf();
+    std::cout.rdbuf(log_file.rdbuf());
+  }
+
+  std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
+
+  double kmax;
+
+  std::ofstream points_file("3PDSRect_points.txt");
+
+  double thi = -m_pi;
+  double thf = -m_pi;
+  double xf = 1;
+  double xm = 0;
+  double ym = 0;
+
+  double dth = 2.0*m_pi/angle_discr;
+  double dxf = 2.0/xf_discr;
+  double dxm = 1.0/xm_discr;
+  double dym = 2.0/ym_discr;
+  double dkmax = 1.0*(kmax_max-kmax_min)/k_discr;
+
+  std::cout << "dth: " << dth << std::endl;
+  std::cout << "dxf: " << dxf << std::endl;
+  std::cout << "dxm: " << dxm << std::endl;
+  std::cout << "dym: " << dym << std::endl;
+  std::cout << "dkmax: " << dkmax << std::endl;
+
+  std::set<std::vector<double>> points_set;
+
+  kmax = kmax_min;
+  while(kmax <= (double)kmax_max)
+  {
+    TimePerf time1; time1.start();
+    thi = -m_pi;
+    while(thi < m_pi){
+      thf = -m_pi;
+      while(thf < m_pi)
+      {
+        xf = 1;
+        while(xf > -1.0)
+        {
+          xm = 0;
+          while(xm < 1)
+          {
+            ym = 0;
+            while (ym <= 2)
+            {
+              if (ym == 0 && std::abs(xf-xm) < 1e-8) { ym += dym; continue; }
+              Configuration2 pi = Configuration2(-1, 0, thi);
+              Configuration2 pm = Configuration2(xm, ym, 0);
+              Configuration2 pf = Configuration2(xf, 0, thf);
+
+              points_file <<
+                "(" << pi.x() << ", " << pi.y() << ", g)\n" <<
+                "(" << pm.x() << ", " << pm.y() << ", r)\n" <<
+                "(" << pf.x() << ", " << pf.y() << ", b)" << std::endl;
+              if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
+                actual_counter ++;
+              // Solve multipoint problem
+              std::vector<Configuration2> points = {pi, pm, pf};
+              std::vector<bool> fixedAngles = {true, false, true};
+              std::vector<double> curveParam = {kmax};
+              int discr = 16;
+              int refinements = 4;
+              TimePerf time;
+              time.start();
+              std::pair<LEN_T, std::vector<Angle> > ret = DP().solveDP(points, fixedAngles, curveParam, discr, refinements);
+                if (ret.first == 0.0) {
+                  std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
+                  throw std::runtime_error("Zero length");
+                }
+                auto dtime = time.getTime();
+                //            std::cout << "Took " << dtime << " ms to find multi-point" << std::endl;
+
+                // Set angle for intermediate problem and compute the two Dubins
+                pm.th(ret.second[1]);
+                time.start();
+                Dubins dub1 = Dubins(pi, pm, {kmax});
+                Dubins dub2 = Dubins(pm, pf, {kmax});
+                dtime = time.getTime();
+                //            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
+                LEN_T len = dub1.l() + dub2.l();
+
+                // Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
+                std::string man_comb = dub1.man_to_string() + dub2.man_to_string();
+                int id_man_comb = 19;
+                time.start();
+                auto search = P3DP_DICT.find(man_comb);
+                if (search == P3DP_DICT.end()) {
+                  for (auto man: P3DP_DICT) {
+                    Dubins::D_TYPE dub1_man = std::get<1>(man.second);
+                    Dubins::D_TYPE dub2_man = std::get<2>(man.second);
+                    try {
+                      Dubins dub1 = Dubins(pi, pm, {kmax}, dub1_man);
+                      Dubins dub2 = Dubins(pm, pf, {kmax}, dub2_man);
+                      if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
+                        id_man_comb = std::get<0>(man.second);
+                        break;
+                      }
+                    }
+                    catch (std::runtime_error &e) {
+                      continue;
+                    }
+                  }
+                } else {
+                  id_man_comb = std::get<0>(search->second);
+                }
+                dtime = time.getTime();
+                //            std::cout << "Took " << dtime << " ms to find alternative" << std::endl;
+
+                // Write data to file
+                file << std::setprecision(5) << kmax << " " << thi << " " << xf << " " << thf << " "
+                     << xm << " " << ym << " " << id_man_comb << " " << pm.th() << " " << len << std::endl;
+              }
+
+              // Print time
+              auto dtime1 = time1.getTime();
+              if (counter % (tot_counter/100000) == 0) {
+                std::cout << 1.0 * counter / tot_counter * 100.0 << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
+                prev_counter = counter;
+                time1.start();
+              }
+              counter ++;
+              ym += dym;
+            }
+            xm += dxm;
+          }
+          xf -= dxf;
+        }
+        thf += dth;
+      }
+      thi += m_pi/angle_discr;
+    }
+    kmax += (dkmax > 0 ? dkmax : kmax_max);
+  }
+
+  std::cout << "Generated " << PrintScientificLargeInt(actual_counter) << " entries to " << filename << std::endl;
+
+  if (coutbuf != nullptr){
+    std::cout.rdbuf(coutbuf);
+  }
+
+  points_file.close();
+  file.close();
+}
 
 int main(int argc, char** argv){
   // Dubins
@@ -1125,16 +1372,10 @@ int main(int argc, char** argv){
 
   // 3 points stuff
 //  main3PMDBruteForce();
-//  main3PDP();
-  if (argc == 4) {
-    generateDataset3PDP(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]));
-  }
-  else if (argc == 5) {
-    generateDataset3PDP(std::stoi(argv[1]), std::stoi(argv[2]), std::stoi(argv[3]), std::stoi(argv[4]));
-  }
-  else {
-    generateDataset3PDP();
-  }
+  // main3PDP();
+
+  generateDataset3PDPCircle(argc, argv);
+  // generateDataset3PDPRect(argc, argv);
 
 //  genDSDubinsP2P(true);
 //  example();
