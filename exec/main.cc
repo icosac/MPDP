@@ -1,7 +1,15 @@
+/**
+ * @file main.cpp
+ * @author Enrico Saccon <enricosaccon96@gmail.com>
+ * @license This project is released under the GNU Public License Agero 3.0.
+ * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
+ * @brief Main file for the Dubins and Reed-Shepp paths computation.
+ */
+
 #include <dubins.hh>
 #include <dp.hh>
 #include <timeperf.hh>
-#include<tests.hh>
+#include <tests.hh>
 
 #include<iostream>
 #include<fstream>
@@ -16,40 +24,6 @@
 // #include<RSPredict.h>
 // #include<SVMQuadraticPredict.h>
 // #include<NNWideCompactPredict.h>
-
-void PrintScientific1D(real_type d){
-  if (d == 0)
-  {
-    printf ("%*d", 6, 0);
-    return;
-  }
-
-  int exponent  = (int)floor(log10( fabs(d)));  // This will round down the exponent
-  real_type base   = d * pow(10, -1.0*exponent);
-
-  printf("%1.1lfe%+01d", base, exponent);
-}
-
-void PrintScientific2D(real_type d){
-  if (d == 0)
-  {
-    printf ("%*d", 7, 0);
-    return;
-  }
-
-  int exponent  = (int)floor(log10( fabs(d)));  // This will round down the exponent
-  real_type base   = d * pow(10, -1.0*exponent);
-
-  printf("%1.1lfe%+02d", base, exponent);
-}
-
-template<typename IntType = uint64_t>
-std::string PrintScientificLargeInt(IntType num){
-  std::stringstream sstream;
-  sstream << std::scientific << (double)num;
-  return std::string(sstream.str());
-}
-
 
 std::vector<Configuration2> example1 = {
     Configuration2(0,0,-2.0*m_pi/8.0),
@@ -119,13 +93,11 @@ int allexamples (){
         std::vector<Angle> vtheta=ret.second;
 
         LEN_T Length = 0.0;
-        for (unsigned int index=points.size()-1; index>0; index--){
-          points[index-1].th(vtheta[index-1]);
-          points[index].th(vtheta[index]);
-          Dubins c(points[index-1], points[index], {Ks[testID]});
-          std::ofstream file;
-          file.open("kaya1RS.asy", std::ios::app);
-          // c.draw(file, 100, 100, true, false, Length==0.0 ? true : false);
+
+        for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
+          points[idjijij-1].th(vtheta[idjijij-1]);
+          points[idjijij].th(vtheta[idjijij]);
+          RS c(points[idjijij-1], points[idjijij], {Ks[testID]});
           // std::cout << c << std::endl;
           Length+=c.l();
         }
@@ -144,17 +116,6 @@ int allexamples (){
   return 0;
 }
 
-Configuration2 circleLine(double s, double kur, Configuration2 c) {
-  double sigmaDir = 1,  sign = kur > 0? 1: -1;
-  double xEnd, yEnd, thetaEnd;
-  xEnd = c.x() - f(s, kur , mod2pi(c.th() + sigmaDir * m_pi));
-  yEnd = c.y() - g(s, kur , mod2pi(c.th() + sigmaDir * m_pi));
-  thetaEnd = mod2pi(c.th() + kur  * s);
-
-  Configuration2 res(xEnd, yEnd, thetaEnd, kur );
-
-  return res;
-}
 
 int main3PMDBruteForce(){
   // caso LRL-RLR
@@ -498,40 +459,6 @@ void test_times(){
           << t << std::endl;
   }
   file.close();
-}
-
-int example() {
-  // Set problem data
-  std::vector<Configuration2> points = {
-      Configuration2(0, 0, 0),
-      Configuration2(1, 0, 0),
-      Configuration2(1, 1, 0),
-      Configuration2(0, 1, 0),
-      Configuration2(0, 0, 0)
-  };
-  K_T kmax = 1;
-  int refinements = 2;
-  int discretizations = 360;
-  std::vector<bool> fixedAngles = { true, false, false, false, true };
-  std::vector<double> parameters = {kmax};
-
-  // Solve the multi-point problem
-  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, parameters, discretizations, refinements);
-
-  std::cout << "Total length: " << ret.first << std::endl;
-
-  // Set actual computed angles
-  for (int i=0; i<ret.second.size(); ++i){
-    points[i].th(ret.second[i]);
-  }
-
-  // Print final points
-  std::cout << "Final points with angles:" << std::endl;
-  for (auto point : points) {
-    std::cout << point << std::endl;
-  }
-
-  return 0;
 }
 
 void findThose2Manoeuvres(std::string filename){
@@ -908,37 +835,39 @@ int testDubins(){
 }
 
 void main3PDP(){
-  Configuration2 pi(-1, 1, -2.51233);
-  Configuration2 pm( 0, 1, 1.5708);
-  Configuration2 pf( 1, 0, -m_pi);
+  Configuration2 pi(0                 , 0                 , m_pi/3.0         );
+  Configuration2 pm(10                , 5                 , 0                );
+  Configuration2 pf(15                , 20                , m_pi/6.0         );
 
-  K_T kmax = 1.628729661324742;
+  K_T kmax = 1.0;
 
-  Dubins dub1 = Dubins(pi, pm, {kmax});
-  std::cout << std::endl << std::endl;
-  Dubins dub2 = Dubins(pm, pf, {kmax});
-  std::cout << std::endl << std::endl;
-
-  std::ofstream file("Dubins.asy");
-  initAsyFile(file);
-  dub1.draw(file, "P_i");
-  dub2.draw(file, "P_m");
-  file.close();
+//  Dubins dub1 = Dubins(pi, pm, {kmax});
+//  std::cout << std::endl << std::endl;
+//  Dubins dub2 = Dubins(pm, pf, {kmax});
+//  std::cout << std::endl << std::endl;
+//
+//  std::ofstream file("Dubins.asy");
+//  initAsyFile(file);
+//  dub1.draw(file, "P_i");
+//  dub2.draw(file, "P_m");
+//  file.close();
 
   std::vector<bool> fixedAngles = {true, false, true};
   std::vector<Configuration2> points = {pi, pm, pf};
   std::vector<double> curveParam = {kmax};
   TimePerf time1;
   time1.start();
-  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 16, 8);
+  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 360, 1);
   std::cout << "ms: " << time1.getTime() << std::endl;
-  std::cout << std::setprecision(12) << "Dub1: " << dub1.man_to_string() << " " << dub1.l() << std::endl;
-  std::cout << std::setprecision(12) << "Dub2: " << dub2.man_to_string() << " " << dub2.l() << std::endl;
-  std::cout << std::setprecision(12) << "Total length " << (dub1.l()+dub2.l()) << std::endl;
+//  std::cout << std::setprecision(12) << "Dub1: " << dub1.man_to_string() << " " << dub1.l() << std::endl;
+//  std::cout << std::setprecision(12) << "Dub2: " << dub2.man_to_string() << " " << dub2.l() << std::endl;
+//  std::cout << std::setprecision(12) << "Total length " << (dub1.l()+dub2.l()) << std::endl;
   std::cout << std::endl << std::endl << "MPDP len: " << ret.first << std::endl;
+  std::cout << "#angles: " << ret.second.size() << std::endl;
   for (auto angle : ret.second){
-    std::cout << angle << " ";
+    std::cout << std::setprecision(12) << angle << " ";
   }
+  std::cout << std::endl;
   pm.th(ret.second[1]);
   std::cout << pm.th() << std::endl;
   Dubins curve1 = Dubins(pi, pm, {kmax});
@@ -955,24 +884,24 @@ void main3PDP(){
   curve2.draw(file1, "P_m");
   file1.close();
 
-  std::cout << "BRUTE FORCE" << std::endl;
-
-  LEN_T bestLen = std::numeric_limits<LEN_T>::infinity();
-  std::string bestMan = "";
-  int DISCR = 360;
-  Angle ang = 0.0, bestAngle = 0.0;
-  for (int i=0; i<DISCR; i++){
-    Dubins dub1 = Dubins(pi, Configuration2(pm.x(), pm.y(), ang), {kmax});
-    Dubins dub2 = Dubins(Configuration2(pm.x(), pm.y(), ang), pf, {kmax});
-    LEN_T currLen = dub1.l() + dub2.l();
-    if (bestLen > currLen) {
-      bestLen = currLen;
-      bestMan = dub1.man_to_string() + " " + dub2.man_to_string();
-      bestAngle = ang;
-    }
-    ang += 2.0*m_pi/DISCR;
-  }
-  std::cout << "Shortest path with angle " << bestAngle << " and total length " << bestLen << " given man: " << bestMan << std::endl;
+//  std::cout << "BRUTE FORCE" << std::endl;
+//
+//  LEN_T bestLen = std::numeric_limits<LEN_T>::infinity();
+//  std::string bestMan = "";
+//  int DISCR = 360;
+//  Angle ang = 0.0, bestAngle = 0.0;
+//  for (int i=0; i<DISCR; i++){
+//    Dubins dub1 = Dubins(pi, Configuration2(pm.x(), pm.y(), ang), {kmax});
+//    Dubins dub2 = Dubins(Configuration2(pm.x(), pm.y(), ang), pf, {kmax});
+//    LEN_T currLen = dub1.l() + dub2.l();
+//    if (bestLen > currLen) {
+//      bestLen = currLen;
+//      bestMan = dub1.man_to_string() + " " + dub2.man_to_string();
+//      bestAngle = ang;
+//    }
+//    ang += 2.0*m_pi/DISCR;
+//  }
+//  std::cout << "Shortest path with angle " << bestAngle << " and total length " << bestLen << " given man: " << bestMan << std::endl;
 }
 #include <map>
 #include <tuple>
@@ -1362,28 +1291,37 @@ void generateDataset3PDPRect(int argc, char** argv){
 }
 
 int main(int argc, char** argv){
-  // Dubins
-//  testDubins();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Dubins stuff
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// testDubins();
+	// genDSDubinsP2P(true);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // MPDP Examples
-//   allexamples();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// MPDP Examples
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// allexamples();
+	// tentaclesFigDubins();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //  tentaclesFigDubins();
-
-  // 3 points stuff
-//  main3PMDBruteForce();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// 3 points Dubins stuff
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// main3PMDBruteForce();
   // main3PDP();
-
   generateDataset3PDPCircle(argc, argv);
   // generateDataset3PDPRect(argc, argv);
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//  genDSDubinsP2P(true);
-//  example();
-//  generateDatasetRS();
-//  NNWideRS();
-//  SVMQuadraticRS();
-
-// drawRS();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// RS stuff
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//  generateDatasetRS();
+	//  NNWideRS();
+	//  SVMQuadraticRS();
+	// drawRS();
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   return 0;
 }

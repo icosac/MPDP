@@ -1,6 +1,3 @@
 [submodule "ExternalLibs/googletest"]
 	path = ExternalLibs/googletest
 	url = https://github.com/google/googletest
-[submodule "ExternalLibs/rapidjson"]
-	path = ExternalLibs/rapidjson
-	url = https://github.com/Tencent/rapidjson/
