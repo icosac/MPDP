@@ -1,131 +1,44 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 include(GoogleTest)
 
 project(MPDP LANGUAGES CXX)
 
+# Write a compile_commands.json file with information about the compiler calls
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(MPDP_DRAW ON)
+set(MPDP_DRAW OFF)
 
-if(${CUDA_ON} MATCHES ON)
-#  include(CMakeMSCuda.cmake)
-  set(LIB "MPDPCU")
-  set(APP_EXEC "MPDPCU_exec")
-  #Define files to be compiled
-  enable_language(CUDA)
+set(THIS_IS_A_TEST ON)
 
-  set(SRC "srcCU")
-  set(SRCF "${SRC}/*.cu")
-  file(GLOB MPDPSrc ${SRCF})
-  file(GLOB MPDPExec "exec/main.cu")
-  file(GLOB includeFiles "${SRC}/include/*.cuh" "./include/*.hh")
+include(cmake/options.cmake)
 
-  #What should be compiled
-  include_directories(${SRC}/include include)
-  add_library(${LIB} ${MPDPSrc})
-  add_executable(${APP_EXEC} ${MPDPExec})
-  target_link_libraries(${APP_EXEC} PUBLIC ${LIB})
+# Print options
+message(STATUS "COMPILE_CXX_EXEC: ${COMPILE_CXX_EXEC}")
+message(STATUS "CUDA_ON: ${CUDA_ON}")
+message(STATUS "COMPILE_CUDA_EXEC: ${COMPILE_CUDA_EXEC}")
+message(STATUS "COMPILE_EXAMPLES: ${COMPILE_EXAMPLES}")
+message(STATUS "COMPILE_TESTS: ${COMPILE_TESTS}")
 
-  #What should be installed
-  install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
+include(cmake/build_cxx.cmake)
 
-  #Set compiler options
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_FLAGS}")
-  set_target_properties(${LIB} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
-  set_target_properties(${LIB} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
-  set_target_properties(${APP_EXEC} PROPERTIES CUDA_SEPARABLE_COMPILATION "${CUDA_SEP_COMP}")
-  set_target_properties(${APP_EXEC} PROPERTIES CUDA_ARCHITECTURES "${CUDA_ARCH}")
+if(CUDA_ON)
+  include(cmake/build_cuda.cmake)
+endif()
 
-  message(FATAL "Compiling CUDA with: " ${CUDA_FLAGS})
-  message(STATUS "${MPDPSrc}")
-else()
-  # find_package(Matlab REQUIRED)
+if(COMPILE_EXAMPLES)
+  include(cmake/build_examples.cmake)
+endif()
 
-  set(LIB "MPDPCC")
-  set(APP_EXEC "MPDPCC_exec")
-  #Define files to be compiled
-  set(SRC "srcCC")
-  set(SRCF "${SRC}/*.cc")
-  file(GLOB MPDPSrc ${SRCF})
-  file(GLOB MPDPExec "exec/main.cc")
-  file(GLOB includeFiles "${SRC}/include/*.hh" "./include/*.hh")  
-
-  message(STATUS "Compiling C++ with: `" ${CXX_FLAGS} "`")
-  message(STATUS "${MPDPSrc}")
-
-  # include(ExternalLibs/RSPredict/CMakeLists.txt)
-  # include(ExternalLibs/SVMQuadraticPredict/CMakeLists.txt)
-  # include(ExternalLibs/NNWideCompactPredict/CMakeLists.txt)
-
-  #Compile
-  include_directories(${SRC}/include include)
-  # include_directories(${Matlab_INCLUDE_DIRS})
-  # include_directories(ExternalLibs/RSPredict)
-  # include_directories(ExternalLibs/SVMQuadraticPredict)
-  # include_directories(ExternalLibs/NNWideCompactPredict)
-
-  add_library(${LIB} STATIC ${MPDPSrc})
-  add_executable(${APP_EXEC} ${MPDPExec})
-  target_link_libraries(${APP_EXEC} PUBLIC ${LIB}) # RSPredict SVMQuadraticPredict NNWideCompactPredict)
-
-  #What should be installed
-  install(FILES ${includeFiles} DESTINATION ${CMAKE_BINARY_DIR}/inc)
-
-  # find_package(OpenMP REQUIRED)
-  # if (OpenMP_CXX_FOUND)
-  #   target_link_libraries(${LIB} PUBLIC OpenMP::OpenMP_CXX)
-  # endif()
-
-  if (${MPDP_DRAW})
-    include_directories(ExternalLibs/clothoids)
-    add_compile_definitions(MPDP_DRAW)
-  endif()
+if(COMPILE_TESTS)
+  include(cmake/build_tests.cmake)
 endif()
 
 
-if(DEFINED TEST)
-  set(TEST_NAMES
-      configurationTest
-      dubinsTest
-      clothoidG1Test
-      RSTest)
-
-  if(${TEST} MATCHES "GTEST")
-    #GTEST_TEST
-    add_definitions(-DGTEST)
-    add_subdirectory(ExternalLibs/googletest)
-    enable_testing()
-
-    foreach( S ${TEST_NAMES} )
-      message(STATUS "Adding test ${S}")
-      add_executable(${S} test/${S}.cc)
-      target_link_libraries(${S} gtest gtest_main ${LIB})
-      target_include_directories(${S} PRIVATE ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-      gtest_discover_tests(${S})
-    endforeach()
-
-  elseif(${TEST} MATCHES "BOOST")
-    #BOOST_TEST
-    add_definitions(-DBOOST)
-    add_definitions(-DBOOST_TEST_DYN_LINK)
-
-    enable_testing()
-    find_package(Boost COMPONENTS system filesystem unit_test_framework REQUIRED)
-    set(Boost_USE_MULTITHREADED TRUE)
-
-    foreach( S ${TEST_NAMES} )
-      message(STATUS "Adding test ${S}")
-      add_executable(${S} test/${S}.cc)
-      target_link_libraries(${S} ${LIB} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-      add_test(NAME ${S} COMMAND ${S})
-    endforeach()
-
-  endif()
-
-  add_custom_command(TARGET dubinsTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
-      ${CMAKE_SOURCE_DIR}/test/dubinsTest.txt ${CMAKE_CURRENT_BINARY_DIR}/test/dubinsTest.txt)
-
-  add_custom_command(TARGET RSTest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy
-      ${CMAKE_SOURCE_DIR}/test/RSDataset.txt ${CMAKE_CURRENT_BINARY_DIR}/test/RSDataset.txt)
-
-endif()
+# include(ExternalLibs/RSPredict/CMakeLists.txt)
+# include(ExternalLibs/SVMQuadraticPredict/CMakeLists.txt)
+# include(ExternalLibs/NNWideCompactPredict/CMakeLists.txt)
+# include_directories(${Matlab_INCLUDE_DIRS})
+# include_directories(ExternalLibs/RSPredict)
+# include_directories(ExternalLibs/SVMQuadraticPredict)
+# include_directories(ExternalLibs/NNWideCompactPredict)
+# target_link_libraries(${APP_EXEC_CXX} PRIVATE ${LIB}) # RSPredict SVMQuadraticPredict NNWideCompactPredict)

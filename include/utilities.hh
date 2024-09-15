@@ -45,6 +45,13 @@ PrintScientific2D (real_type d)
 	printf ("%1.1lfe%+02d", base, exponent);
 }
 
+template<typename IntType = uint64_t>
+std::string PrintScientificLargeInt(IntType num){
+	std::stringstream sstream;
+	sstream << std::scientific << (double)num;
+	return std::string(sstream.str());
+}
+
 inline void
 initAsyFile (std::ofstream& file)
 {
