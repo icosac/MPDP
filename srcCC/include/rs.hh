@@ -131,7 +131,7 @@ class RS : public Curve {
 	 * configuration.
 	 */
 	void
-	solve()
+	solve() override
 	{
 		this->reeds_shepp (this->_Nman);
 		this->buildRS (this->_Nman);

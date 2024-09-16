@@ -1,7 +1,7 @@
 /**
  * @file dubins.hh
  * @author Enrico Saccon <enricosaccon96@gmail.com>
- * @license This project is released under the GNU Public License Agero 3.0.
+ * @license This project is released under the GNU Public License 3.0.
  * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
  * @brief This file contains the function for solving the PP Dubins.
  */
@@ -66,7 +66,7 @@ class Dubins : public Curve {
 	 * Function to solve the Dubins curve.
 	 */
 	void
-	solve()
+	solve() override
 	{
 		real_type lambda;
 		K_T sKmax;

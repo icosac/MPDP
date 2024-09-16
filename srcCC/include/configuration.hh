@@ -1,7 +1,7 @@
 /**
  * @file main.cpp
  * @author Enrico Saccon <enricosaccon96@gmail.com>
- * @license This project is released under the GNU Public License Agero 3.0.
+ * @license This project is released under the GNU Public License 3.0.
  * @copyright Copyright 2020 Enrico Saccon.
  * @brief Header file for the Configuration2 class.
  * @deatils This file contains the definition of the Configuration2 class, which memorizes

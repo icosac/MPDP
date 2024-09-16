@@ -19,6 +19,7 @@ message(STATUS "COMPILE_CUDA_EXEC: ${COMPILE_CUDA_EXEC}")
 message(STATUS "COMPILE_EXAMPLES: ${COMPILE_EXAMPLES}")
 message(STATUS "COMPILE_TESTS: ${COMPILE_TESTS}")
 
+include(cmake/dependencies.cmake)
 include(cmake/build_cxx.cmake)
 
 if(CUDA_ON)

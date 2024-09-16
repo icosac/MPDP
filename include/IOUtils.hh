@@ -1,7 +1,7 @@
 /**
  * @file IOUtils.hh
  * @author Enrico Saccon <enricosaccon96@gmail.com>
- * @license This project is released under the GNU Public License Agero 3.0.
+ * @license This project is released under the GNU Public License 3.0.
  * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
  * @brief Header file containing function to read the points from a file.
  * TODO This should be really improved.
