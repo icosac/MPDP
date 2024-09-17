@@ -25,205 +25,6 @@
 // #include<SVMQuadraticPredict.h>
 // #include<NNWideCompactPredict.h>
 
-std::vector<Configuration2> example1 = {
-    Configuration2(0,0,-2.0*m_pi/8.0),
-    Configuration2(2,2,ANGLE::FREE),
-    Configuration2(6,-1,ANGLE::FREE),
-    Configuration2(8,1,2.0*m_pi/8.0)
-};
-
-std::vector<std::string> testsNames = {
-    "Kaya Example 1",
-    "Kaya Example 2",
-    "Kaya Example 3",
-    "Kaya Example 4",
-    "Omega",
-    "Circuit"
-};
-
-std::vector<std::vector<Configuration2> > Tests = {
-    kaya1, kaya2, kaya3, kaya4, omega, spa
-};
-
-std::vector<K_T> Ks = {3.0, 3.0, 5.0, 3.0, 3.0, 3.0};
-std::vector<uint> discrs = {4, 16, 90, 360};
-std::vector<uint> refins = {1, 2, 4, 8, 16};
-std::vector<LEN_T> exampleLenghts={3.41557885807514871601142658619, 6.27803455030931356617429628386, 11.9162126542854860389297755319, 7.46756219733842652175326293218, 41.0725016438839318766440555919, 6988.66098639942993031581863761}; //the last length is SPA
-
-std::string nameTest(std::string name, std::string add="", std::string conc=" "){
-  if (add==""){
-    return name;
-  }
-  else{
-    return name+conc+add;
-  }
-}
-
-
-int allexamples (){
-  std::cout << "DISCR & ref & dl & t\\" << std::endl;
-  for (uint testID=0; testID<Tests.size(); testID++){
-    std::cout << "Test " << testID << std::endl;
-    if (testID!=2){continue;}
-    real_type dLen=exampleLenghts[testID];
-
-    std::vector<bool> fixedAngles;
-    for (uint i=0; i<Tests[testID].size(); i++){
-      if (i==0 || i==Tests[testID].size()-1) {
-        fixedAngles.push_back(true);
-      }
-      else {
-        fixedAngles.push_back(false);
-      }
-    }
-    std::vector<real_type> curveParam={Ks[testID]};
-
-    for (auto DISCR :  discrs){
-//      if (DISCR!=4){continue;}
-      for (auto r : refins){
-//        if (r!=4){continue;}
-        //std::cout << DISCR << " " << r << " ";
-        TimePerf tp, tp1;
-        std::vector<Configuration2>points=Tests[testID];
-
-        tp.start();
-        std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, DISCR, r);
-        auto time1=tp.getTime();
-        LEN_T ComLength=ret.first;
-        std::vector<Angle> vtheta=ret.second;
-
-        LEN_T Length = 0.0;
-
-        for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
-          points[idjijij-1].th(vtheta[idjijij-1]);
-          points[idjijij].th(vtheta[idjijij]);
-          RS c(points[idjijij-1], points[idjijij], {Ks[testID]});
-          // std::cout << c << std::endl;
-          Length+=c.l();
-        }
-        // std::cout << Length << " " << exampleLenghts[testID] << std::endl;
-        printf("%3d & %2d & ", DISCR, r);
-        PrintScientific2D((ComLength-exampleLenghts[testID])*1000.0);
-        printf(" & ");
-        PrintScientific1D(time1);
-        printf("     %.16f %.16f", ComLength, exampleLenghts[testID]);
-        printf("\\\\\n");
-      }
-    }
-    printf("\n\n\n\n");
-  }
-
-  return 0;
-}
-
-
-
-
-/**
- * @brief Function to generate a random dataset of Dubins for testing.
- * @param fix_initial_pos Whether the initial position should be fixed to (0,0,0) or not
- * @return
- */
-int genDSDubinsP2P(bool fix_initial_pos = false){
-  std::seed_seq seed{1,2,3,4,5,6,7,8,9};
-  std::mt19937 eng(seed);
-
-  std::string filename = "DSdubinsP2P6.csv";
-  if (!fix_initial_pos) {
-    filename = "DSdubinsP2P6Rand.csv";
-  }
-  std::ofstream file(filename.c_str());
-  file << "x0 y0 th0 x1 y1 th1 kmax l type time" << std::endl;
-
-  K_T kmax = 1;
-  int nTests = 1000000;
-
-  for (; nTests > 0; nTests--){
-    std::uniform_real_distribution<> cooDist(0, 1000.0);
-    std::uniform_real_distribution<> piDist(0, m_pi*2.0);
-    Configuration2 start (0, 0, 0);
-    if (!fix_initial_pos) {
-      start = Configuration2(cooDist(eng), cooDist(eng), piDist(eng));
-    }
-    Configuration2 end (cooDist(eng), cooDist(eng), piDist(eng));
-
-    TimePerf time;
-    time.start();
-    Dubins d(start, end, {kmax});
-    auto t = time.getTime();
-
-    file  << std::setprecision(12)
-          << start.x() << " " << start.y() << " " << start.th() << " "
-          << end.x() << " " << end.y() << " " << end.th() << " "
-          << d.kmax() << " " << d.l() << " " << d.man_to_string() << " "
-          << t << std::endl;
-  }
-  file.close();
-  return 0;
-}
-
-void test_times(){
-  bool fix_initial_pos = false;
-  std::seed_seq seed{1,2,3,4,5,6,7,8,9};
-  std::mt19937 eng(seed);
-
-  std::string filename = "DSdubinsP2P6.csv";
-  if (!fix_initial_pos) {
-    filename = "DSdubinsP2P6Rand.csv";
-  }
-  std::ofstream file(filename.c_str());
-  file << "x0 y0 th0 x1 y1 th1 kmax l type time" << std::endl;
-
-  K_T kmax = 1;
-  int nTests = 1000000;
-
-  for (; nTests > 0; nTests--){
-    std::uniform_real_distribution<> cooDist(0, 1000.0);
-    std::uniform_real_distribution<> piDist(0, m_pi*2.0);
-    Configuration2 start (0, 0, 0);
-    if (!fix_initial_pos) {
-      start = Configuration2(cooDist(eng), cooDist(eng), piDist(eng));
-    }
-    Configuration2 end (cooDist(eng), cooDist(eng), piDist(eng));
-
-    TimePerf time;
-    time.start();
-    Dubins d(start, end, {kmax});
-    auto t = time.getTime();
-
-    file  << std::setprecision(12)
-          << start.x() << " " << start.y() << " " << start.th() << " "
-          << end.x() << " " << end.y() << " " << end.th() << " "
-          << d.kmax() << " " << d.l() << " " << d.man_to_string() << " "
-          << t << std::endl;
-  }
-  file.close();
-}
-
-void findThose2Manoeuvres(std::string filename){
-  std::ofstream file(filename.c_str());
-  file << "x0 y0 th0 x1 y1 th1 kmax ";
-  for (int i=0; i<52; i++){
-    file << i << " ";
-  }
-  std::vector<double> THIs = {};
-  std::vector<double> THFs = {};
-  std::vector<double> Ks = {};
-
-
-  for (double thi : THIs){
-    for (double thf : THFs) {
-      for (double k: Ks) {
-        Configuration2 initPos = Configuration2(0, 0, thi);
-        Configuration2 finalPos = Configuration2(1, 0, thf);
-        RS myRS(initPos, finalPos, {k});
-      }
-    }
-  }
-
-  file.close();
-}
-
 int checkAnotherMan(RS myRS){
   int oldMan = myRS.getNman();
   int newMan = -1;
@@ -250,65 +51,6 @@ int checkAnotherMan(RS myRS){
 //  }
 
   return newMan;
-}
-
-int generateDatasetRS(){
-  std::string datasetName = "DS_RS.csv";
-
-  int n = 101; // discretisation for the angles
-  int m = 51;  // discretisation for the curvature
-  double th_min = -m_pi;
-  double th_max = m_pi;
-  double kappa_min = 0.1;
-  double kappa_max = 9.0;
-
-  std::vector<double> KAPPA (m);
-  std::vector<double> THI (n);
-  std::vector<double> THF (n);
-
-  double v = kappa_min - (kappa_max-kappa_min)/(m-1);
-  std::generate(KAPPA.begin(), KAPPA.end(), [&v, m, kappa_min, kappa_max]{ return v+=(kappa_max-kappa_min)/(m-1); });
-  v = th_min - (th_max-th_min)/(n-1);
-  std::generate(THI.begin(), THI.end(), [&v, n, th_min, th_max]{ return v+=(th_max-th_min)/(n-1); });
-  v = th_min - (th_max-th_min)/(n-1);
-  std::generate(THF.begin(), THF.end(), [&v, n, th_min, th_max]{ return v+=(th_max-th_min)/(n-1); });
-
-  std::ofstream out (datasetName);
-
-  int counter = 0;
-  int secondCounter = 0;
-
-  for (auto kappa : KAPPA){
-    for (auto thi : THI){
-      for (auto thf : THF){
-        if ((thi >= 0) && (std::abs(thf) <= thi)) {
-          secondCounter ++;
-          if (secondCounter % 1000 == 0){
-            std::cout << "Second counter: " << secondCounter << std::endl;
-          }
-
-          // generate only triangle
-          Configuration2 ci(-1, 0, thi);
-          Configuration2 cf(1, 0, thf);
-
-          RS myRS = RS(ci, cf, { kappa });
-          myRS.solve();
-
-
-          out << std::setprecision(16) << std::fixed;
-          out << thi << " " << thf << " " << kappa << " "
-              << myRS.l() << " " << myRS.getNman() << " "
-              << myRS.getManTypeStr() << " "
-              << myRS.getNseg() << std::endl;
-        }
-      }
-    }
-  }
-  out.close();
-
-  std::cout << "Found " << counter << " alternatives" << std::endl;
-
-  return 0;
 }
 
 // struct PerfData{
@@ -521,15 +263,15 @@ void drawRS(){
 //  RS curve = RS(Configuration2(0, 0, m_pi_2), Configuration2(1, 1, 0), {1});
 //  curve.solve();
 //  std::ofstream file("RS.asy");
-  Dubins curve = Dubins(Configuration2(1, 1, -m_pi), Configuration2(0, 0, -m_pi_2), {1});
-  std::ofstream file("Dubins.asy");
+  // Dubins curve = Dubins(Configuration2(1, 1, -m_pi), Configuration2(0, 0, -m_pi_2), {1});
+  // std::ofstream file("Dubins.asy");
 
-  std::cout << "Length: " << curve.l() << std::endl;
+  // std::cout << "Length: " << curve.l() << std::endl;
 
-  initAsyFile(file);
-  file << "path p;" << std::endl;
-  curve.draw(file);
-  file.close();
+  // initAsyFile(file);
+  // file << "path p;" << std::endl;
+  // curve.draw(file);
+  // file.close();
 
 //   system("asy -f pdf RS.asy && xdg-open RS.pdf");
 }
@@ -551,7 +293,7 @@ int testDubins(){
     std::vector<double> tmp = {k};
 
     TimePerf tp; tp.start();
-    Dubins d(start, end, {k});
+    Dubins d(start, end, k);
 //    Dubins d = DP::solveP2P<Dubins>(start, end, tmp);
     auto time1=tp.getTime();
 
@@ -595,7 +337,7 @@ int main(int argc, char** argv){
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// main3PMDBruteForce();
   // main3PDP();
-  generateDataset3PDPCircle(argc, argv);
+  // generateDataset3PDPCircle(argc, argv);
   // generateDataset3PDPRect(argc, argv);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

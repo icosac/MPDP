@@ -29,7 +29,7 @@ int main3PMDBruteForce(){
   double thInc = 0.001;
   LEN_T bestLen = std::numeric_limits<LEN_T>::infinity();
   Angle bestAngle = 0.0;
-  int n = 360;sud
+  int n = 360;
 
   TimePerf time;
   time.start();
@@ -43,7 +43,7 @@ int main3PMDBruteForce(){
     /*for (int i = 0; i < n; ++i) {
       double thm = 2.0*m_pi / n * i;
       Pm.th(thm);
-      LEN_T currLen = Dubins(Pi, Pm, { kmax }).l() + Dubins(Pm, Pf, { kmax }).l();
+      LEN_T currLen = Dubins(Pi, Pm, kmax).l() + Dubins(Pm, Pf, kmax).l();
           printf("%.2f, ", currLen);
       if (bestLen > currLen) {
         bestLen = currLen;
@@ -56,8 +56,8 @@ int main3PMDBruteForce(){
     for (int i = 0; i < n; ++i) {
       double thm = 2.0 * m_pi / n * i;
       Pm.th(thm);
-      Dubins d1(Pi, Pm, { kmax });
-      Dubins d2(Pm, Pf, { kmax });
+      Dubins d1(Pi, Pm, kmax);
+      Dubins d2(Pm, Pf, kmax);
       LEN_T currLen = d1.l() + d2.l();
       //printf("%.2f, ", currLen);
       if (bestLen > currLen) {
@@ -169,7 +169,7 @@ int main3PMDBruteForceWithPlot() {
     /*for (int i = 0; i < n; ++i) {
         double thm = 2.0*m_pi / n * i;
         Pm.th(thm);
-        LEN_T currLen = Dubins(Pi, Pm, { kmax }).l() + Dubins(Pm, Pf, { kmax }).l();
+        LEN_T currLen = Dubins(Pi, Pm, kmax).l() + Dubins(Pm, Pf, kmax).l();
         printf("%.2f, ", currLen);
         if (bestLen > currLen) {
             bestLen = currLen;
@@ -180,8 +180,8 @@ int main3PMDBruteForceWithPlot() {
     for (int i = 0; i < n; ++i) {
       double thm = 2.0 * m_pi / n * i;
       Pm.th(thm);
-      Dubins d1(Pi, Pm, { kmax });
-      Dubins d2(Pm, Pf, { kmax });
+      Dubins d1(Pi, Pm, kmax);
+      Dubins d2(Pm, Pf, kmax);
       LEN_T currLen = d1.l() + d2.l();
       //printf("%.2f, ", currLen);
       if (bestLen > currLen) {
@@ -276,9 +276,9 @@ void main3PDP(){
 
   K_T kmax = 1.0;
 
-//  Dubins dub1 = Dubins(pi, pm, {kmax});
+//  Dubins dub1 = Dubins(pi, pm, kmax);
 //  std::cout << std::endl << std::endl;
-//  Dubins dub2 = Dubins(pm, pf, {kmax});
+//  Dubins dub2 = Dubins(pm, pf, kmax);
 //  std::cout << std::endl << std::endl;
 //
 //  std::ofstream file("Dubins.asy");
@@ -289,7 +289,7 @@ void main3PDP(){
 
   std::vector<bool> fixedAngles = {true, false, true};
   std::vector<Configuration2> points = {pi, pm, pf};
-  std::vector<double> curveParam = {kmax};
+  std::vector<double> curveParam = { kmax };
   TimePerf time1;
   time1.start();
   std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 360, 1);
@@ -305,18 +305,18 @@ void main3PDP(){
   std::cout << std::endl;
   pm.th(ret.second[1]);
   std::cout << pm.th() << std::endl;
-  Dubins curve1 = Dubins(pi, pm, {kmax});
+  Dubins curve1 = Dubins(pi, pm, kmax);
   std::cout << std::setprecision(12) << "Curve1: " << curve1.man_to_string() << " " << curve1.l() << std::endl;
   std::cout << std::endl;
-  Dubins curve2 = Dubins(pm, pf, {kmax});
+  Dubins curve2 = Dubins(pm, pf, kmax);
   std::cout << std::setprecision(12) << "Curve2: " << curve2.man_to_string() << " " << curve2.l() << std::endl;
   std::cout << std::endl;
   std::cout << "Sum: " << (curve1.l()+curve2.l()) << std::endl;
 
   std::ofstream file1("Dubins1.asy");
   initAsyFile(file1);
-  curve1.draw(file1, "P_i");
-  curve2.draw(file1, "P_m");
+  // curve1.draw(file1, "P_i");
+  // curve2.draw(file1, "P_m");
   file1.close();
 
 //  std::cout << "BRUTE FORCE" << std::endl;
@@ -326,8 +326,8 @@ void main3PDP(){
 //  int DISCR = 360;
 //  Angle ang = 0.0, bestAngle = 0.0;
 //  for (int i=0; i<DISCR; i++){
-//    Dubins dub1 = Dubins(pi, Configuration2(pm.x(), pm.y(), ang), {kmax});
-//    Dubins dub2 = Dubins(Configuration2(pm.x(), pm.y(), ang), pf, {kmax});
+//    Dubins dub1 = Dubins(pi, Configuration2(pm.x(), pm.y(), ang), kmax);
+//    Dubins dub2 = Dubins(Configuration2(pm.x(), pm.y(), ang), pf, kmax);
 //    LEN_T currLen = dub1.l() + dub2.l();
 //    if (bestLen > currLen) {
 //      bestLen = currLen;
@@ -416,7 +416,7 @@ void generateDataset3PDPCircle(int argc, char** argv){
                // Solve multipoint problem
                std::vector<Configuration2> points = {pi, pm, pf};
                std::vector<bool> fixedAngles = {true, false, true};
-               std::vector<double> curveParam = {kmax};
+               std::vector<double> curveParam = { kmax };
                int discr = 90;
                int refinements = 4;
                TimePerf time;
@@ -433,8 +433,8 @@ void generateDataset3PDPCircle(int argc, char** argv){
                // Set angle for intermediate problem and compute the two Dubins
                pm.th(ret.second[1]);
                time.start();
-               Dubins dub1 = Dubins(pi, pm, {kmax});
-               Dubins dub2 = Dubins(pm, pf, {kmax});
+               Dubins dub1 = Dubins(pi, pm, kmax);
+               Dubins dub2 = Dubins(pm, pf, kmax);
                dtime = time.getTime();
 //            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
                LEN_T len = dub1.l() + dub2.l();
@@ -449,8 +449,8 @@ void generateDataset3PDPCircle(int argc, char** argv){
                    Dubins::D_TYPE dub1_man = std::get<1>(man.second);
                    Dubins::D_TYPE dub2_man = std::get<2>(man.second);
                    try {
-                     Dubins dub1 = Dubins(pi, pm, {kmax}, dub1_man);
-                     Dubins dub2 = Dubins(pm, pf, {kmax}, dub2_man);
+                     Dubins dub1 = Dubins(pi, pm, { kmax }, dub1_man);
+                     Dubins dub2 = Dubins(pm, pf, { kmax }, dub2_man);
                      if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
                        id_man_comb = std::get<0>(man.second);
                        break;
@@ -615,7 +615,7 @@ void generateDataset3PDPRect(int argc, char** argv){
               // Solve multipoint problem
               std::vector<Configuration2> points = {pi, pm, pf};
               std::vector<bool> fixedAngles = {true, false, true};
-              std::vector<double> curveParam = {kmax};
+              std::vector<double> curveParam = { kmax };
               int discr = 16;
               int refinements = 4;
               TimePerf time;
@@ -631,8 +631,8 @@ void generateDataset3PDPRect(int argc, char** argv){
                 // Set angle for intermediate problem and compute the two Dubins
                 pm.th(ret.second[1]);
                 time.start();
-                Dubins dub1 = Dubins(pi, pm, {kmax});
-                Dubins dub2 = Dubins(pm, pf, {kmax});
+                Dubins dub1 = Dubins(pi, pm, kmax);
+                Dubins dub2 = Dubins(pm, pf, kmax);
                 dtime = time.getTime();
                 //            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
                 LEN_T len = dub1.l() + dub2.l();
@@ -647,8 +647,8 @@ void generateDataset3PDPRect(int argc, char** argv){
                     Dubins::D_TYPE dub1_man = std::get<1>(man.second);
                     Dubins::D_TYPE dub2_man = std::get<2>(man.second);
                     try {
-                      Dubins dub1 = Dubins(pi, pm, {kmax}, dub1_man);
-                      Dubins dub2 = Dubins(pm, pf, {kmax}, dub2_man);
+                      Dubins dub1 = Dubins(pi, pm, { kmax }, dub1_man);
+                      Dubins dub2 = Dubins(pm, pf, { kmax }, dub2_man);
                       if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
                         id_man_comb = std::get<0>(man.second);
                         break;

@@ -357,6 +357,9 @@ Dubins::comp_man (D_TYPE type)
 			this->comp_RSR (man_input_data, man_output_data);
 			break;
 		}
+		default: {
+			throw std::runtime_error ("Invalid maneuver type.");
+		}
 	}
 
 	if (man_output_data.type == D_TYPE::INVALID)

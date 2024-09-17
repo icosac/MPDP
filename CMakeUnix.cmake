@@ -1,3 +1,3 @@
-SET(CMAKE_CXX_FLAGS "-O2 -std=c++11 -Wall -DDEBUG")
+SET(CMAKE_CXX_FLAGS "-O2 -std=c++17 -Wall -DDEBUG")
 
 MESSAGE(STATUS "Compiler used: ${CMAKE_CXX_COMPILER_ID}")

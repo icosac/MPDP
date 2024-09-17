@@ -5,6 +5,7 @@ set(SRC_CXX "${CMAKE_SOURCE_DIR}/srcCC")
 file(GLOB MPDPSrc "${SRC_CXX}/*.cc")
 
 message(STATUS "Compiling C++ library with source files: ${MPDPSrc}")
+message(STATUS "Compiling with options " ${CMAKE_CXX_FLAGS})
 
 add_library(${LIB_CXX} STATIC ${MPDPSrc})
 
@@ -23,7 +24,7 @@ endif()
 # Compile the executable if the flag is set
 if(COMPILE_CXX_EXEC)
     set(APP_EXEC_CXX "MPDPCC_exec")
-    file(GLOB MPDPExec "${SRC_CXX}/exec/main.cc")  # Use ${SRC_CXX} for the correct path
+    file(GLOB MPDPExec "exec/main.cc")  # Use ${SRC_CXX} for the correct path
 
     message(STATUS "Compiling C++ executable ${APP_EXEC_CXX} with source: ${MPDPExec}")
 
