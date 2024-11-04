@@ -8,7 +8,14 @@
 
 #include <3PMD.hh>
 
-int main(){
-	main3PMDBruteForce();
+int main(int argc, char** argv){
+	// main3PMDBruteForce();
+	// main3PMDBruteForceWithPlot();
+	// main3PDP();
+
+	compute3Pman();
+
+	// generateDataset3PDPCircle(argc, argv);
+	// generateDataset3PDPRect(argc, argv);
 	return 0;
 }

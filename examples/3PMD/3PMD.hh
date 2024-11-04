@@ -43,6 +43,8 @@ int main3PMDBruteForce();
 int main3PMDBruteForceWithPlot();
 void main3PDP();
 
+void compute3Pman(std::string ThreePman="");
+
 void generateDataset3PDPCircle(int argc, char** argv);
 void generateDataset3PDPRect(int argc, char** argv);
 

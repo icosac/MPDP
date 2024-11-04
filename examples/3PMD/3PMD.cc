@@ -140,8 +140,10 @@ int main3PMDBruteForce(){
   file << "dot((" << myRS2.ci()->x() << "," << myRS2.ci()->y() << "), black);" << std::endl;
   file << "dot((" << myRS2.cf()->x() << "," << myRS2.cf()->y() << "), purple+3bp);" << std::endl;
 
-
+  #ifdef _WIN32
   system("pause");
+  #endif 
+
 
   return 0;
 }
@@ -265,8 +267,51 @@ int main3PMDBruteForceWithPlot() {
   file << "dot((" << myRS2.cf()->x() << "," << myRS2.cf()->y() << "), purple+3bp);" << std::endl;
 
 
+  #ifdef _WIN32
   system("pause");
+  #endif 
+
   return 0;
+}
+
+void compute3Pman(std::string ThreePman){
+  Configuration2 Pi(1, 0, 0.0);
+  Configuration2 Pm(0.7071067811865476, 0.7071067811865475, 4.312023639678955);
+  Configuration2 Pf(6.12323399573766e-17, 1.0, 3.141592653589793);
+
+  if (ThreePman!=""){  
+    Dubins::D_TYPE man1 = std::get<1>(P3DP_DICT.at(ThreePman));
+    Dubins::D_TYPE man2 = std::get<2>(P3DP_DICT.at(ThreePman));
+  }
+
+  std::vector<double> curveParam = {1.0};
+
+  TimePerf time1;
+  time1.start();
+
+  Dubins dub1 = Dubins(Pi, Pm, curveParam);
+  Dubins dub2 = Dubins(Pm, Pf, curveParam);
+  
+  std::cout << "Dub1: " << dub1 << std::endl;
+  std::cout << dub1.s1() << " " << dub1.s2() << " " << dub1.s3() << std::endl;
+  std::cout << "Dub2: " << dub2 << std::endl;
+  std::cout << dub2.s1() << " " << dub2.s2() << " " << dub2.s3() << std::endl;
+
+  std::cout << "Len: " << dub1.l() + dub2.l() << std::endl;
+  std::cout << "ms: " << time1.getTime() << std::endl;
+
+  // Compute with DP
+  std::vector<Configuration2> points = {Pi, Pm, Pf};
+  std::vector<bool> fixedAngles = {true, false, true};
+
+  time1.start();
+  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 360, 4);
+  std::cout << "ms: " << time1.getTime() << std::endl;
+  std::cout << "MPDP len: " << ret.first << std::endl;
+  std::cout << "Angles" << std::endl;
+  for (auto angle : ret.second){
+    std::cout << angle << " ";
+  } 
 }
 
 void main3PDP(){
@@ -339,6 +384,13 @@ void main3PDP(){
 //  std::cout << "Shortest path with angle " << bestAngle << " and total length " << bestLen << " given man: " << bestMan << std::endl;
 }
 
+/**
+ * @brief Generates a dataset of 3PDP problems with the circle constraint.
+ * 
+ * @param argc The number of arguments, either 1, 4 or 5. Since they are passed directly from the command line, argc is always at least 1.
+ *             If argc is 4, the arguments are kmax_min, kmax_max, k_discr. If argc is 5, the arguments are kmax_min, kmax_max, k_discr, angle_discr.
+ * @param argv 
+ */
 void generateDataset3PDPCircle(int argc, char** argv){
   int kmax_min = 1;
   int kmax_max = 1;
@@ -373,7 +425,7 @@ void generateDataset3PDPCircle(int argc, char** argv){
   uint64_t prev_counter = 0;
   uint64_t actual_counter = 0;
 
-  std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
+  std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests." << std::endl;
 
   std::cout << "Writing entries to " << filename << std::endl;
   std::ofstream file(filename);
@@ -395,6 +447,9 @@ void generateDataset3PDPCircle(int argc, char** argv){
   }
 
   std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
+
+  file << "kmax" << " " << "theta_i" << " " << "theta_f" << " " << "alpha_m" << " "
+       << "alpha_f" << " " << "th_m" << " " << "id_man_comb" << " " << "len" << std::endl;
 
   kmax = kmax_max;
   for (int k = 0; k<k_discr; k++){

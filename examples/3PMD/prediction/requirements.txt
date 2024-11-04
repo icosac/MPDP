@@ -1,0 +1,6 @@
+scikit-learn
+pandas
+tensorflow
+matplotlib
+pillow
+plotly
