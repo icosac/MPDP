@@ -523,6 +523,36 @@ Dubins::split_wise()
 	return res;
 }
 
+
+std::string Dubins::to_string_piece (int id) {
+	if (id < 1 || id > 3){
+		std::cerr << "Invalid id " << id << " for Dubins piece." << std::endl;
+		return "";
+	}
+
+	std::string res;
+	Configuration2 c0 = this->ci()[0];
+	Configuration2 c1 = circleLine(this->s1(), this->k1(), c0);
+	std::stringstream ss;
+	if (id == 1){
+		ss << "ci[1]: " << c0 << "\tcf[1]: " << c1 << "\tk[1]: " << this->k1() << "\ts[1]: " << this->s1();
+		return ss.str();
+	}
+
+	Configuration2 c2 = circleLine(this->s2(), this->k2(), c1);
+	if (id == 2){
+		ss << "ci[2]: " << c1 << "\tcf[2]: " << c2 << "\tk[2]: " << this->k2() << "\ts[2]: " << this->s2();
+		return ss.str();
+	}
+
+	Configuration2 c3 = circleLine(this->s3(), this->k3(), c2);
+	if (id == 3){
+		ss << "ci[3]: " << c2 << "\tcf[3]: " << c3 << "\tk[3]: " << this->k3() << "\ts[3]: " << this->s3();
+		return ss.str();
+	}
+}
+
+
 #ifdef MPDP_DRAW
 void
 Dubins::draw (
@@ -552,6 +582,7 @@ Dubins::draw (
 
 	// Intermediate point
 	c = circleLine (this->s1(), this->k1(), c);
+
 	file << "p = clothoidPoints((" << c.x() << "," << c.y() << "), " << c.th() << ","
 			 << this->k2() << ", 0, " << this->s2() << ");" << std::endl;
 	file << "draw(p,royalblue);" << std::endl;
@@ -572,6 +603,9 @@ Dubins::draw (
 
 	if (close) { file.close(); }
 }
+
+#else // NO MPDP_DRAW
+#warning "MPDP_DRAW not defined."
 #endif	// MPDP_DRAW
 
 #endif	// CUDA_ON

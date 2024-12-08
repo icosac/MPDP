@@ -264,7 +264,7 @@ void drawRS(){
 //  curve.solve();
 //  std::ofstream file("RS.asy");
   // Dubins curve = Dubins(Configuration2(1, 1, -m_pi), Configuration2(0, 0, -m_pi_2), {1});
-  // std::ofstream file("Dubins.asy");
+  // std::ofstream file("Dubins3PSquares.asy");
 
   // std::cout << "Length: " << curve.l() << std::endl;
 
