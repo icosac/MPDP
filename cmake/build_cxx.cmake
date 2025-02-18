@@ -42,9 +42,9 @@ if(COMPILE_CXX_EXEC)
     target_link_libraries(${APP_EXEC_CXX} PUBLIC ${LIB_CXX})
 
     # Link OpenMP if found
-    if (OpenMP_CXX_FOUND)
-        target_link_libraries(${LIB_CXX} PUBLIC OpenMP::OpenMP_CXX)
-    endif()
+#     if (OpenMP_CXX_FOUND)
+#         target_link_libraries(${LIB_CXX} PUBLIC OpenMP::OpenMP_CXX)
+#     endif()
 endif()
 
 # Define installation directories using standard CMake variables

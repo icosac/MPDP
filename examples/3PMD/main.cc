@@ -13,9 +13,11 @@ int main(int argc, char** argv){
 	// main3PMDBruteForceWithPlot();
 	// main3PDP();
 
-	compute3Pman();
+	// compute3Pman();
 
 	// generateDataset3PDPCircle(argc, argv);
 	// generateDataset3PDPRect(argc, argv);
+
+	generateDataset3PDPCircleTest(argc, argv);
 	return 0;
 }

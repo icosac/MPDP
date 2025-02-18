@@ -1,6 +1,6 @@
 # Compile examples
 
-set(DEMOS_LIST 3PMD MPMD P2PDubinsDataset P2PRSDataset)
+set(DEMOS_LIST MPMD 3PMD P2PDubinsDataset P2PRSDataset)
 
 message(STATUS "Compiling the following demos: ${DEMOS_LIST}")
 
