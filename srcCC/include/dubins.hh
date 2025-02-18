@@ -444,6 +444,12 @@ class Dubins : public Curve {
 		return D_TYPE_STR[this->dtype()];
 	}
 
+	/*
+	 * Function to print the information for a single piece of the Dubins.
+	 * @param id The id of the piece of the Dubins, in [1,3].
+	 */
+	std::string to_string_piece (int id);
+
 	/*!
 	 * Function to print the most essential info about `Dubins`.
 	 * @param str An additional string to add at the beginning.
@@ -472,6 +478,7 @@ class Dubins : public Curve {
 		return out;
 	}
 
+#define MPDP_DRAW
 #ifdef MPDP_DRAW
 	void
 	draw (
@@ -482,6 +489,8 @@ class Dubins : public Curve {
 			bool solve				= false,
 			bool close				= false,
 			bool init					= false);
+#else
+#warning "MPDP_DRAW not defined. Drawing functions are disabled."
 #endif	// MPDP_DRAW
 };
 

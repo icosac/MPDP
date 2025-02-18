@@ -29,7 +29,7 @@ std::vector<uint> refins = {1, 2, 4, 8, 16};
 
 /**
  * @brief This functions runs all the examples and prints the results in a LaTeX-like table
- * 
+ *
  * @return 0 if everything is OK
  */
 int allexamples (){
@@ -93,12 +93,12 @@ int generateDataset(){
     std::ofstream file;
     file.open(filename);
 
-    int n_points_max = 20; 
+    int n_points_max = 20;
     int n_points_min = 3;
     int n_tests_per_k = 1e3;
     std::vector<K_T> Ks = {1.0, 3.0, 5.0};
 
-    double x_min = 0.0; 
+    double x_min = 0.0;
     double x_max = 10.0;
     double y_min = 0.0;
     double y_max = 10.0;
@@ -161,4 +161,101 @@ int generateDataset(){
     file.close();
 
     return 1;
+}
+
+int test_from_file(const std::string& filename, bool set_th0, bool set_thf, std::string fig_filename){
+		std::cout << "Should I be reading th0 and thf? " << set_th0 << " " << set_thf << std::endl;
+
+		std::ifstream file(filename);
+		if (!file.is_open()) {
+			std::cout << "Error opening file" << std::endl;
+			return 1;
+		}
+
+		int n_lines = 0;
+		file >> n_lines;
+
+		std::vector<Configuration2> points;
+
+		double x, y;
+		uint64_t counter = 0;
+		while(file >> x >> y){
+			std::cout << counter << " " << x << " " << y <<  std::endl;
+			if (counter == 0 && set_th0){
+				std::cout << "Reading th0" << std::endl;
+				double th0;
+				file >> th0;
+				points.push_back(Configuration2(x, y, th0));
+			}
+			else if (counter == n_lines - 1 && set_thf){
+				std::cout << "Reading th1" << std::endl;
+				double thf;
+				file >> thf;
+				points.push_back(Configuration2(x, y, thf));
+			}
+			else { points.push_back (Configuration2 (x, y, ANGLE::FREE)); }
+			counter++;
+		}
+
+		if (counter != n_lines){
+			std::cout << "Error reading file" << std::endl;
+			return 1;
+		}
+
+		if (!set_th0)
+		{
+			points[0].th (atan2 (points[1].y() - points[0].y(), points[1].x() - points[0].x()));
+		}
+		if (!set_thf)
+		{
+			points.back().th(atan2(points[points.size()-1].y()-points[points.size()-2].y(), points[points.size()-1].x()-points[points.size()-2].x()));
+		}
+
+		std::vector<bool> fixedAngles;
+		for (uint i=0; i<points.size(); i++){
+			std::cout << points[i] << std::endl;
+			if (i==0 || i==points.size()-1) {
+				fixedAngles.push_back(true);
+			}
+			else {
+				fixedAngles.push_back(false);
+			}
+		}
+
+		K_T kmax = 1.0;
+		std::vector<real_type> curveParam={kmax};
+
+		int discr = 360;
+		int refin = 4;
+
+		TimePerf tp;
+		tp.start();
+		std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, discr, refin);
+		auto time1=tp.getTime();
+		LEN_T len=ret.first;
+
+		for (auto angle : ret.second){
+			std::cout << angle << std::endl;
+		}
+
+		std::cout << "Computed path in " << time1 << "ms " << len << std::endl;
+
+		for (size_t i = 0; i < points.size(); i++){
+			points[i].th(ret.second[i]);
+		}
+
+		std::cout << std::endl;
+		std::ofstream draw_file(fig_filename);
+		for (size_t i = 0; i < points.size()-1; i++){
+			Dubins d(points[i], points[i+1], {kmax});
+			std::cout << "\n=============\n" << d;
+			std::cout << "\n-------------\n";
+			for (size_t j = 1; j < 4; j++){
+				std::cout << d.to_string_piece(j) << std::endl;
+			}
+			d.draw(draw_file, std::to_string(i), 500, 500, false, false, i==0);
+		}
+		draw_file.close();
+
+		return 0;
 }
