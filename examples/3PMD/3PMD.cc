@@ -326,7 +326,7 @@ void main3PDP(){
 //  Dubins dub2 = Dubins(pm, pf, kmax);
 //  std::cout << std::endl << std::endl;
 //
-//  std::ofstream file("Dubins.asy");
+//  std::ofstream file("Dubins3PSquares.asy");
 //  initAsyFile(file);
 //  dub1.draw(file, "P_i");
 //  dub2.draw(file, "P_m");
