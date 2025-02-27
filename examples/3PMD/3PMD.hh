@@ -48,4 +48,8 @@ void compute3Pman(std::string ThreePman="");
 void generateDataset3PDPCircle(int argc, char** argv);
 void generateDataset3PDPRect(int argc, char** argv);
 
+void generateDataset3PDPCircleTest(int argc, char** argv);
+void generateDataset3PDPRectTest(int argc, char** argv);
+
+
 #endif //INC_3PMD_HH
