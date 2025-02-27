@@ -1,6 +1,7 @@
-scikit-learn
-pandas
-tensorflow
 matplotlib
+numpy<1.25.0
+pandas
 pillow
 plotly
+scikit-learn
+tensorflow
