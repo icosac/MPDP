@@ -24,7 +24,7 @@
       "description": "Default build meant for Linux or Unix-like systems in release",
       "binaryDir": "${sourceDir}/cmake-cc-release/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "--std=c++17 -Wunknown-pragmas -O3"
+        "CMAKE_CXX_FLAGS": "--std=c++20 -Wunknown-pragmas -O3"
       }
     },
 

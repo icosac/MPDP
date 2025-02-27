@@ -106,9 +106,8 @@ int generateDataset(){
     int discr = 360;
     int refin = 4;
 
-    // Define random number generator
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    // Define random number generator with seed 13
+    std::mt19937 gen(13);
     std::uniform_int_distribution<int> n_points_dist(n_points_min, n_points_max);
     std::uniform_real_distribution<double> x_dist(x_min, x_max);
     std::uniform_real_distribution<double> y_dist(y_min, y_max);
@@ -138,10 +137,14 @@ int generateDataset(){
 
             std::vector<real_type> curveParam = {k};
 
+            TimePerf time;
+            time.start();
             std::pair<LEN_T, std::vector<Angle>>ret=DP().solveDP(points, fixedAngles, curveParam, discr, refin);
+            auto dt = time.getTime();
 
             file << n_points << " ";
             file << k << " ";
+            file << std::setprecision(10) << dt << " ";
             file << ret.first << " ";
             file << points[0].th() << " ";
             file << points.back().th() << " ";
@@ -156,6 +159,8 @@ int generateDataset(){
     }
 
     file.close();
+
+    return 1;
 }
 
 int test_from_file(const std::string& filename, bool set_th0, bool set_thf, std::string fig_filename){

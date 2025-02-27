@@ -7,6 +7,7 @@
  */
 
 #include <3PMD.hh>
+#include <cstring>
 
 int main3PMDBruteForce(){
   // LRL-RLR case
@@ -142,7 +143,7 @@ int main3PMDBruteForce(){
 
   #ifdef _WIN32
   system("pause");
-  #endif 
+  #endif
 
 
   return 0;
@@ -269,7 +270,7 @@ int main3PMDBruteForceWithPlot() {
 
   #ifdef _WIN32
   system("pause");
-  #endif 
+  #endif
 
   return 0;
 }
@@ -279,7 +280,7 @@ void compute3Pman(std::string ThreePman){
   Configuration2 Pm(0.7071067811865476, 0.7071067811865475, 4.312023639678955);
   Configuration2 Pf(6.12323399573766e-17, 1.0, 3.141592653589793);
 
-  if (ThreePman!=""){  
+  if (ThreePman!=""){
     Dubins::D_TYPE man1 = std::get<1>(P3DP_DICT.at(ThreePman));
     Dubins::D_TYPE man2 = std::get<2>(P3DP_DICT.at(ThreePman));
   }
@@ -291,7 +292,7 @@ void compute3Pman(std::string ThreePman){
 
   Dubins dub1 = Dubins(Pi, Pm, curveParam);
   Dubins dub2 = Dubins(Pm, Pf, curveParam);
-  
+
   std::cout << "Dub1: " << dub1 << std::endl;
   std::cout << dub1.s1() << " " << dub1.s2() << " " << dub1.s3() << std::endl;
   std::cout << "Dub2: " << dub2 << std::endl;
@@ -311,7 +312,7 @@ void compute3Pman(std::string ThreePman){
   std::cout << "Angles" << std::endl;
   for (auto angle : ret.second){
     std::cout << angle << " ";
-  } 
+  }
 }
 
 void main3PDP(){
@@ -326,7 +327,7 @@ void main3PDP(){
 //  Dubins dub2 = Dubins(pm, pf, kmax);
 //  std::cout << std::endl << std::endl;
 //
-//  std::ofstream file("Dubins.asy");
+//  std::ofstream file("Dubins3PSquares.asy");
 //  initAsyFile(file);
 //  dub1.draw(file, "P_i");
 //  dub2.draw(file, "P_m");
@@ -384,41 +385,104 @@ void main3PDP(){
 //  std::cout << "Shortest path with angle " << bestAngle << " and total length " << bestLen << " given man: " << bestMan << std::endl;
 }
 
+std::vector<double>
+find_best_circle(
+	Configuration2& pi,
+	Configuration2& pm,
+	Configuration2& pf,
+	std::vector<bool> fixedAngles,
+	std::vector<double> curveParam,
+	int discr,
+	int refinements
+){
+	std::vector<Configuration2> points = {pi, pm, pf};
+	double kmax = curveParam[0];
+	std::pair<LEN_T, std::vector<Angle> > ret = DP().solveDP(points, fixedAngles, curveParam, discr,
+																																			 refinements);
+	if (ret.first == 0.0) {
+		std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
+		throw std::runtime_error("Zero length");
+	}
+	// Set angle for intermediate problem and compute the two Dubins
+	pm.th(ret.second[1]);
+	Dubins dub1 = Dubins(pi, pm, kmax);
+	Dubins dub2 = Dubins(pm, pf, kmax);
+	//           std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
+	LEN_T len = dub1.l() + dub2.l();
+	// Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
+	std::string man_comb = dub1.man_to_string() + dub2.man_to_string();
+	int id_man_comb = 19;
+	auto search = P3DP_DICT.find(man_comb);
+	if (search == P3DP_DICT.end()) {
+		for (auto man: P3DP_DICT) {
+			Dubins::D_TYPE dub1_man = std::get<1>(man.second);
+			Dubins::D_TYPE dub2_man = std::get<2>(man.second);
+			try {
+				Dubins dub1 = Dubins(pi, pm, { kmax }, dub1_man);
+				Dubins dub2 = Dubins(pm, pf, { kmax }, dub2_man);
+				if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
+					id_man_comb = std::get<0>(man.second);
+					break;
+				}
+			}
+			catch (std::runtime_error &e) {
+				continue;
+			}
+		}
+	} else {
+		id_man_comb = std::get<0>(search->second);
+	}
+	return {static_cast<double>(id_man_comb), len};
+}
+
 /**
  * @brief Generates a dataset of 3PDP problems with the circle constraint.
- * 
+ *
  * @param argc The number of arguments, either 1, 4 or 5. Since they are passed directly from the command line, argc is always at least 1.
  *             If argc is 4, the arguments are kmax_min, kmax_max, k_discr. If argc is 5, the arguments are kmax_min, kmax_max, k_discr, angle_discr.
- * @param argv 
+ * @param argv
  */
 void generateDataset3PDPCircle(int argc, char** argv){
-  int kmax_min = 1;
-  int kmax_max = 1;
-  int k_discr = 1;
+  double kmax_min = 1;
+  double kmax_max = 1;
+  double k_step = 1;
   int angle_discr = 5;
 
   if (argc == 4) {
-    kmax_min = std::stoi(argv[1]);
-    kmax_max = std::stoi(argv[2]);
-    k_discr  = std::stoi(argv[3]);
+    kmax_min = std::stof(argv[1]);
+    kmax_max = std::stof(argv[2]);
+    k_step  = std::stof(argv[3]);
   }
   else if (argc == 5) {
-    kmax_min = std::stoi(argv[1]);
-    kmax_max = std::stoi(argv[2]);
-    k_discr  = std::stoi(argv[3]);
+    kmax_min = std::stof(argv[1]);
+    kmax_max = std::stof(argv[2]);
+    k_step  = std::stof(argv[3]);
     angle_discr = std::stoi(argv[4]);
   }
 
   // Open file named 3PDS.csv
-  std::string filename_base = "3PDS_Circle" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_discr);
+  std::string filename_base = "3PDS_Circle" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_step);
   std::string filename = filename_base + ".csv";
   std::string filename_log = filename_base + ".log";
 
-  uint64_t tot_counter = angle_discr*angle_discr*angle_discr*angle_discr*k_discr;
   uint64_t counter = 0;
   uint64_t prev_counter = 0;
   uint64_t actual_counter = 0;
 
+	uint64_t k_discr = (kmax_max-kmax_min)/k_step;
+	std::vector<double> k_discrs (k_discr, 0.0);
+	double dth = 2.0 * m_pi / angle_discr;
+	std::vector<double> th_discrs (angle_discr, dth/2.0);
+
+	std::generate(k_discrs.begin(), k_discrs.end(), [k_step, kmax_tmp = kmax_min]() mutable {
+		return (kmax_tmp += k_step);
+	});
+
+	std::generate(th_discrs.begin(), th_discrs.end(), [dth, th = m_pi]() mutable{
+		return (th -= dth);
+	});
+
+  uint64_t tot_counter = th_discrs.size()*th_discrs.size()*th_discrs.size()*th_discrs.size()*k_discrs.size();
   std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests." << std::endl;
 
   std::cout << "Writing entries to " << filename << std::endl;
@@ -445,99 +509,55 @@ void generateDataset3PDPCircle(int argc, char** argv){
   file << "kmax" << " " << "theta_i" << " " << "theta_f" << " " << "alpha_m" << " "
        << "alpha_f" << " " << "th_m" << " " << "id_man_comb" << " " << "len" << std::endl;
 
-	std::vector<double> k_discrs (k_discr, 0.0);
-	std::vector<double> th_discrs (angle_discr, 0.0);
+  std::cout << "k_discrs: " << k_discrs.size() << std::endl;
+  for(auto kmax_tmp : k_discrs){
+    std::cout << kmax_tmp << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "th_discrs: " << th_discrs.size() << std::endl;
+  for(auto th : th_discrs){
+    std::cout << th << " ";
+  }
+  std::cout << "Total: " << k_discrs.size()*th_discrs.size()*th_discrs.size()*th_discrs.size()*th_discrs.size() << std::endl;
 
-	std::generate(k_discrs.begin(), k_discrs.end(), [kmax_min, kmax_max, k_discr, i = 0]()mutable {
-		return kmax_min + (kmax_max - kmax_min) * (i++) / k_discr;
-	});
-
-	std::generate(th_discrs.begin(), th_discrs.end(), [angle_discr, th = m_pi]() mutable{
-		return (th -= (2.0 * m_pi / angle_discr));
-	});
-
-	for (auto kmax : k_discrs){
+  for (auto kmax : k_discrs){
     TimePerf time1; time1.start();
-		for (auto theta_i : th_discrs){
-			for (auto theta_f : th_discrs){
-				for (auto alpha_m : th_discrs){
-					for (auto alpha_f : th_discrs){
+    for (double theta_i : th_discrs){
+      for (double theta_f : th_discrs) {
+        for (double alpha_m : th_discrs) {
+          for (double alpha_f : th_discrs) {
             Configuration2 pi = Configuration2(1, 0, theta_i);
             Configuration2 pm = Configuration2(cos(alpha_m), sin(alpha_m), 0);
             Configuration2 pf = Configuration2(cos(alpha_f), sin(alpha_f), theta_f);
 
             if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
-              actual_counter ++;
-							// Solve multipoint problem
-							std::vector<Configuration2> points = {pi, pm, pf};
-							std::vector<bool> fixedAngles = {true, false, true};
-							std::vector<double> curveParam = { kmax };
-							int discr = 90;
-							int refinements = 4;
-//							TimePerf time;
-//							time.start();
-//							std::pair<LEN_T, std::vector<Angle> > ret = DP().solveDP(points, fixedAngles, curveParam, discr,
-//																																		refinements);
-//							if (ret.first == 0.0) {
-//								std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
-//								throw std::runtime_error("Zero length");
-//							}
-//							auto dtime = time.getTime();
-//							//            std::cout << "Took " << dtime << " ms to find multi-point" << std::endl;
-//
-//							// Set angle for intermediate problem and compute the two Dubins
-//							pm.th(ret.second[1]);
-//							time.start();
-//							Dubins dub1 = Dubins(pi, pm, kmax);
-//							Dubins dub2 = Dubins(pm, pf, kmax);
-//							dtime = time.getTime();
-//							//            std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
-//							LEN_T len = dub1.l() + dub2.l();
-//
-//							// Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
-//							std::string man_comb = dub1.man_to_string() + dub2.man_to_string();
-//							int id_man_comb = 19;
-//							time.start();
-//							auto search = P3DP_DICT.find(man_comb);
-//						  if (search == P3DP_DICT.end()) {
-//							  for (auto man: P3DP_DICT) {
-//								  Dubins::D_TYPE dub1_man = std::get<1>(man.second);
-//								  Dubins::D_TYPE dub2_man = std::get<2>(man.second);
-//									try {
-//										Dubins dub1 = Dubins(pi, pm, { kmax }, dub1_man);
-//										Dubins dub2 = Dubins(pm, pf, { kmax }, dub2_man);
-//										if (std::abs(dub1.l() + dub2.l() - len) < 1e-8) {
-//											id_man_comb = std::get<0>(man.second);
-//											break;
-//										}
-//									}
-//									catch (std::runtime_error &e) {
-//										continue;
-//									}
-//								}
-//							} else {
-//								id_man_comb = std::get<0>(search->second);
-//							}
-//							dtime = time.getTime();
-//            std::cout << "Took " << dtime << " ms to find alternative" << std::endl;
+              counter ++;
+              // Solve multipoint problem
+              std::vector<Configuration2> points = {pi, pm, pf};
+              std::vector<bool> fixedAngles = {true, false, true};
+              std::vector<double> curveParam = { kmax };
+              int discr = 90;
+              int refinements = 4;
+              TimePerf time;
+              time.start();
 
-							// Write data to file
+            	std::vector<double> res = find_best_circle(pi, pm, pf, fixedAngles, curveParam, discr, refinements);
 
-							int id_man_comb = 0;
-							LEN_T len = 0.0;
+              auto dtime = time.getTime();
 
-							file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " "
+            	int id_man_comb = static_cast<int>(res[0]);
+            	double len = res[1];
+
+              // Write data to file
+              file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " "
                     << alpha_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
-						}
-
-            // Update the angle
-            alpha_f -= 2.0*m_pi/angle_discr;
+            }
 
             // Print time
             auto dtime1 = time1.getTime();
           	auto part = tot_counter > 100 ? tot_counter/100 : 1;
             if (counter % part == 0) {
-              std::cout << 1.0 * counter / tot_counter * 100.0 << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
+              std::cout << 100.0 * counter / tot_counter << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
               prev_counter = counter;
               time1.start();
             }
@@ -556,6 +576,47 @@ void generateDataset3PDPCircle(int argc, char** argv){
 
   file.close();
 }
+
+/**
+ * 1) con curvatura che prende valori a metà di quelli che abbiamo usato, cioè se abbiamo
+ * usato 0.2 0.4 0.6 ecc fammi un set con 0.3 0.5 0.7 ecc. e angoli possibilmente anche
+ * sfasati, tipo prendi gli angoli del train e sfasali di mezzo delta_angolo 2) uno meno
+ * cattivo, con dati più vicini al train set
+ * @param argc
+ * @param argv
+ */
+void
+generateDataset3PDPCircleTest (int argc, char** argv){
+	if (argc != 2){
+		throw std::runtime_error("Invalid number of arguments, expected 1");
+	}
+	char** new_argv = new char*[5];
+	for (int i = 0; i < 5; i++){
+		new_argv[i] = new char[10];
+	}
+	new_argv[0] = "";
+	if (std::stoi(argv[1]) == 1 || std::stoi(argv[1]) == 3)
+	{
+		new_argv[1] = strdup ("0.1");
+		new_argv[2] = strdup ("8.1");
+		new_argv[3] = strdup ("0.2");
+		new_argv[4] = strdup ("36.0");
+		generateDataset3PDPCircle (5, new_argv);
+	}
+	else if (std::stoi(argv[1]) == 2 || std::stoi(argv[1]) == 3){
+		new_argv[1] = strdup ("-0.1");
+		new_argv[2] = strdup ("8.3");
+		new_argv[3] = strdup ("0.3");
+		new_argv[4] = strdup ("18.0");
+		generateDataset3PDPCircle (5, new_argv);
+	}
+	else {
+		throw std::runtime_error("Invalid argument");
+	}
+	delete[] new_argv;
+}
+
+
 
 void generateDataset3PDPRect(int argc, char** argv){
   int kmax_min = 1;
