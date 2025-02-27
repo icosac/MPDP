@@ -15,7 +15,7 @@ int main(int argc, char** argv){
 
 	// compute3Pman();
 
-	// generateDataset3PDPCircle(argc, argv);
+	generateDataset3PDPCircle(argc, argv);
 	// generateDataset3PDPRect(argc, argv);
 
 	generateDataset3PDPCircleTest(argc, argv);
