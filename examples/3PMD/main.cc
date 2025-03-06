@@ -18,6 +18,6 @@ int main(int argc, char** argv){
 	generateDataset3PDPCircle(argc, argv);
 	// generateDataset3PDPRect(argc, argv);
 
-	generateDataset3PDPCircleTest(argc, argv);
+	// generateDataset3PDPCircleTest(argc, argv);
 	return 0;
 }
