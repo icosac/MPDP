@@ -26,11 +26,10 @@ DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
 SAVE_PATH = os.path.join(PROJECT_PATH, "models")
 SAVE_NAME = os.path.join(SAVE_PATH, "model.pt")
 
-DO_PLOTS = False
+DO_PLOTS = True
 
 # Set device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
 print("Using device:", device)
 
 def model_train(model, X_train, y_train, X_val, y_val):
@@ -41,8 +40,8 @@ def model_train(model, X_train, y_train, X_val, y_val):
     loss_fn = nn.CrossEntropyLoss()  # Binary Cross-Entropy Loss
     optimizer = optim.AdamW(model.parameters(), lr=0.0001)
 
-    n_epochs = 5  # Number of epochs to run
-    batch_size = 64  # Size of each batch
+    n_epochs = 40  # Number of epochs to run
+    batch_size = 16  # Size of each batch
 
     # Metrics tracking
     train_losses, val_losses = [], []

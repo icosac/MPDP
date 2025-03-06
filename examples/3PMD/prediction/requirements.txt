@@ -5,3 +5,8 @@ pillow
 plotly
 scikit-learn
 tensorflow
+annoy
+
+onnx
+skl2onnx
+onnxruntime
