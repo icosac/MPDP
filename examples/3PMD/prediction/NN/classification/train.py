@@ -19,8 +19,8 @@ from pathlib import Path
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "datasets")
-DATASET_NAME = "big_smaller.csv"
+DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "regression", "datasets")
+DATASET_NAME = "small.csv"
 DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
 
 SAVE_PATH = os.path.join(PROJECT_PATH, "models")

@@ -18,7 +18,7 @@ class NeuralNet(nn.Module):
           nn.Dropout(),
           nn.ReLU(),
           nn.Linear(hid_size, out_size),
-          nn.Sigmoid()
+          nn.Softmax(dim=1)
         )
         
         self.initialize_weights()
