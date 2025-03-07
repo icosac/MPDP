@@ -1,4 +1,3 @@
-from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 import torch
 import copy
 import numpy as np
@@ -11,207 +10,178 @@ from sklearn.preprocessing import OneHotEncoder
 import os
 import matplotlib.pyplot as plt
 from time import time as clock
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score
 from model import NeuralNet
-from tqdm import tqdm  # Import tqdm for progress bar
+from tqdm import tqdm  # Progress bar
 
 from pathlib import Path
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-
 DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "regression", "datasets")
 DATASET_NAME = "small.csv"
 DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
-
 SAVE_PATH = os.path.join(PROJECT_PATH, "models")
 SAVE_NAME = os.path.join(SAVE_PATH, "model.pt")
-
 DO_PLOTS = True
 
-# Set device to GPU if available, otherwise use CPU
+# Set device to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def model_train(model, X_train, y_train, X_val, y_val):
-    # Move model to the device (GPU or CPU)
     model.to(device)
 
-    # Loss function and optimizer
-    loss_fn = nn.CrossEntropyLoss()  # Binary Cross-Entropy Loss
-    optimizer = optim.AdamW(model.parameters(), lr=0.0001)
+    # Loss function & optimizer
+    loss_fn = nn.CrossEntropyLoss()  # For multi-class classification
+    optimizer = optim.AdamW(model.parameters(), lr=0.001)
 
-    n_epochs = 40  # Number of epochs to run
-    batch_size = 16  # Size of each batch
+    n_epochs = 300
+    batch_size = 8
 
-    # Metrics tracking
     train_losses, val_losses = [], []
     train_accuracies, val_accuracies = [], []
 
     train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=False)
 
-    # Hold the best model
     best_acc = -np.inf
     best_weights = None
 
     for epoch in range(n_epochs):
-        # Training loop with tqdm progress bar
         model.train()
         epoch_loss = 0.0
         correct = 0
         total = 0
 
-        # Create the progress bar
         progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{n_epochs}", dynamic_ncols=True)
 
         for X_batch, y_batch in progress_bar:
-            # Move data to the device
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
 
-            # Forward pass
+            # Convert one-hot to class indices
+            y_batch = torch.argmax(y_batch, dim=1)
+
+            optimizer.zero_grad()
             y_pred = model(X_batch)
             loss = loss_fn(y_pred, y_batch)
-
-            # Backward pass
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            # Accumulate metrics
-            epoch_loss += loss.item() * len(X_batch)
-            correct += (y_pred.round() == y_batch).float().sum().item()
-            total += len(y_batch)
+            epoch_loss += loss.item() * X_batch.size(0)
 
-            # Update the progress bar with stats
-            progress_bar.set_postfix(loss=epoch_loss / total, accuracy=correct / total)
+            # Compute accuracy
+            preds = torch.argmax(y_pred, dim=1)
+            correct += (preds == y_batch).sum().item()
+            total += y_batch.size(0)
 
-        # Record training metrics
-        train_loss = epoch_loss / total
-        train_acc = correct / total
-        train_losses.append(train_loss)
-        train_accuracies.append(train_acc)
+            progress_bar.set_postfix(loss=loss.item())
 
-        # Validation loop
+        train_losses.append(epoch_loss / total)
+        train_accuracies.append(correct / total)
+
+        # Validation phase
         model.eval()
-        epoch_loss = 0.0
+        val_loss = 0.0
         correct = 0
         total = 0
+
         with torch.no_grad():
             for X_batch, y_batch in val_loader:
-                # Move data to the device
                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+                y_batch = torch.argmax(y_batch, dim=1)  # Convert one-hot to class indices
+
                 y_pred = model(X_batch)
                 loss = loss_fn(y_pred, y_batch)
-                epoch_loss += loss.item() * len(X_batch)
-                correct += (y_pred.round() == y_batch).float().sum().item()
-                total += len(y_batch)
+                val_loss += loss.item() * X_batch.size(0)
 
-        # Record validation metrics
-        val_loss = epoch_loss / total
-        val_acc = correct / total
-        val_losses.append(val_loss)
-        val_accuracies.append(val_acc)
+                preds = torch.argmax(y_pred, dim=1)
+                correct += (preds == y_batch).sum().item()
+                total += y_batch.size(0)
 
-        # Save the best model
-        if val_acc > best_acc:
-            best_acc = val_acc
+        val_losses.append(val_loss / total)
+        val_accuracies.append(correct / total)
+
+        # Save best model
+        if val_accuracies[-1] > best_acc:
+            best_acc = val_accuracies[-1]
             best_weights = copy.deepcopy(model.state_dict())
 
-    # Restore the best model
+    # Restore best model
     model.load_state_dict(best_weights)
 
+    # Plotting
     if DO_PLOTS:
-        # Plot metrics
         plt.figure(figsize=(12, 6))
-
-        # Plot loss
+        
         plt.subplot(1, 2, 1)
         plt.plot(train_losses, label="Train Loss")
         plt.plot(val_losses, label="Validation Loss")
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
-        plt.title("Loss per Epoch")
         plt.legend()
-
-        # Plot accuracy
+        
         plt.subplot(1, 2, 2)
         plt.plot(train_accuracies, label="Train Accuracy")
         plt.plot(val_accuracies, label="Validation Accuracy")
         plt.xlabel("Epoch")
         plt.ylabel("Accuracy")
-        plt.title("Accuracy per Epoch")
         plt.legend()
-
-        plt.tight_layout()
+        
         plt.show()
 
     return best_acc
 
 
-# Function to evaluate the model
 def evaluate_model(model, X_test, y_test):
-    model.eval()  
+    model.eval()
     with torch.no_grad():
-        X_test = X_test.to(device)  # Move test data to GPU
-        y_pred = model(X_test).round()
-    return y_pred
+        X_test = X_test.to(device)
+        y_test = torch.argmax(y_test, dim=1).to(device)
+        y_pred = torch.argmax(model(X_test), dim=1)
+    return y_pred.cpu().numpy(), y_test.cpu().numpy()
+
 
 def main():
-    assert(os.path.exists(DATASET_PATH)), f"Dataset {DATASET_PATH} doest not exist"
-    if SAVE_NAME != "":
+    assert os.path.exists(DATASET_PATH), f"Dataset {DATASET_PATH} does not exist"
+    if SAVE_NAME:
         os.makedirs(SAVE_PATH, exist_ok=True)
 
     time_start = clock()
-    
-    data = pd.read_csv(DATASET_PATH, sep='\s+')
 
+    data = pd.read_csv(DATASET_PATH, sep='\s+')
     features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
     target = 'id_man_comb'
 
     X = data[features].values
     y = data[target].values
 
-    print(X.shape)
-    # Encoding the target
-    encoder = OneHotEncoder(sparse_output=False)  # Use dense array output
-    y = encoder.fit_transform(y.reshape(-1, 1))  # Convert y to numpy and reshape
+    # Encoding target labels
+    encoder = OneHotEncoder(sparse_output=False)
+    y = encoder.fit_transform(y.reshape(-1, 1))
 
     X = torch.tensor(X, dtype=torch.float32)
     y = torch.tensor(y, dtype=torch.float32)
 
-    # Train-test split: Hold out the test set for final model evaluation
+    # Split data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
 
-    # Train the model
+    # Train model
     model = NeuralNet()
     model_train(model, X_train, y_train, X_test, y_test)
 
-    # Evaluate the model on the test set
-    y_pred = evaluate_model(model, X_test, y_test)
+    # Evaluate model
+    y_pred_np, y_test_np = evaluate_model(model, X_test, y_test)
 
-    # Convert predictions and true labels to numpy arrays for compatibility with sklearn
-    y_pred_np = y_pred.cpu().numpy().astype(int).flatten()
-    y_test_np = y_test.cpu().numpy().astype(int).flatten()
-
+    # Print metrics
     print("Accuracy:", accuracy_score(y_test_np, y_pred_np))
     print("Precision:", precision_score(y_test_np, y_pred_np, average='weighted'))
     print("Recall:", recall_score(y_test_np, y_pred_np, average='weighted'))
     print("F1 Score:", f1_score(y_test_np, y_pred_np, average='weighted'))
 
-    y_pred = evaluate_model(model, X_train, y_train)
-
-    # Convert predictions and true labels to numpy arrays for compatibility with sklearn
-    y_pred_np = y_pred.cpu().numpy().astype(int).flatten()
-    y_test_np = y_train.cpu().numpy().astype(int).flatten()
-
-    print("Accuracy:", accuracy_score(y_test_np, y_pred_np))
-    print("Precision:", precision_score(y_test_np, y_pred_np, average='weighted'))
-    print("Recall:", recall_score(y_test_np, y_pred_np, average='weighted'))
-    print("F1 Score:", f1_score(y_test_np, y_pred_np, average='weighted'))
-
-    time_end = clock()  
-    if SAVE_NAME != "":
+    # Save model
+    if SAVE_NAME:
         torch.save(model.state_dict(), SAVE_NAME)
+
 
 if __name__ == "__main__":
     main()
