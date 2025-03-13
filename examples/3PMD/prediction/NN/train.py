@@ -16,17 +16,20 @@ from model import NeuralNet
 from tqdm import tqdm  # Import tqdm for progress bar
 
 from pathlib import Path
+import sys
+
+np.set_printoptions(threshold=sys.maxsize)
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "datasets")
-DATASET_NAME = "big_smaller.csv"
+DATASET_NAME = "small.csv"
 DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
 
 SAVE_PATH = os.path.join(PROJECT_PATH, "models")
 SAVE_NAME = os.path.join(SAVE_PATH, "model.pt")
 
-DO_PLOTS = True
+DO_PLOTS = False
 
 # Set device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -40,7 +43,7 @@ def model_train(model, X_train, y_train, X_val, y_val):
     loss_fn = nn.CrossEntropyLoss()  # Binary Cross-Entropy Loss
     optimizer = optim.AdamW(model.parameters(), lr=0.0001)
 
-    n_epochs = 40  # Number of epochs to run
+    n_epochs = 5  # Number of epochs to run
     batch_size = 16  # Size of each batch
 
     # Metrics tracking
@@ -171,10 +174,10 @@ def main():
     X = data[features].values
     y = data[target].values
 
-    print(X.shape)
     # Encoding the target
     encoder = OneHotEncoder(sparse_output=False)  # Use dense array output
     y = encoder.fit_transform(y.reshape(-1, 1))  # Convert y to numpy and reshape
+    print(y.shape)
 
     X = torch.tensor(X, dtype=torch.float32)
     y = torch.tensor(y, dtype=torch.float32)
@@ -188,7 +191,9 @@ def main():
 
     # Evaluate the model on the test set
     y_pred = evaluate_model(model, X_test, y_test)
-
+    print(f"y_pred.shape {y_pred.shape}")
+    print(f"y_pred[0] {y_pred[0]}")
+    
     # Convert predictions and true labels to numpy arrays for compatibility with sklearn
     y_pred_np = y_pred.cpu().numpy().astype(int).flatten()
     y_test_np = y_test.cpu().numpy().astype(int).flatten()
@@ -201,8 +206,8 @@ def main():
     y_pred = evaluate_model(model, X_train, y_train)
 
     # Convert predictions and true labels to numpy arrays for compatibility with sklearn
-    y_pred_np = y_pred.cpu().numpy().astype(int).flatten()
-    y_test_np = y_train.cpu().numpy().astype(int).flatten()
+    y_pred_np = y_pred.cpu().numpy().astype(int)
+    y_test_np = y_train.cpu().numpy().astype(int)
 
     print("Accuracy:", accuracy_score(y_test_np, y_pred_np))
     print("Precision:", precision_score(y_test_np, y_pred_np, average='weighted'))
