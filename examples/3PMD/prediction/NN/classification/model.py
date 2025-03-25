@@ -8,17 +8,11 @@ class NeuralNet(nn.Module):
         self.linear_stack = nn.Sequential(
           nn.Linear(in_size, hid_size),
           nn.ReLU(),
-          nn.Linear(hid_size, hid_size),
+          nn.Dropout(0.2),
+          nn.Linear(hid_size, hid_size // 2),
           nn.ReLU(),
-          nn.Linear(hid_size, 128),
-          nn.ReLU(),
-          nn.Linear(128, 128),
-          nn.ReLU(),
-          nn.Linear(128, hid_size),
-          nn.Dropout(),
-          nn.ReLU(),
-          nn.Linear(hid_size, out_size),
-          nn.Softmax(dim=1)
+          nn.Dropout(0.2),
+          nn.Linear(hid_size // 2, out_size)
         )
         
         self.initialize_weights()
