@@ -29,79 +29,72 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
         running_loss = 0.0
         train_preds = []
         train_targets = []
-        
-        for inputs, labels in train_loader:
-            # Training phase
-            model.train()
-            running_loss = 0.0
-            train_preds = []
-            train_targets = []
             
-            for inputs, labels in train_loader:
-                inputs, labels = inputs.to(device), labels.to(device)   
-                
-                optimizer.zero_grad()
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)   
+            
+            optimizer.zero_grad()
+            
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item() * inputs.size(0)
+            _, pred = torch.max(outputs, 1)
+            train_preds.extend(pred.cpu().numpy())
+            train_targets.extend(labels.cpu().numpy())
+            
+        epoch_train_loss = running_loss / len(train_loader.dataset)
+        epoch_train_acc = accuracy_score(train_targets, train_preds)
+        train_losses.append(epoch_train_loss)
+        train_accs.append(epoch_train_acc)
+        
+        # Validation phase
+        model.eval()
+        val_running_loss = 0.0
+        val_preds = []
+        val_targets = []
+        
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
                 
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
                 
-                running_loss += loss.item() * inputs.size(0)
+                val_running_loss += loss.item() * inputs.size(0)
                 _, pred = torch.max(outputs, 1)
-                train_preds.extend(pred.cpu().numpy())
-                train_targets.extend(labels.cpu().numpy())
-            
-            epoch_train_loss = running_loss / len(train_loader.dataset)
-            epoch_train_acc = accuracy_score(train_targets, train_preds)
-            train_losses.append(epoch_train_loss)
-            train_accs.append(epoch_train_acc)
-            
-            # Validation phase
-            model.eval()
-            val_running_loss = 0.0
-            val_preds = []
-            val_targets = []
-            
-            with torch.no_grad():
-                for inputs, labels in val_loader:
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    
-                    outputs = model(inputs)
-                    loss = criterion(outputs, labels)
-                    
-                    val_running_loss += loss.item() * inputs.size(0)
-                    _, pred = torch.max(outputs, 1)
-                    val_preds.extend(pred.cpu().numpy())
-                    val_targets.extend(labels.cpu().numpy())
-            
-            epoch_val_loss = val_running_loss / len(val_loader.dataset)
-            epoch_val_acc = accuracy_score(val_targets, val_preds)
-            val_losses.append(epoch_val_loss)
-            val_accs.append(epoch_val_acc)
-            
-            # Print progress
-            print(f'Epoch {epoch+1}/{num_epochs}, '
-              f'Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.4f}, '
-              f'Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}')
+                val_preds.extend(pred.cpu().numpy())
+                val_targets.extend(labels.cpu().numpy())
+        
+        epoch_val_loss = val_running_loss / len(val_loader.dataset)
+        epoch_val_acc = accuracy_score(val_targets, val_preds)
+        val_losses.append(epoch_val_loss)
+        val_accs.append(epoch_val_acc)
+        
+        # Print progress
+        print(f'Epoch {epoch+1}/{num_epochs}, '
+            f'Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.4f}, '
+            f'Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}')
 
-            # Check early stopping condition
-            if epoch_val_loss < best_val_loss:
-                best_val_loss = epoch_val_loss
-                best_model_state = model.state_dict().copy()
-                no_improve_epochs = 0
-            else:
-                no_improve_epochs += 1
-                
-            if no_improve_epochs >= patience:
-                print(f'Early stopping at epoch {epoch+1}')
-                break
-        
-        # Load best model
-        model.load_state_dict(best_model_state)
-        
-        return model, {"train_losses": train_losses, "val_losses": val_losses, 
-                    "train_accs": train_accs, "val_accs": val_accs}
+        # Check early stopping condition
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            best_model_state = model.state_dict().copy()
+            no_improve_epochs = 0
+        else:
+            no_improve_epochs += 1
+            
+        if no_improve_epochs >= patience:
+            print(f'Early stopping at epoch {epoch+1}')
+            break
+    
+    # Load best model
+    model.load_state_dict(best_model_state)
+    
+    return model, {"train_losses": train_losses, "val_losses": val_losses, 
+                "train_accs": train_accs, "val_accs": val_accs}
 
 def evaluate_model(model, test_loader, criterion, device):
     

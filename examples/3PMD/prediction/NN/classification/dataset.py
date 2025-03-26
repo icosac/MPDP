@@ -25,7 +25,7 @@ class DubinsDataset(Dataset):
             print("Column names not found. Using positional columns instead.")
             # Extract features from the first 5 columns and labels from the 6th column
             self.features = self.data.iloc[:, 0:5].values
-            self.labels = self.data.iloc[:, 6].values  # Changed from 5 to 6
+            self.labels = self.data.iloc[:, 6].values  
         
         # Normalize labels to start from 0
         unique_labels = np.unique(self.labels)
