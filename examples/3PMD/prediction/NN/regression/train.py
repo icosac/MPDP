@@ -1,170 +1,196 @@
 import torch
-import copy
 import numpy as np
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-import pandas as pd
-from sklearn.model_selection import train_test_split
-import os
 import matplotlib.pyplot as plt
-from time import time as clock
-from model import NeuralNet
-from tqdm import tqdm
-from pathlib import Path
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import seaborn as sns
 
-PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent.parent, "datasets")
-DATASET_NAME = "small.csv"
-DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
-SAVE_PATH = os.path.join(PROJECT_PATH, "models")
-SAVE_NAME = os.path.join(SAVE_PATH, "model1.pt")
+# Set random seed for reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
 
-DO_PLOTS = True
+def model_train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100, patience=10):
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# device = "cpu"
-print("Using device:", device)
-
-def angular_loss(y_pred, y_true):
-    """Custom loss function for periodic angles."""
-    sin_loss = nn.MSELoss()(y_pred[:, 0], y_true[:, 0])
-    cos_loss = nn.MSELoss()(y_pred[:, 1], y_true[:, 1])
-    return sin_loss + cos_loss
-
-def model_train(model, X_train, y_train, X_val, y_val):
     model.to(device)
     
-    optimizer = optim.Adam(model.parameters(), lr=0.001)  # Increased learning rate
-    n_epochs = 10  
-    batch_size = 32
-
-    train_losses, val_losses = [], []
-
-    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=False)
-
-    best_loss = float("inf")
-    best_weights = None
-
-    for epoch in range(n_epochs):
+    # Initialize variables for tracking training
+    best_val_loss = float('inf')
+    best_model_state = None
+    no_improve_epochs = 0
+    
+    # Lists to store metrics
+    train_losses = []
+    val_losses = []
+    
+    for epoch in range(num_epochs):
+        # Training phase
         model.train()
-        epoch_loss = 0.0
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{n_epochs}", dynamic_ncols=True)
-
-        for X_batch, y_batch in progress_bar:
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-
+        running_loss = 0.0
+        train_preds = []
+        train_targets = []
+            
+        for inputs, targets in train_loader:
+            inputs, targets = inputs.to(device), targets.to(device)   
+            
             optimizer.zero_grad()
-            y_pred = model(X_batch)
-            loss = angular_loss(y_pred, y_batch)
-
+            
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
-
-            epoch_loss += loss.item() * len(X_batch)
-            progress_bar.set_postfix(loss=loss.item())
-
-        train_loss = epoch_loss / len(X_train)
-        train_losses.append(train_loss)
-
+            
+            running_loss += loss.item() * inputs.size(0)
+            train_preds.extend(outputs.detach().cpu().numpy())
+            train_targets.extend(targets.cpu().numpy())
+            
+        epoch_train_loss = running_loss / len(train_loader.dataset)
+        train_losses.append(epoch_train_loss)
+        
+        # Validation phase
         model.eval()
-        val_loss = 0.0
+        val_running_loss = 0.0
+        val_preds = []
+        val_targets = []
+        
         with torch.no_grad():
-            for X_batch, y_batch in val_loader:
-                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-                y_pred = model(X_batch)
-                loss = angular_loss(y_pred, y_batch)
-                val_loss += loss.item() * len(X_batch)
+            for inputs, targets in val_loader:
+                inputs, targets = inputs.to(device), targets.to(device)
+                
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                
+                val_running_loss += loss.item() * inputs.size(0)
+                val_preds.extend(outputs.cpu().numpy())
+                val_targets.extend(targets.cpu().numpy())
+        
+        epoch_val_loss = val_running_loss / len(val_loader.dataset)
+        val_losses.append(epoch_val_loss)
+        
+        # Convert predictions and targets to numpy arrays for metric calculation
+        train_preds_np = np.array(train_preds)
+        train_targets_np = np.array(train_targets)
+        val_preds_np = np.array(val_preds)
+        val_targets_np = np.array(val_targets)
+        
+        # Calculate MSE for individual components (sin and cos)
+        train_mse_sin = mean_squared_error(train_targets_np[:, 0], train_preds_np[:, 0])
+        train_mse_cos = mean_squared_error(train_targets_np[:, 1], train_preds_np[:, 1])
+        val_mse_sin = mean_squared_error(val_targets_np[:, 0], val_preds_np[:, 0])
+        val_mse_cos = mean_squared_error(val_targets_np[:, 1], val_preds_np[:, 1])
+        
+        # Print progress
+        print(f'Epoch {epoch+1}/{num_epochs}, '
+            f'Train Loss: {epoch_train_loss:.4f}, '
+            f'Train MSE (sin): {train_mse_sin:.4f}, Train MSE (cos): {train_mse_cos:.4f}, '
+            f'Val Loss: {epoch_val_loss:.4f}, '
+            f'Val MSE (sin): {val_mse_sin:.4f}, Val MSE (cos): {val_mse_cos:.4f}')
 
-        val_loss /= len(X_val)
-        val_losses.append(val_loss)
-
-        if val_loss < best_loss:
-            best_loss = val_loss
-            best_weights = copy.deepcopy(model.state_dict())
-
-        # Print accuracy and MAE every 2 epochs
-        if (epoch + 1) % 2 == 0:
-            y_val_pred = evaluate_model(model, X_val)
-            actual_angles = np.arctan2(y_val[:, 0].cpu().numpy(), y_val[:, 1].cpu().numpy())
-            error = np.abs(actual_angles - y_val_pred)
-            mae = np.mean(error)  # Mean Absolute Error
-            print(f"Epoch {epoch+1}: Mean Absolute Error: {mae:.4f}")
-
-            save_path_epoch = os.path.join(SAVE_PATH, f"model_epoch_{epoch+1}.pt")
-            torch.save(model.state_dict(), save_path_epoch)
-            print(f"Model saved at {save_path_epoch}")
-
-    model.load_state_dict(best_weights)
-
-    if DO_PLOTS:
-        plt.figure(figsize=(10, 5))
-        plt.plot(train_losses, label="Train Loss")
-        plt.plot(val_losses, label="Validation Loss")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.title("Training vs Validation Loss")
-        plt.legend()
-        # plt.show()
-        plt.savefig(f"regression{n_epochs}-{batch_size}.png")
-
-    return best_loss
-
-def evaluate_model(model, X_test):
-    model.eval()
-    with torch.no_grad():
-        X_test = X_test.to(device)
-        y_pred = model(X_test).cpu().numpy()
-    return np.arctan2(y_pred[:, 0], y_pred[:, 1])  # Convert (sin, cos) back to angle
-
-def main():
-    assert os.path.exists(DATASET_PATH), f"Dataset {DATASET_PATH} does not exist"
-    os.makedirs(SAVE_PATH, exist_ok=True)
-
-    time_start = clock()
+        # Check early stopping condition
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            best_model_state = model.state_dict().copy()
+            no_improve_epochs = 0
+        else:
+            no_improve_epochs += 1
+            
+        if no_improve_epochs >= patience:
+            print(f'Early stopping at epoch {epoch+1}')
+            break
     
-    data = pd.read_csv(DATASET_PATH, sep='\s+')
+    # Load best model
+    model.load_state_dict(best_model_state)
+    
+    return model, {"train_losses": train_losses, "val_losses": val_losses}
 
-    features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
-    target = 'th_m'
-
-    # Transform angles into sine and cosine representations
-    for col in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']:
-        data[f'sin_{col}'] = np.sin(data[col])
-        data[f'cos_{col}'] = np.cos(data[col])
-
-    data['sin_th_m'] = np.sin(data['th_m'])
-    data['cos_th_m'] = np.cos(data['th_m'])
-
-    feature_columns = ['kmax'] + [f'sin_{col}' for col in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']] + [f'cos_{col}' for col in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']]
-    X = data[feature_columns].values
-    y = data[['sin_th_m', 'cos_th_m']].values
-
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=True)
-
-    X_train = torch.tensor(X_train, dtype=torch.float32)
-    y_train = torch.tensor(y_train, dtype=torch.float32)
-    X_test = torch.tensor(X_test, dtype=torch.float32)
-    y_test = torch.tensor(y_test, dtype=torch.float32)
-
-    model = NeuralNet(in_size=len(feature_columns))
-    model_train(model, X_train, y_train, X_test, y_test)
-
-    y_pred = evaluate_model(model, X_test)
-
-    actual_angles = np.arctan2(y_test[:, 0], y_test[:, 1])  # Convert ground truth to angle
-    error = np.abs(actual_angles - y_pred)
-    # error = np.minimum(error, 2 * np.pi - error)  # Handle circular distance
-
-    print("Mean Absolute Error (Angular):", np.average(error))
-
-    if SAVE_NAME:
-        torch.save(model.state_dict(), SAVE_NAME)
-
-if __name__ == "__main__":
-    main()
+def evaluate_model(model, test_loader, criterion, device):
+    
+    model.eval()
+    running_loss = 0.0
+    all_preds = []
+    all_targets = []
+    
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            
+            running_loss += loss.item() * inputs.size(0)
+            all_preds.extend(outputs.cpu().numpy())
+            all_targets.extend(targets.cpu().numpy())
+            
+    test_loss = running_loss / len(test_loader.dataset)
+    
+    # Convert to numpy arrays
+    all_preds = np.array(all_preds)
+    all_targets = np.array(all_targets)
+    
+    # Calculate metrics
+    mse_sin = mean_squared_error(all_targets[:, 0], all_preds[:, 0])
+    mse_cos = mean_squared_error(all_targets[:, 1], all_preds[:, 1])
+    mae_sin = mean_absolute_error(all_targets[:, 0], all_preds[:, 0])
+    mae_cos = mean_absolute_error(all_targets[:, 1], all_preds[:, 1])
+    r2_sin = r2_score(all_targets[:, 0], all_preds[:, 0])
+    r2_cos = r2_score(all_targets[:, 1], all_preds[:, 1])
+    
+    print(f'Test Loss: {test_loss:.4f}')
+    print(f'MSE - Sin: {mse_sin:.4f}, Cos: {mse_cos:.4f}')
+    print(f'MAE - Sin: {mae_sin:.4f}, Cos: {mae_cos:.4f}')
+    print(f'R² Score - Sin: {r2_sin:.4f}, Cos: {r2_cos:.4f}')
+    
+    # Calculate the angular error (angle between predicted and true vectors)
+    # Convert sin/cos predictions back to angles
+    true_angles = np.arctan2(all_targets[:, 0], all_targets[:, 1])
+    pred_angles = np.arctan2(all_preds[:, 0], all_preds[:, 1])
+    
+    # Calculate error in radians, accounting for periodicity
+    angle_errors = np.abs(np.arctan2(
+        np.sin(true_angles - pred_angles),
+        np.cos(true_angles - pred_angles)
+    ))
+    
+    mean_angle_error = np.mean(angle_errors)
+    median_angle_error = np.median(angle_errors)
+    
+    print(f'Mean Angular Error: {mean_angle_error:.4f} radians ({np.degrees(mean_angle_error):.2f} degrees)')
+    print(f'Median Angular Error: {median_angle_error:.4f} radians ({np.degrees(median_angle_error):.2f} degrees)')
+    
+    # Plot actual vs predicted values
+    plt.figure(figsize=(12, 5))
+    
+    # Plot for sine
+    plt.subplot(1, 2, 1)
+    plt.scatter(all_targets[:, 0], all_preds[:, 0], alpha=0.5)
+    plt.plot([-1, 1], [-1, 1], 'r--')
+    plt.title('True vs Predicted Sin(θ)')
+    plt.xlabel('True Sin(θ)')
+    plt.ylabel('Predicted Sin(θ)')
+    plt.grid(True)
+    
+    # Plot for cosine
+    plt.subplot(1, 2, 2)
+    plt.scatter(all_targets[:, 1], all_preds[:, 1], alpha=0.5)
+    plt.plot([-1, 1], [-1, 1], 'r--')
+    plt.title('True vs Predicted Cos(θ)')
+    plt.xlabel('True Cos(θ)')
+    plt.ylabel('Predicted Cos(θ)')
+    plt.grid(True)
+    
+    plt.tight_layout()
+    plt.savefig('regression_predictions.png')
+    
+    # Plot histogram of angular errors
+    plt.figure(figsize=(10, 6))
+    plt.hist(np.degrees(angle_errors), bins=50, alpha=0.7)
+    plt.axvline(np.degrees(mean_angle_error), color='r', linestyle='--', 
+                label=f'Mean Error: {np.degrees(mean_angle_error):.2f}°')
+    plt.axvline(np.degrees(median_angle_error), color='g', linestyle='--', 
+                label=f'Median Error: {np.degrees(median_angle_error):.2f}°')
+    plt.title('Histogram of Angular Errors')
+    plt.xlabel('Error (degrees)')
+    plt.ylabel('Frequency')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('angular_errors.png')
+    
+    return test_loss, all_preds, all_targets
