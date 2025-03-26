@@ -165,6 +165,27 @@ public:
     }
 };
 
+// Softmax function for normalizing output
+std::vector<float> softmax(const std::vector<float>& input) {
+    std::vector<float> result(input.size());
+    float max_val = *std::max_element(input.begin(), input.end());
+    float sum = 0.0f;
+    
+    // Compute exp(x_i - max_val) for numerical stability
+    for (size_t i = 0; i < input.size(); i++) {
+        result[i] = std::exp(input[i] - max_val);
+        sum += result[i];
+    }
+    
+    // Normalize
+    for (size_t i = 0; i < input.size(); i++) {
+        result[i] /= sum;
+    }
+    
+    return result;
+}
+
+
 int main(int argc, char* argv[]) {
     try {
         // Check if model path is provided
@@ -189,6 +210,9 @@ int main(int argc, char* argv[]) {
         std::cout << "Running inference..." << std::endl;
         std::vector<float> output = model.run(input_data);
         
+        // Normalize output using softmax
+        output = softmax(output);
+
         // Print results
         std::cout << "Inference results:" << std::endl;
         for (size_t i = 0; i < output.size(); ++i) {
