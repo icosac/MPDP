@@ -478,3 +478,4 @@ fabric.properties
 *.pt
 *.deb
 *.libsvm
+*.onnx

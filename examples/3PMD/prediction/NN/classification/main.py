@@ -1,4 +1,5 @@
 import torch
+import torch.onnx
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
@@ -8,7 +9,8 @@ from dataset import DubinsDataset
 import numpy as np
 from train import model_train, evaluate_model
 
-DO_TRAINING = True
+DO_TRAINING = False
+EXPORT_TO_ONNX = True
 
 #################################################
 ################ PLOT FUNCS #####################
@@ -111,12 +113,52 @@ class ModelInference:
             return model_output[0], original_labels[0]
         else:
             return model_output, original_labels
+    
+
+
+#################################################
+################  ONNX EXPORT  ##################
+#################################################
+
+def export_to_onnx(model, save_path, input_size):
+    """
+    Export model to ONNX format, handling device issues correctly
+    
+    Args:
+        model: PyTorch model to export
+        save_path: Path where the ONNX model will be saved
+        input_size: Size of the input tensor (number of features)
+    """
+    # Create a dummy input on the same device as the model
+    device = next(model.parameters()).device
+    dummy_input = torch.randn(1, input_size, device=device)
+    
+    # Make sure model is in evaluation mode
+    model.eval()
+    
+    # Export the model
+    torch.onnx.export(
+        model,                          # model being run
+        dummy_input,                    # model input (or a tuple for multiple inputs)
+        save_path,                      # where to save the model
+        export_params=True,             # store the trained parameter weights inside the model file
+        opset_version=12,               # the ONNX version to export the model to
+        do_constant_folding=True,       # whether to execute constant folding for optimization
+        input_names=['input'],          # the model's input names
+        output_names=['output'],        # the model's output names
+        dynamic_axes={
+            'input': {0: 'batch_size'},  # variable length axes
+            'output': {0: 'batch_size'}
+        }
+    )
+    print(f"Model successfully exported to ONNX at {save_path}")
+    
 
 #################################################
 ################ MAIN FUNCTION ##################
 #################################################
 
-def main(data_path, model_save_path='model.pt'):
+def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/classification/models/model.pt'):
     
     try:
         with open(data_path, 'r') as f:
@@ -192,6 +234,9 @@ def main(data_path, model_save_path='model.pt'):
     print(f"Example features: {example_features}")
     # print(f"Predicted class (model output): {predicted_class}")
     print(f"Original class ID (in your data): {original_class}")
+    
+    if EXPORT_TO_ONNX:
+        export_to_onnx(model, '/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/classification/onnx_models/model.onnx', input_size)
     
     
 if __name__ == "__main__":
