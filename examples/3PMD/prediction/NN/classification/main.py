@@ -112,8 +112,6 @@ class ModelInference:
         else:
             return model_output, original_labels
 
-
-
 #################################################
 ################ MAIN FUNCTION ##################
 #################################################
@@ -186,13 +184,13 @@ def main(data_path, model_save_path='model.pt'):
     label_mapping, inverse_mapping = dataset.get_label_mapping()
     inference = ModelInference(model_save_path, scaler, input_size, hidden_size, num_classes, device, inverse_mapping)
     
-    # Example features (replace with actual values from your dataset)
-    example_features = np.array([2.3562, 2.3562, 2.3562, 1.5708, 3.6297])
+    # Class of this sample is 12
+    example_features = np.array([1, 2.3562, 2.3562, 1.5708, 2.3562])
     
     # Predict
     predicted_class, original_class = inference.predict(example_features)
     print(f"Example features: {example_features}")
-    print(f"Predicted class (model output): {predicted_class}")
+    # print(f"Predicted class (model output): {predicted_class}")
     print(f"Original class ID (in your data): {original_class}")
     
     
