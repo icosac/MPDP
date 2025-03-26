@@ -130,14 +130,14 @@ def main(data_path, model_save_path='model_regression.pt'):
     )
     
     # Create data loaders
-    batch_size = 32
+    batch_size = 16
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
     
     # Initialize model
-    input_size = 5  # Number of features
-    hidden_size = 64
+    input_size = 9  # Number of features
+    hidden_size = 256
     output_size = 2  # sin and cos components
     
     model = NeuralNet(input_size, hidden_size, output_size)
@@ -169,7 +169,21 @@ def main(data_path, model_save_path='model_regression.pt'):
     inference = ModelInference(model_save_path, scaler, input_size, hidden_size, device)
     
     # Example features for prediction
-    example_features = np.array([1, 2.3562, 2.3562, 1.5708, 2.3562])
+    th_i = 2.3562
+    th_f = 2.3562
+    alpha_m = 1.5708
+    alpha_f = 2.3562
+    
+    cos_th_i = np.cos(th_i)
+    sin_th_i = np.sin(th_i)
+    cos_th_f = np.cos(th_f)
+    sin_th_f = np.sin(th_f)
+    cos_alpha_m = np.cos(alpha_m)
+    sin_alpha_m = np.sin(alpha_m)
+    cos_alpha_f = np.cos(alpha_f)
+    sin_alpha_f = np.sin(alpha_f)
+    
+    example_features = np.array([1, sin_th_i, cos_th_i, sin_th_f, cos_th_f, sin_alpha_m, cos_alpha_m, sin_alpha_f, cos_alpha_f])    
     
     # Predict
     sin_val, cos_val, angle_rad, angle_deg = inference.predict(example_features)

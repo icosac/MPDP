@@ -9,7 +9,7 @@ from dataset import DubinsDataset
 import numpy as np
 from train import model_train, evaluate_model
 
-DO_TRAINING = False
+DO_TRAINING = True
 EXPORT_TO_ONNX = True
 
 #################################################
@@ -120,7 +120,19 @@ class ModelInference:
 ################  ONNX EXPORT  ##################
 #################################################
 
-def export_to_onnx(model, save_path, input_size):
+class ScaledNeuralNet(nn.Module):
+    
+    def __init__(self, model, scaler, device='cpu'):
+        super(ScaledNeuralNet, self).__init__()
+        self.model = model
+        self.register_buffer('mean', torch.tensor(scaler.mean_, dtype=torch.float32).to(device))
+        self.register_buffer('scale', torch.tensor(scaler.scale_, dtype=torch.float32).to(device))
+        
+    def forward(self, x):
+        x = (x - self.mean) / self.scale
+        return self.model(x)
+
+def export_to_onnx(model, save_path, input_size, scaler):
     """
     Export model to ONNX format, handling device issues correctly
     
@@ -133,12 +145,14 @@ def export_to_onnx(model, save_path, input_size):
     device = next(model.parameters()).device
     dummy_input = torch.randn(1, input_size, device=device)
     
+    scaled_model = ScaledNeuralNet(model, scaler, device) 
+    
     # Make sure model is in evaluation mode
-    model.eval()
+    scaled_model.eval()
     
     # Export the model
     torch.onnx.export(
-        model,                          # model being run
+        scaled_model,                          # model being run
         dummy_input,                    # model input (or a tuple for multiple inputs)
         save_path,                      # where to save the model
         export_params=True,             # store the trained parameter weights inside the model file
@@ -194,7 +208,7 @@ def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/pre
     
     # Initialize model
     input_size = 5  # Number of features
-    hidden_size = 64
+    hidden_size = 128
     num_classes = dataset.num_classes
     
     model = NeuralNet(input_size, hidden_size, num_classes)
@@ -236,7 +250,7 @@ def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/pre
     print(f"Original class ID (in your data): {original_class}")
     
     if EXPORT_TO_ONNX:
-        export_to_onnx(model, '/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/classification/onnx_models/model.onnx', input_size)
+        export_to_onnx(model, '/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/classification/onnx_models/model.onnx', input_size, dataset.get_scaler())
     
     
 if __name__ == "__main__":

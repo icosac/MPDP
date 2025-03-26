@@ -19,7 +19,23 @@ class DubinsDataset(Dataset):
         # Check if columns exist, otherwise use positional columns
         if all(col in self.data.columns for col in ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f', 'th_m']):
             # Extract features and target using column names
-            self.features = self.data[['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']].values
+            th_is = self.data['theta_i'].values
+            th_fs = self.data['theta_f'].values
+            alphas_m = self.data['alpha_m'].values
+            alphas_f = self.data['alpha_f'].values
+            
+            sin_th_is = np.sin(th_is)
+            cos_th_is = np.cos(th_is)
+            sin_th_fs = np.sin(th_fs)
+            cos_th_fs = np.cos(th_fs)
+            sin_alphas_m = np.sin(alphas_m)
+            cos_alphas_m = np.cos(alphas_m)
+            sin_alphas_f = np.sin(alphas_f)
+            cos_alphas_f = np.cos(alphas_f)
+            
+            self.features = np.column_stack((self.data['kmax'].values, sin_th_is, cos_th_is, sin_th_fs, cos_th_fs,
+                                                sin_alphas_m, cos_alphas_m, sin_alphas_f, cos_alphas_f))
+            # self.features = self.data[['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']].values
             # Extract th_m and convert to sin and cos
             th_m_values = self.data['th_m'].values
             self.sin_th_m = np.sin(th_m_values)
