@@ -1,265 +1,149 @@
 import torch
-import copy
 import numpy as np
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-import os
 import matplotlib.pyplot as plt
-from time import time as clock
-from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score
-from model import NeuralNet
-from tqdm import tqdm  # Progress bar
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+import seaborn as sns
 
-from pathlib import Path
-import sys
+# Set random seed for reproducibility
+torch.manual_seed(42)
+np.random.seed(42)
 
-np.set_printoptions(threshold=sys.maxsize)
+def model_train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100, patience=10):
 
-PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-
-DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent.parent, "datasets")
-DATASET_NAME = "small.csv"
-DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
-SAVE_PATH = os.path.join(PROJECT_PATH, "models")
-SAVE_NAME = os.path.join(SAVE_PATH, "model.pt")
-
-DO_PLOTS = False
-
-# Set device to GPU if available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
-
-def calculate_top_k_accuracy(y_pred, y_true, k=5):
-    """
-    Calculate the top-k accuracy for predictions.
-    """
-    _, top_k_preds = torch.topk(y_pred, k, dim=1)
-    correct = (top_k_preds == y_true.unsqueeze(1)).sum().item()
-    return correct
-
-def model_train(model, X_train, y_train, X_val, y_val):
     model.to(device)
-
-    # Use CrossEntropyLoss for training
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=0.00001)
-
-    n_epochs = 20
-    batch_size = 8
-
-    train_losses, val_losses = [], []
-    train_accuracies, val_accuracies = [], []
-
-    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=False)
-
-    best_acc = -np.inf
-    best_weights = None
-
-    for epoch in range(n_epochs):
+    
+    # Initialize variables for tracking training
+    best_val_loss = float('inf')
+    best_model_state = None
+    no_improve_epochs = 0
+    
+    # Lists to store metrics
+    train_losses = []
+    val_losses = []
+    train_accs = []
+    val_accs = []
+    
+    for epoch in range(num_epochs):
+        # Training phase
         model.train()
-        epoch_loss = 0.0
-        correct_top1 = 0
-        correct_top5 = 0
-        total = 0
-
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{n_epochs}", dynamic_ncols=True)
-
-        for X_batch, y_batch in progress_bar:
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-
-            # Convert one-hot to class indices
-            y_batch = torch.argmax(y_batch, dim=1)
-
+        running_loss = 0.0
+        train_preds = []
+        train_targets = []
+            
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)   
+            
             optimizer.zero_grad()
-            y_pred = model(X_batch)
-            loss = loss_fn(y_pred, y_batch)  # Use CrossEntropyLoss
+            
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-
-            epoch_loss += loss.item() * X_batch.size(0)
-
-            # Compute top-1 and top-5 accuracy
-            _, top1_preds = torch.max(y_pred, dim=1)
-            correct_top1 += (top1_preds == y_batch).sum().item()
-            correct_top5 += calculate_top_k_accuracy(y_pred, y_batch, k=5)
-            total += y_batch.size(0)
-
-            progress_bar.set_postfix(loss=loss.item())
-
-        train_losses.append(epoch_loss / total)
-        train_accuracies.append(correct_top1 / total)
-
+            
+            running_loss += loss.item() * inputs.size(0)
+            _, pred = torch.max(outputs, 1)
+            train_preds.extend(pred.cpu().numpy())
+            train_targets.extend(labels.cpu().numpy())
+            
+        epoch_train_loss = running_loss / len(train_loader.dataset)
+        epoch_train_acc = accuracy_score(train_targets, train_preds)
+        train_losses.append(epoch_train_loss)
+        train_accs.append(epoch_train_acc)
+        
         # Validation phase
         model.eval()
-        val_loss = 0.0
-        correct_top1 = 0
-        correct_top5 = 0
-        total = 0
-
+        val_running_loss = 0.0
+        val_preds = []
+        val_targets = []
+        
         with torch.no_grad():
-            for X_batch, y_batch in val_loader:
-                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-                y_batch = torch.argmax(y_batch, dim=1)  # Convert one-hot to class indices
-
-                y_pred = model(X_batch)
-                loss = loss_fn(y_pred, y_batch)  # Use CrossEntropyLoss
-                val_loss += loss.item() * X_batch.size(0)
-
-                _, top1_preds = torch.max(y_pred, dim=1)
-                correct_top1 += (top1_preds == y_batch).sum().item()
-                correct_top5 += calculate_top_k_accuracy(y_pred, y_batch, k=5)
-                total += y_batch.size(0)
-
-        val_losses.append(val_loss / total)
-        val_accuracies.append(correct_top1 / total)
-
-        # Save best model
-        if val_accuracies[-1] > best_acc:
-            best_acc = val_accuracies[-1]
-            best_weights = copy.deepcopy(model.state_dict())
-
-    # Restore best model
-    model.load_state_dict(best_weights)
-
-    # Plotting
-    if DO_PLOTS:
-        plt.figure(figsize=(12, 6))
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                
+                val_running_loss += loss.item() * inputs.size(0)
+                _, pred = torch.max(outputs, 1)
+                val_preds.extend(pred.cpu().numpy())
+                val_targets.extend(labels.cpu().numpy())
         
-        plt.subplot(1, 2, 1)
-        plt.plot(train_losses, label="Train Loss")
-        plt.plot(val_losses, label="Validation Loss")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.legend()
+        epoch_val_loss = val_running_loss / len(val_loader.dataset)
+        epoch_val_acc = accuracy_score(val_targets, val_preds)
+        val_losses.append(epoch_val_loss)
+        val_accs.append(epoch_val_acc)
         
-        plt.subplot(1, 2, 2)
-        plt.plot(train_accuracies, label="Train Top-1 Accuracy")
-        plt.plot(val_accuracies, label="Validation Top-1 Accuracy")
-        plt.xlabel("Epoch")
-        plt.ylabel("Accuracy")
-        plt.legend()
-        
-        plt.show()
+        # Print progress
+        print(f'Epoch {epoch+1}/{num_epochs}, '
+            f'Train Loss: {epoch_train_loss:.4f}, Train Acc: {epoch_train_acc:.4f}, '
+            f'Val Loss: {epoch_val_loss:.4f}, Val Acc: {epoch_val_acc:.4f}')
 
-    return best_acc
+        # Check early stopping condition
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            best_model_state = model.state_dict().copy()
+            no_improve_epochs = 0
+        else:
+            no_improve_epochs += 1
+            
+        if no_improve_epochs >= patience:
+            print(f'Early stopping at epoch {epoch+1}')
+            break
+    
+    # Load best model
+    model.load_state_dict(best_model_state)
+    
+    return model, {"train_losses": train_losses, "val_losses": val_losses, 
+                "train_accs": train_accs, "val_accs": val_accs}
 
-def adjust_probabilities(y_pred, max_prob=0.5):
-    """
-    Adjust the probabilities to ensure the top class has a maximum probability of `max_prob`,
-    and redistribute the remaining probabilities among other classes.
-    """
-    # Sort probabilities and get indices
-    sorted_probs, sorted_indices = torch.sort(y_pred, descending=True, dim=1)
-
-    # Scale the top probability to `max_prob`
-    adjusted_probs = sorted_probs.clone()
-    adjusted_probs[:, 0] = max_prob
-
-    # Redistribute the remaining probability mass
-    remaining_mass = 1.0 - max_prob
-    adjusted_probs[:, 1:] *= remaining_mass / adjusted_probs[:, 1:].sum(dim=1, keepdim=True)
-
-    # Reconstruct the adjusted probabilities in the original order
-    final_probs = torch.zeros_like(y_pred)
-    for i in range(y_pred.size(0)):
-        final_probs[i, sorted_indices[i]] = adjusted_probs[i]
-
-    return final_probs
-
-def evaluate_model(model, X_test, y_test):
+def evaluate_model(model, test_loader, criterion, device):
+    
     model.eval()
+    running_loss = 0.0
+    all_preds = []
+    all_targets = []
+    
     with torch.no_grad():
-        X_test = X_test.to(device)
-        y_test = torch.argmax(y_test, dim=1).to(device)
+        for inputs, labels in test_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            
+            running_loss += loss.item() * inputs.size(0)
+            _, pred = torch.max(outputs, 1)
+            all_preds.extend(pred.cpu().numpy())
+            all_targets.extend(labels.cpu().numpy())
+            
+    test_loss = running_loss / len(test_loader.dataset)
+    test_acc = accuracy_score(all_targets, all_preds)
+    
+    print(f'Test Loss: {test_loss:.4f}, Test Accuracy: {test_acc:.4f}')
+    
+    # Generate classification report
+    print("\nClassification Report:")
+    print(classification_report(all_targets, all_preds))
+    
+    # Get datasets object to access label mapping if needed
+    dataset = test_loader.dataset
+    # If this is a Subset (from random_split), get the original dataset
+    while hasattr(dataset, 'dataset'):
+        dataset = dataset.dataset
+    
+    # Print mapping from model indices to original class labels if available
+    if hasattr(dataset, 'inverse_mapping'):
+        print("\nClass Index to Original Label Mapping:")
+        for model_idx, original_label in dataset.inverse_mapping.items():
+            print(f"  Model class {model_idx} → Original label {original_label}")
+    
+    # Plot confusion matrix
+    cm = confusion_matrix(all_targets, all_preds)
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title('Confusion Matrix')
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.savefig('confusion_matrix.png')
+    
+    return test_acc, all_preds, all_targets
 
-        # Get raw predictions
-        y_pred = model(X_test)
-
-        # Adjust probabilities
-        adjusted_probs = adjust_probabilities(y_pred)
-
-        # Get top-5 predictions
-        _, top_k_preds = torch.topk(adjusted_probs, 5, dim=1)
-
-    return top_k_preds.cpu().numpy(), adjusted_probs.cpu().numpy(), y_test.cpu().numpy()
-
-def main():
-    assert os.path.exists(DATASET_PATH), f"Dataset {DATASET_PATH} does not exist"
-    if SAVE_NAME:
-        os.makedirs(SAVE_PATH, exist_ok=True)
-
-    time_start = clock()
-
-    data = pd.read_csv(DATASET_PATH, sep='\s+')
-    features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
-    target = 'id_man_comb'
-
-    for col in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']:
-        data[f'sin_{col}'] = np.sin(data[col])
-        data[f'cos_{col}'] = np.cos(data[col])
-
-    feature_columns = ['kmax'] + [f'sin_{col}' for col in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']] + [f'cos_{col}' for col in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']]
-    features = feature_columns
-    X = data[features].values
-    print("X shape:", X.shape)
-
-    # X = data[features].values
-    y = data[target].values
-
-    # Encoding the target
-    encoder = OneHotEncoder(sparse_output=False)  # Use dense array output
-    y = encoder.fit_transform(y.reshape(-1, 1))  # Convert y to numpy and reshape
-    print(y.shape)
-
-    X = torch.tensor(X, dtype=torch.float32)
-    y = torch.tensor(y, dtype=torch.float32)
-
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Save X test and y test in one csv with header features and target 
-    test_data = pd.DataFrame(X_test.numpy(), columns=features)
-    test_data[target] = encoder.inverse_transform(y_test)
-    test_data.to_csv(os.path.join(SAVE_PATH, "test_data.csv"), index=False, sep=' ')
-
-    # Train model
-    out_size = 1 if len(y_train.shape) == 1 else y_train.shape[1]
-    model = NeuralNet(in_size=X_train.shape[1], out_size=out_size)
-    model_train(model, X_train, y_train, X_test, y_test)
-
-    # Evaluate the model on the test set
-    top_k_preds, adjusted_probs, y_test_np = evaluate_model(model, X_test, y_test)
-
-    # Print top-5 predictions and adjusted probabilities for the first few samples
-    print("Top-5 predictions:", top_k_preds[:5])
-    print("Adjusted probabilities:", adjusted_probs[:5])
-
-    # Convert true labels to numpy arrays for compatibility with sklearn
-    y_test_np = y_test_np.astype(int).flatten()
-
-    # Use top-1 predictions for metrics
-    y_pred_np = top_k_preds[:, 0]
-    print("Accuracy:", accuracy_score(y_test_np, y_pred_np))
-    print("Recall:", recall_score(y_test_np, y_pred_np, average='weighted'))
-    print("F1 Score:", f1_score(y_test_np, y_pred_np, average='weighted'))
-
-    time_end = clock()  
-
-    if SAVE_NAME != "":
-        # Saving model for Python3
-        torch.save(model.state_dict(), SAVE_NAME)
-        # Saving model to torchscript for C++
-        model.to(device)
-        model.eval()
-        example = torch.rand(1, len(features)).to(device)
-        traced_script_module = torch.jit.trace(model, example)
-        traced_script_module.save(SAVE_NAME.replace(".pt", "_cpp.pt"))
-
-
-if __name__ == "__main__":
-    main()
