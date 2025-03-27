@@ -41,15 +41,31 @@ const std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3D
 
 int main3PMDBruteForce();
 int main3PMDBruteForceWithPlot();
-void main3PDP();
+
+double main3PDP(Configuration2& pi, Configuration2& pm, Configuration2& pf, K_T kmax);
+void main3PDPConfigurations();
+void main3PDPCircle();
+
+void retesting_man_19(std::string filename);
 
 void compute3Pman(std::string ThreePman="");
 
 void generateDataset3PDPCircle(int argc, char** argv);
+void generateDataset3PDPCircleWithAllLabels(int argc, char** argv);
 void generateDataset3PDPRect(int argc, char** argv);
 
 void generateDataset3PDPCircleTest(int argc, char** argv);
 void generateDataset3PDPRectTest(int argc, char** argv);
 
+std::vector<double>
+find_best_circle(
+	Configuration2& pi,
+	Configuration2& pm,
+	Configuration2& pf,
+	std::vector<bool> fixedAngles,
+	std::vector<double> curveParam,
+	int discr,
+	int refinements
+);
 
 #endif //INC_3PMD_HH

@@ -18,15 +18,15 @@ def predict_entry(model, X_test, N=3):
     model.eval()
     with torch.no_grad():
         X_test = X_test.to(device)
-        y_prob, y_pred = torch.topk(model(X_test), N, dim=0)
+        y_prob, y_pred = torch.topk(torch.softmax(model(X_test), dim=0), N, dim=0)
     return y_pred.cpu().numpy(), y_prob.cpu().numpy()
 
 def predict_batch(model, X_test, N):
     model.eval()
     with torch.no_grad():
         X_test = X_test.to(device)
-        y_prob, y_pred = torch.topk(model(X_test), N, dim=1)
-        print(y_prob.sort(dim=1, descending=True))
+        y_prob, y_pred = torch.topk(torch.softmax(model(X_test), dim=1), N, dim=1)
+        print(y_prob)
     return y_pred.cpu().numpy(), y_prob.cpu().numpy()
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('--input', type=str, help='Input data for prediction', required=True)
     args = parser.parse_args()
     
-    model = NeuralNet(in_size=9)  
+    model = NeuralNet()  
     model.load_state_dict(torch.load(SAVE_NAME, map_location=device, weights_only=True))
     model.to(device)
 
@@ -43,8 +43,7 @@ if __name__ == "__main__":
         import pandas as pd
         data = pd.read_csv(args.input, sep='\s+')
         
-        # features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
-        features = ['kmax', 'sin_theta_i', 'sin_theta_f', 'sin_alpha_m', 'sin_alpha_f', 'cos_theta_i' , 'cos_theta_f' , 'cos_alpha_m' , 'cos_alpha_f']
+        features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
         target = 'id_man_comb'
 
         X = data[features].values

@@ -16,7 +16,7 @@
 #include <cmath>
 #include <vector>
 #include <sstream>
-#include <omp.h>
+// #include <omp.h>
 
 // Library includes
 #include <utils.hh>

@@ -1,4 +1,5 @@
-docs/
+*docs/
+*.pt
 cmake-*/
 *.asy
 *.csv 
@@ -27,6 +28,9 @@ tabs/
 file*.txt
 inc/
 tmp.txt
+
+*.pdf
+*.png
 
 
 ## Ignore Visual Studio temporary files, build results, and
@@ -478,3 +482,6 @@ fabric.properties
 *.pt
 *.deb
 *.libsvm
+
+old/
+3P_polynomial.cc
