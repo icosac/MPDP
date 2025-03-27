@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import seaborn as sns
+from tqdm import tqdm  # Add tqdm import
 
 # Set random seed for reproducibility
 torch.manual_seed(42)
@@ -30,7 +31,8 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
         train_preds = []
         train_targets = []
             
-        for inputs, labels in train_loader:
+        # Add tqdm progress bar for training loop
+        for inputs, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Training", leave=False):
             inputs, labels = inputs.to(device), labels.to(device)   
             
             optimizer.zero_grad()
@@ -56,8 +58,9 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
         val_preds = []
         val_targets = []
         
+        # Add tqdm progress bar for validation loop
         with torch.no_grad():
-            for inputs, labels in val_loader:
+            for inputs, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Validation", leave=False):
                 inputs, labels = inputs.to(device), labels.to(device)
                 
                 outputs = model(inputs)
@@ -89,7 +92,7 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
         if no_improve_epochs >= patience:
             print(f'Early stopping at epoch {epoch+1}')
             break
-    
+        
     # Load best model
     model.load_state_dict(best_model_state)
     

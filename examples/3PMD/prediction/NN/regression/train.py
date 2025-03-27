@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import seaborn as sns
+from tqdm import tqdm  # Add tqdm import
 
 # Set random seed for reproducibility
 torch.manual_seed(42)
@@ -27,8 +28,9 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
         running_loss = 0.0
         train_preds = []
         train_targets = []
-            
-        for inputs, targets in train_loader:
+        
+        # Add tqdm progress bar for training loop
+        for inputs, targets in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Training", leave=False):
             inputs, targets = inputs.to(device), targets.to(device)   
             
             optimizer.zero_grad()
@@ -51,8 +53,9 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
         val_preds = []
         val_targets = []
         
+        # Add tqdm progress bar for validation loop
         with torch.no_grad():
-            for inputs, targets in val_loader:
+            for inputs, targets in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Validation", leave=False):
                 inputs, targets = inputs.to(device), targets.to(device)
                 
                 outputs = model(inputs)

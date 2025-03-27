@@ -28,7 +28,7 @@ DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets")
 MODELS_PATH    = os.path.join(PROJECT_PATH, "models")
 PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
 
-DATASET_NAME   = os.path.join(DATASET_PATH, "big_smaller_new.csv")
+DATASET_NAME   = os.path.join(DATASET_PATH, "old/small.csv")
 MODEL_NAME     = os.path.join(MODELS_PATH, 'model.pt')
 ONNX_NAME      = os.path.join(MODELS_PATH, 'model.onnx')
 
