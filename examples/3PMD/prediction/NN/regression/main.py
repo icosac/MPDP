@@ -8,7 +8,33 @@ from model import NeuralNet
 from dataset import DubinsDataset
 from train import model_train, evaluate_model
 
-DO_TRAINING = True
+import os
+from pathlib import Path
+
+BATCH_SIZE  = 16
+EPOCHS      = 150
+PATIENCE    = 10
+LEARN_RATE  = 0.0001
+WEIGHT_DEC  = 1e-5
+HIDDEN_SIZE = 128
+
+DO_TRAINING    = True
+USE_ONLY_CPU   = False
+EXPORT_TO_ONNX = True
+
+THIS_FILE_PATH = os.path.abspath(__file__)
+PROJECT_PATH   = Path(THIS_FILE_PATH).parent
+DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets/old")
+MODELS_PATH    = os.path.join(PROJECT_PATH, "models")
+PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
+
+# DATASET_NAME   = os.path.join(DATASET_PATH, "big_smaller_new.csv")
+DATASET_NAME   = os.path.join(DATASET_PATH, "small.csv")
+MODEL_NAME     = os.path.join(MODELS_PATH, 'model.pt')
+ONNX_NAME      = os.path.join(MODELS_PATH, 'model.onnx')
+
+os.makedirs(MODELS_PATH, exist_ok=True)
+os.makedirs(PLOT_PATH,   exist_ok=True)
 
 #################################################
 ################ PLOT FUNCS #####################
@@ -32,7 +58,7 @@ def plot_training_results(history):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig('training_history.png')
+    plt.savefig(os.path.join(PLOT_PATH, 'training_history.png'))
 
 #################################################
 ################ INFERENCE CLASS ################
@@ -101,7 +127,7 @@ class ModelInference:
 ################ MAIN FUNCTION ##################
 #################################################
 
-def main(data_path, model_save_path='model_regression.pt'):
+def main(data_path, model_save_path=MODEL_NAME):
     
     try:
         with open(data_path, 'r') as f:
@@ -113,7 +139,7 @@ def main(data_path, model_save_path='model_regression.pt'):
     except Exception as e:
         print(f"Error reading file: {e}")
     
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if (not USE_ONLY_CPU and torch.cuda.is_available()) else "cpu")
     print(f"Using device: {device}")
 
     # Load dataset
@@ -130,28 +156,28 @@ def main(data_path, model_save_path='model_regression.pt'):
     )
     
     # Create data loaders
-    batch_size = 16
+    batch_size = BATCH_SIZE
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
     
     # Initialize model
     input_size = 9  # Number of features
-    hidden_size = 256
+    hidden_size = HIDDEN_SIZE
     output_size = 2  # sin and cos components
     
     model = NeuralNet(input_size, hidden_size, output_size)
     
     # Define loss function and optimizer
     criterion = nn.MSELoss()  # Mean Squared Error loss for regression
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
     
     if DO_TRAINING:
         # Train model       
         print("Starting training...")
         trained_model, history = model_train(
             model, train_loader, val_loader, criterion, optimizer, device, 
-            num_epochs=100, patience=10
+            num_epochs=EPOCHS, patience=PATIENCE
         )
         
         # Save the model
@@ -193,4 +219,4 @@ def main(data_path, model_save_path='model_regression.pt'):
     
     
 if __name__ == "__main__":
-    main('/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/regression/datasets/small.csv')
+    main(DATASET_NAME)

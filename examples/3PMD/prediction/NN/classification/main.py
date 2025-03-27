@@ -9,8 +9,31 @@ from dataset import DubinsDataset
 import numpy as np
 from train import model_train, evaluate_model
 
-DO_TRAINING = True
+import os
+from pathlib import Path
+
+BATCH_SIZE  = 32
+EPOCHS      = 150
+PATIENCE    = 10
+LEARN_RATE  = 0.0001
+WEIGHT_DEC  = 1e-5
+HIDDEN_SIZE = 128
+
+DO_TRAINING    = True
 EXPORT_TO_ONNX = True
+
+THIS_FILE_PATH = os.path.abspath(__file__)
+PROJECT_PATH   = Path(THIS_FILE_PATH).parent
+DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets")
+MODELS_PATH    = os.path.join(PROJECT_PATH, "models")
+PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
+
+DATASET_NAME   = os.path.join(DATASET_PATH, "big_smaller_new.csv")
+MODEL_NAME     = os.path.join(MODELS_PATH, 'model.pt')
+ONNX_NAME      = os.path.join(MODELS_PATH, 'model.onnx')
+
+os.makedirs(MODELS_PATH, exist_ok=True)
+os.makedirs(PLOT_PATH,   exist_ok=True)
 
 #################################################
 ################ PLOT FUNCS #####################
@@ -44,7 +67,7 @@ def plot_training_results(history):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig('training_history.png')
+    plt.savefig(os.path.join(PLOT_PATH, 'training_history.png'))
 
 #################################################
 ################ INFERENCE CLASS ################
@@ -172,8 +195,7 @@ def export_to_onnx(model, save_path, input_size, scaler):
 ################ MAIN FUNCTION ##################
 #################################################
 
-def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/classification/models/model.pt'):
-    
+def main(data_path, model_save_path=MODEL_NAME):
     try:
         with open(data_path, 'r') as f:
             print("Data preview:")
@@ -201,28 +223,28 @@ def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/pre
     )
     
     # Create data loaders
-    batch_size = 32
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
     
     # Initialize model
     input_size = 5  # Number of features
-    hidden_size = 128
     num_classes = dataset.num_classes
+
+    print(f"Input size: {input_size}, Hidden size: {HIDDEN_SIZE}, Num classes: {num_classes}")
     
-    model = NeuralNet(input_size, hidden_size, num_classes)
+    model = NeuralNet(input_size, HIDDEN_SIZE, num_classes)
     
     # Define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
     
     if DO_TRAINING:
         # Train model       
         print("Starting training...")
         trained_model, history = model_train(
             model, train_loader, val_loader, criterion, optimizer, device, 
-            num_epochs=100, patience=10
+            num_epochs=EPOCHS, patience=PATIENCE
         )
         
         # Save the model
@@ -238,7 +260,7 @@ def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/pre
     
     scaler = dataset.get_scaler()
     label_mapping, inverse_mapping = dataset.get_label_mapping()
-    inference = ModelInference(model_save_path, scaler, input_size, hidden_size, num_classes, device, inverse_mapping)
+    inference = ModelInference(model_save_path, scaler, input_size, HIDDEN_SIZE, num_classes, device, inverse_mapping)
     
     # Class of this sample is 12
     example_features = np.array([1, 2.3562, 2.3562, 1.5708, 2.3562])
@@ -250,8 +272,8 @@ def main(data_path, model_save_path='/home/davide/Desktop/MPDP/examples/3PMD/pre
     print(f"Original class ID (in your data): {original_class}")
     
     if EXPORT_TO_ONNX:
-        export_to_onnx(model, '/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/classification/onnx_models/model.onnx', input_size, dataset.get_scaler())
+        export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
     
     
 if __name__ == "__main__":
-    main('/home/davide/Desktop/MPDP/examples/3PMD/prediction/NN/regression/datasets/small.csv')
+    main(DATASET_NAME)
