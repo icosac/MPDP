@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 
 
-RUN_TESTS       = 0 # Set 1 or 2 or 3 to run test set 1, 2, or both
+RUN_TESTS       = 1 # Set 1 or 2 or 3 to run test set 1, 2, or both
 DATASETS_PATH   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datasets")
 FEATURES        = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
 TARGET          = 'id_man_comb'
@@ -23,7 +23,7 @@ if TRAINING:
     clock = time.time()
 
     # data = pd.read_csv(os.path.join(DATASETS_PATH, 'small.csv'), sep='\s+')
-    data = pd.read_csv(os.path.join(DATASETS_PATH, 'big_smaller.csv'), sep='\s+')
+    data = pd.read_csv(os.path.join(DATASETS_PATH, 'big_smaller_new.csv'), sep='\s+')
     # data = pd.read_csv(os.path.join(DATASETS_PATH, 'big.csv'), sep='\s+')
     
     # Order data for the id_man_comb column so that the labels are in increasing order
@@ -49,8 +49,14 @@ if TRAINING:
         new_y = y
 
     # Split the dataset into training (60%), validation (20%), and test (20%) sets
-    X_train, X_temp, y_train, y_temp = train_test_split(New_X, new_y, test_size=0.2, shuffle=True)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.1, shuffle=True)
+    # X_train, X_temp, y_train, y_temp = train_test_split(New_X, new_y, test_size=0.1, shuffle=True)
+    # if X_temp is not None:
+    #     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.2, shuffle=True)
+    # else:
+    X_val = None
+    X_test = None
+    y_val = None
+    y_test = None
 
     X_train = X
     y_train = y
@@ -65,13 +71,13 @@ if TRAINING:
 
     print("Saving index")
     clock = time.time()
-    annoy_index.save('knn.ann')
+    annoy_index.save('knn_new.ann')
     print(f"Time to save index: {time.time() - clock}")
 
     # Save X_val and y_val
-    np.savetxt('X_val.csv', np.asarray(X_val), delimiter=' ')
-    np.savetxt('y_val.csv', np.asarray(y_val), delimiter=' ')
-    np.savetxt('y_train.csv', np.asarray(y_train), delimiter=' ')
+    # np.savetxt('X_val_new.csv', np.asarray(X_val), delimiter=' ')
+    # np.savetxt('y_val_new.csv', np.asarray(y_val), delimiter=' ')
+    np.savetxt('y_train_new.csv', np.asarray(y_train), delimiter=' ')
     
     map_labels = {y_train[0]: [0]}
     label = y_train[0]
@@ -81,7 +87,7 @@ if TRAINING:
             map_labels[y_train[i+1]] = [i+1]
             label = y_train[i+1]
     map_labels[label].append(len(y_train)-1)
-    with open("y_labels_intervals.csv", "w") as f:
+    with open("y_labels_intervals_new.csv", "w") as f:
         for k, v in map_labels.items():
             f.write(f"{k} {v[0]} {v[1]}\n")
     
@@ -98,8 +104,8 @@ else:
     # y_val = np.load('y_val.npy')
     # y_train = np.load('y_train.npy')
 
-    X_val = np.loadtxt('X_val.csv', delimiter=' ')
-    y_val = np.loadtxt('y_val.csv', delimiter=' ')
+    # X_val = np.loadtxt('X_val.csv', delimiter=' ')
+    # y_val = np.loadtxt('y_val.csv', delimiter=' ')
     y_train = np.loadtxt('y_train.csv', delimiter=' ')
 
 
@@ -157,7 +163,8 @@ if X_test is not None:
 if RUN_TESTS in [1, 3]:
     print("###############\nRunning test1")
 
-    data = pd.read_csv(os.path.join(DATASETS_PATH, 'testset1.csv'), sep='\s+')
+    # data = pd.read_csv(os.path.join(DATASETS_PATH, 'testset1.csv'), sep='\s+')
+    data = pd.read_csv("/Users/enrico/Projects/mpdp/ds_out_4.csv", sep='\s+')
     X_test = data[FEATURES].values
     y_test = data[TARGET].values
 

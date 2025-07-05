@@ -3,54 +3,42 @@ project(MyOnnxProject)
 
 include(FetchContent)
 
-# Define the URL for pre-built ONNX Runtime binaries (for Linux x64)
-set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz")
+set(CMAKE_CXX_STANDARD 14)
+
+# Define the URL for pre-built ONNX Runtime libraries
+
+if (UNIX AND NOT APPLE)
+  message(STATUS "Donwloading onnxruntime-linux-x64")
+  set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz")
+else()
+  message(STATUS "Downloading onnxruntime-osx-arm64")
+  set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-osx-arm64-1.21.0.tgz")
+endif()
 
 # Download and extract the pre-built ONNX Runtime
 FetchContent_Declare(
   onnxruntime
   URL ${ONNXRUNTIME_URL}
-  URL_HASH ""  # You can add a hash for security if needed
 )
 FetchContent_MakeAvailable(onnxruntime)
+
+set(CMAKE_OSX_ARCHITECTURES arm64)
 
 # Print the source directory to see what was downloaded
 message(STATUS "ONNX Runtime source dir: ${onnxruntime_SOURCE_DIR}")
 
-# Execute a command to list the directory structure
-execute_process(
-  COMMAND find ${onnxruntime_SOURCE_DIR} -type f -name "*.h" | grep -i onnx
-  OUTPUT_VARIABLE ONNX_HEADERS
-)
-message(STATUS "ONNX headers found: ${ONNX_HEADERS}")
-
-# Find the include directory structure
-execute_process(
-  COMMAND find ${onnxruntime_SOURCE_DIR} -type d -name "include"
-  OUTPUT_VARIABLE ONNX_INCLUDE_DIRS
-)
-message(STATUS "ONNX include directories: ${ONNX_INCLUDE_DIRS}")
-
 # Add your executable
-add_executable(my_inference_app src/inference.cpp)
-
-# Add all potential include directories
-foreach(dir ${ONNX_INCLUDE_DIRS})
-  string(STRIP ${dir} dir_stripped)
-  target_include_directories(my_inference_app PRIVATE ${dir_stripped})
-endforeach()
+add_executable(my_inference_app src/inference.cpp src/model_classification.cpp src/model.cpp src/model_multi_task.cpp)
 
 # Also add the root directory and some common patterns
 target_include_directories(my_inference_app PRIVATE
-  ${onnxruntime_SOURCE_DIR}
   ${onnxruntime_SOURCE_DIR}/include
-  ${onnxruntime_SOURCE_DIR}/onnxruntime-linux-x64-1.16.3/include
-  ${onnxruntime_SOURCE_DIR}/onnxruntime-linux-x64/include
+  ${CMAKE_SOURCE_DIR}/include
 )
 
 # Find the potential library directories
 execute_process(
-  COMMAND find ${onnxruntime_SOURCE_DIR} -name "*.so" -o -name "*.a" | grep -i onnx
+  COMMAND find ${onnxruntime_SOURCE_DIR} -name "libonnxruntime.so" -o -name "libonnxruntime.a" -o -name "libonnxruntime.dylib" 
   OUTPUT_VARIABLE ONNX_LIBS
 )
 message(STATUS "ONNX libraries found: ${ONNX_LIBS}")
@@ -62,11 +50,11 @@ execute_process(
 )
 message(STATUS "ONNX lib directories: ${ONNX_LIB_DIRS}")
 
-# Add all potential library directories
-foreach(dir ${ONNX_LIB_DIRS})
-  string(STRIP ${dir} dir_stripped)
-  target_link_directories(my_inference_app PRIVATE ${dir_stripped})
-endforeach()
+
+target_link_directories(my_inference_app PRIVATE ${onnxruntime_SOURCE_DIR}/lib)
 
 # Link against ONNX Runtime
 target_link_libraries(my_inference_app PRIVATE onnxruntime)
+
+
+

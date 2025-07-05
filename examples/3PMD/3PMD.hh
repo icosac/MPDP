@@ -17,6 +17,8 @@
 #include <map>
 #include <tuple>
 #include <set>
+#include <random>
+#include <limits>
 
 const std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3DP_DICT = {
  {"RLRRLR", {1, Dubins::D_TYPE::RLR, Dubins::D_TYPE::RLR}},
@@ -52,6 +54,7 @@ void compute3Pman(std::string ThreePman="");
 
 void generateDataset3PDPCircle(int argc, char** argv);
 void generateDataset3PDPCircleWithAllLabels(int argc, char** argv);
+void generateDataset3PDPCircleRandom(int argc, char** argv);
 void generateDataset3PDPRect(int argc, char** argv);
 
 void generateDataset3PDPCircleTest(int argc, char** argv);

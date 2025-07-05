@@ -12,15 +12,16 @@ int main(int argc, char** argv){
 	// main3PMDBruteForce();
 	// main3PMDBruteForceWithPlot();
 	// main3PDPConfigurations();
-	main3PDPCircle();
+	// main3PDPCircle();
 	// retesting_man_19("/Users/enrico/Projects/mpdp/examples/3PMD/prediction/datasets/small.csv");
 
 
 	// compute3Pman();
 
 	// generateDataset3PDPCircle(argc, argv);
+	// generateDataset3PDPCircleRandom(argc, argv);
 	// generateDataset3PDPCircleWithAllLabels(argc, argv);
-	// generateDataset3PDPRect(argc, argv);
+	generateDataset3PDPRect(argc, argv);
 
 	// generateDataset3PDPCircleTest(argc, argv);
 	return 0;

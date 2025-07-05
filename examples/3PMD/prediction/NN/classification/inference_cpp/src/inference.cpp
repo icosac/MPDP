@@ -7,221 +7,10 @@
 #include <cmath>
 #include <onnxruntime_cxx_api.h>
 
-class OnnxModel {
-private:
-    Ort::Env env;
-    Ort::SessionOptions session_options;
-    Ort::Session session{nullptr};
-    std::vector<const char*> input_names;
-    std::vector<const char*> output_names;
-    std::vector<std::vector<int64_t>> input_node_dims;
-    std::vector<std::vector<int64_t>> output_node_dims;
-    bool is_multitask_model = false;
+#include "model.hpp"
 
-public:
-    OnnxModel(const std::string& model_path) : env(ORT_LOGGING_LEVEL_WARNING, "onnx-model") {
-        // Set graph optimization level
-        session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-        
-        // Create session
-        session = Ort::Session(env, model_path.c_str(), session_options);
+#include <chrono>
 
-        // Get input and output information
-        Ort::AllocatorWithDefaultOptions allocator;
-        
-        // Get number of inputs and outputs
-        size_t num_input_nodes = session.GetInputCount();
-        size_t num_output_nodes = session.GetOutputCount();
-        
-        std::cout << "Model has " << num_input_nodes << " inputs and " 
-                  << num_output_nodes << " outputs" << std::endl;
-        
-        if (num_output_nodes > 1) {
-            is_multitask_model = true;
-            std::cout << "Detected multi-task model with " << num_output_nodes << " outputs" << std::endl;
-        }
-        
-        input_names.resize(num_input_nodes);
-        output_names.resize(num_output_nodes);
-        input_node_dims.resize(num_input_nodes);
-        output_node_dims.resize(num_output_nodes);
-
-        // Get input information
-        for (size_t i = 0; i < num_input_nodes; i++) {
-            // Get input name
-            auto input_name = session.GetInputNameAllocated(i, allocator);
-            input_names[i] = strdup(input_name.get());  // We need to duplicate the string
-            
-            // Get input dimensions
-            auto type_info = session.GetInputTypeInfo(i);
-            auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-            input_node_dims[i] = tensor_info.GetShape();
-            
-            // Print input information
-            std::cout << "Input " << i << " : name=" << input_names[i] << std::endl;
-            std::cout << "  Dimensions: ";
-            for (auto dim : input_node_dims[i]) {
-                std::cout << dim << " ";
-            }
-            std::cout << std::endl;
-        }
-
-        // Get output information
-        for (size_t i = 0; i < num_output_nodes; i++) {
-            // Get output name
-            auto output_name = session.GetOutputNameAllocated(i, allocator);
-            output_names[i] = strdup(output_name.get());  // We need to duplicate the string
-            
-            // Get output dimensions
-            auto type_info = session.GetOutputTypeInfo(i);
-            auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-            output_node_dims[i] = tensor_info.GetShape();
-            
-            // Print output information
-            std::cout << "Output " << i << " : name=" << output_names[i] << std::endl;
-            std::cout << "  Dimensions: ";
-            for (auto dim : output_node_dims[i]) {
-                std::cout << dim << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-
-    ~OnnxModel() {
-        // Free allocated strings
-        for (auto name : input_names) {
-            free((void*)name);
-        }
-        for (auto name : output_names) {
-            free((void*)name);
-        }
-    }
-
-    // Run inference with float input data for classification (single-task) model
-    std::vector<float> run(const std::vector<float>& input_data) {
-        // Create input tensor
-        auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-        
-        // Handle batch dimension
-        std::vector<int64_t> input_dims = input_node_dims[0];
-        
-        // Set batch size for dynamic dimensions
-        if (input_dims[0] == -1) {
-            // For a single sample with 5 features
-            input_dims[0] = 1;
-        }
-        
-        // Create input tensor
-        Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-            memory_info,
-            const_cast<float*>(input_data.data()),
-            input_data.size(),
-            input_dims.data(),
-            input_dims.size()
-        );
-        
-        // Run inference
-        auto output_tensors = session.Run(
-            Ort::RunOptions{nullptr},
-            input_names.data(),
-            &input_tensor,
-            1,
-            output_names.data(),
-            output_names.size()
-        );
-        
-        // Get output data from the first output (classification)
-        float* output_data = output_tensors[0].GetTensorMutableData<float>();
-        
-        // Get actual output shape
-        auto output_tensor_info = output_tensors[0].GetTensorTypeAndShapeInfo();
-        auto output_dims = output_tensor_info.GetShape();
-        
-        std::cout << "Output shape: ";
-        for (auto dim : output_dims) {
-            std::cout << dim << " ";
-        }
-        std::cout << std::endl;
-        
-        // Calculate total output size
-        size_t output_size = 1;
-        for (auto dim : output_dims) {
-            output_size *= dim > 0 ? dim : 1; // Skip negative dimensions
-        }
-        
-        // Copy output data to a vector
-        std::vector<float> result(output_data, output_data + output_size);
-        return result;
-    }
-
-    // Run inference with float input data for multi-task model
-    std::pair<std::vector<float>, std::vector<float>> run_multitask(const std::vector<float>& input_data) {
-        if (!is_multitask_model) {
-            throw std::runtime_error("This is not a multi-task model");
-        }
-        
-        // Create input tensor
-        auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-        
-        // Handle batch dimension
-        std::vector<int64_t> input_dims = input_node_dims[0];
-        
-        // Set batch size for dynamic dimensions
-        if (input_dims[0] == -1) {
-            // For a single sample with 5 features
-            input_dims[0] = 1;
-        }
-        
-        // Create input tensor
-        Ort::Value input_tensor = Ort::Value::CreateTensor<float>(
-            memory_info,
-            const_cast<float*>(input_data.data()),
-            input_data.size(),
-            input_dims.data(),
-            input_dims.size()
-        );
-        
-        // Run inference
-        auto output_tensors = session.Run(
-            Ort::RunOptions{nullptr},
-            input_names.data(),
-            &input_tensor,
-            1,
-            output_names.data(),
-            output_names.size()
-        );
-        
-        // Process classification output
-        float* class_output_data = output_tensors[0].GetTensorMutableData<float>();
-        auto class_tensor_info = output_tensors[0].GetTensorTypeAndShapeInfo();
-        auto class_dims = class_tensor_info.GetShape();
-        
-        size_t class_size = 1;
-        for (auto dim : class_dims) {
-            class_size *= dim > 0 ? dim : 1;
-        }
-        
-        std::vector<float> class_result(class_output_data, class_output_data + class_size);
-        
-        // Process regression output
-        float* reg_output_data = output_tensors[1].GetTensorMutableData<float>();
-        auto reg_tensor_info = output_tensors[1].GetTensorTypeAndShapeInfo();
-        auto reg_dims = reg_tensor_info.GetShape();
-        
-        size_t reg_size = 1;
-        for (auto dim : reg_dims) {
-            reg_size *= dim > 0 ? dim : 1;
-        }
-        
-        std::vector<float> reg_result(reg_output_data, reg_output_data + reg_size);
-        
-        return {class_result, reg_result};
-    }
-    
-    bool isMultitaskModel() const {
-        return is_multitask_model;
-    }
-};
 
 // Softmax function for normalizing output
 std::vector<float> softmax(const std::vector<float>& input) {
@@ -250,86 +39,192 @@ float calculate_angle(float sin_val, float cos_val) {
     return angle_deg;
 }
 
+void test_single(std::string model_path){
+    std::cout << "Loading ONNX model: " << model_path << std::endl;
+        
+    // Load the model
+    OnnxModel model(model_path);
+    
+    // Example input data - for a model with input shape [-1, 5]
+    // Single sample with 5 features
+    std::vector<float> input_data = {
+        -1.0f, 1.0f, 2.3562f, 2.3562f, 1.5708f, 2.3562f, 1.0f, 2.3562f, 2.3562f, 1.5708f, 2.3562f
+    };
+    
+    std::cout << "Input data: ";
+    for (auto val : input_data) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+    
+    // Run inference based on model type
+    if (model.isMultitaskModel()) {
+        // Multi-task model
+        std::cout << "Running multi-task inference..." << std::endl;
+        auto [class_output, reg_output] = model.run_multitask(input_data);
+        
+        // Process classification output
+        std::vector<float> class_probs = softmax(class_output);
+        
+        std::cout << "Classification probabilities:" << std::endl;
+        for (size_t i = 0; i < class_probs.size(); ++i) {
+            std::cout << "  Class " << i << ": " << std::fixed << std::setprecision(6) << class_probs[i] << std::endl;
+        }
+        
+        // Find most likely class
+        int predicted_class = std::distance(class_probs.begin(), 
+                                          std::max_element(class_probs.begin(), class_probs.end()));
+        float confidence = class_probs[predicted_class];
+        
+        std::cout << "Predicted class: " << predicted_class << " with confidence: " 
+                  << std::fixed << std::setprecision(4) << confidence << std::endl;
+        
+        // Process regression output
+        if (reg_output.size() >= 2) {
+            float sin_val = reg_output[0];
+            float cos_val = reg_output[1];
+            float angle_deg = calculate_angle(sin_val, cos_val);
+            
+            std::cout << "Regression values - sin: " << sin_val << ", cos: " << cos_val << std::endl;
+            std::cout << "Predicted angle: " << angle_deg << " degrees" << std::endl;
+        }
+    } else {
+        // Single-task (classification) model
+        std::cout << "Running classification inference..." << std::endl;
+        std::vector<float> output = model.run(input_data);
+        
+        // Apply softmax to get probabilities
+        std::vector<float> probabilities = softmax(output);
+        
+        // Print results
+        std::cout << "Classification probabilities:" << std::endl;
+        for (size_t i = 0; i < probabilities.size(); ++i) {
+            std::cout << "  Class " << i << ": " << std::fixed << std::setprecision(6) << probabilities[i] << std::endl;
+        }
+        
+        // Find most likely class
+        int predicted_class = std::distance(probabilities.begin(), 
+                                          std::max_element(probabilities.begin(), probabilities.end()));
+        float confidence = probabilities[predicted_class];
+        
+        std::cout << "Predicted class: " << predicted_class << " with confidence: " 
+                  << std::fixed << std::setprecision(4) << confidence << std::endl;
+    }
+}
+
+void test_dataset(const std::string & model_path, const std::string & testset_path, int n_samples, bool skip_first_line = true){
+    std::ifstream testset_file(testset_path);
+    if (!testset_file.is_open()) {
+        std::cerr << "Failed to open testset file: " << testset_path << std::endl;
+        return;
+    }
+    std::cout << "Loading ONNX model: " << model_path << std::endl;
+    // Load the model
+    OnnxModel model(model_path);
+    std::cout << "Model loaded successfully!" << std::endl;
+    std::cout << "Running inference on testset..." << std::endl;
+    
+    // Skip first line
+    if (skip_first_line) {
+        std::string line;
+        std::getline(testset_file, line);
+    }
+
+    size_t n_correct = 0, n_total = 0;
+    double avg_time = 0, min_time = 1e9, max_time = 0;
+
+    // Read testset data
+    float kmax, th_i, th_f, alpha_m, alpha_f, th_m, len;
+    int id_man;
+    while(testset_file >> kmax >> th_i >> th_f >> alpha_m >> alpha_f >> th_m >> id_man >> len){
+        // Prepare input data
+        std::vector<float> input_data = {kmax, th_i, th_f, alpha_m, alpha_f};
+
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        // Single-task (classification) model
+        std::vector<float> output = model.run(input_data);
+        
+        // Apply softmax to get probabilities
+        std::vector<float> probabilities = softmax(output);
+        std::vector<std::pair<int, float>> sorted_probabilities;
+        for (size_t i = 0; i < probabilities.size(); ++i) {
+            sorted_probabilities.push_back({i+1, probabilities[i]});
+        }
+        std::sort(sorted_probabilities.begin(), sorted_probabilities.end(), [](const auto& a, const auto& b) {
+            return a.second > b.second;
+        });
+
+        auto it = std::find_if(sorted_probabilities.begin(), sorted_probabilities.begin()+n_samples, 
+            [&id_man](const std::pair<int, float>& el){ return el.first == id_man; });
+
+        if (it != sorted_probabilities.begin()+n_samples) {
+            n_correct++;
+        }
+        else {
+            // if (n_samples == 3 || n_samples == 4 || n_samples == 5) {
+            //     std::cout << n_total << " ";
+            // }
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        double time = duration.count();
+        avg_time += time;
+        min_time = std::min(min_time, time);
+        max_time = std::max(max_time, time);
+        n_total++;
+
+        if (n_total % static_cast<int>(1e5) == 0) {
+            std::cout << "\rProcessed " << std::fixed << std::setprecision(2) << static_cast<float>(n_total)*100.0/1200000.0 << "%" << " ";
+            std::cout << "Finishing in " << (avg_time / n_total) * (1200000.0 - n_total) / 1e6 << " seconds" << " ";
+            std::cout << "Average time: " << avg_time / n_total << " microseconds";
+            std::flush(std::cout);
+        }
+
+        if (n_total == 1000000){
+            break;
+        }
+        
+        // std::cout << "Predicted class: " << predicted_class << " with confidence: " 
+        //             << std::fixed << std::setprecision(4) << confidence << std::endl;
+    }
+
+    std::cout << std::endl << "###########################\n" << "n_samples: " << n_samples << std::endl;
+    std::cout << "Accuracy: " << static_cast<float>(n_correct) / static_cast<float>(n_total) * 100.0f << "%" << std::endl;
+    std::cout << "Average time: " << avg_time / n_total << " microseconds" << std::endl;
+    std::cout << "Minimum time: " << min_time << " microseconds" << std::endl;
+    std::cout << "Maximum time: " << max_time << " microseconds" << std::endl;
+    std::cout << "Total samples: " << n_total << std::endl;
+    std::cout << "Correct predictions: " << n_correct << std::endl;
+    std::cout << "Incorrect predictions: " << n_total - n_correct << std::endl;
+    std::cout << std::endl << "###########################" << std::endl;
+}
+
+
 int main(int argc, char* argv[]) {
     try {
         // Check if model path is provided
         if (argc < 2) {
-            std::cerr << "Usage: " << argv[0] << " <path_to_model.onnx>" << std::endl;
+            std::cerr << "Usage: " << argv[0] << " <path_to_model.onnx> [path_to_testset]" << std::endl;
+            std::cerr << "If not testset is provided, it will run a single test." << std::endl;
             return 1;
         }
-        
-        std::string model_path = argv[1];
-        std::cout << "Loading ONNX model: " << model_path << std::endl;
-        
-        // Load the model
-        OnnxModel model(model_path);
-        
-        // Example input data - for a model with input shape [-1, 5]
-        // Single sample with 5 features
-        std::vector<float> input_data = {
-            1.0f, 2.3562f, 2.3562f, 1.5708f, 2.3562f
-        };
-        
-        std::cout << "Input data: ";
-        for (auto val : input_data) {
-            std::cout << val << " ";
+
+        else if (argc == 2) {
+            std::string model_path = argv[1];
+            test_single(model_path);
         }
-        std::cout << std::endl;
-        
-        // Run inference based on model type
-        if (model.isMultitaskModel()) {
-            // Multi-task model
-            std::cout << "Running multi-task inference..." << std::endl;
-            auto [class_output, reg_output] = model.run_multitask(input_data);
-            
-            // Process classification output
-            std::vector<float> class_probs = softmax(class_output);
-            
-            std::cout << "Classification probabilities:" << std::endl;
-            for (size_t i = 0; i < class_probs.size(); ++i) {
-                std::cout << "  Class " << i << ": " << std::fixed << std::setprecision(6) << class_probs[i] << std::endl;
+        else if (argc == 3) {
+            std::string model_path = argv[1];
+            std::string testset_path = argv[2];
+            for (int n_samples = 1; n_samples < 5; n_samples++) {
+                // std::cout << "Running test with " << n_samples << " samples..." << std::endl;
+                test_dataset(model_path, testset_path, n_samples);
             }
-            
-            // Find most likely class
-            int predicted_class = std::distance(class_probs.begin(), 
-                                              std::max_element(class_probs.begin(), class_probs.end()));
-            float confidence = class_probs[predicted_class];
-            
-            std::cout << "Predicted class: " << predicted_class << " with confidence: " 
-                      << std::fixed << std::setprecision(4) << confidence << std::endl;
-            
-            // Process regression output
-            if (reg_output.size() >= 2) {
-                float sin_val = reg_output[0];
-                float cos_val = reg_output[1];
-                float angle_deg = calculate_angle(sin_val, cos_val);
-                
-                std::cout << "Regression values - sin: " << sin_val << ", cos: " << cos_val << std::endl;
-                std::cout << "Predicted angle: " << angle_deg << " degrees" << std::endl;
-            }
-        } else {
-            // Single-task (classification) model
-            std::cout << "Running classification inference..." << std::endl;
-            std::vector<float> output = model.run(input_data);
-            
-            // Apply softmax to get probabilities
-            std::vector<float> probabilities = softmax(output);
-            
-            // Print results
-            std::cout << "Classification probabilities:" << std::endl;
-            for (size_t i = 0; i < probabilities.size(); ++i) {
-                std::cout << "  Class " << i << ": " << std::fixed << std::setprecision(6) << probabilities[i] << std::endl;
-            }
-            
-            // Find most likely class
-            int predicted_class = std::distance(probabilities.begin(), 
-                                              std::max_element(probabilities.begin(), probabilities.end()));
-            float confidence = probabilities[predicted_class];
-            
-            std::cout << "Predicted class: " << predicted_class << " with confidence: " 
-                      << std::fixed << std::setprecision(4) << confidence << std::endl;
-        }
-        
+            // test_dataset(model_path, testset_path, 3);
+            // test_dataset(model_path, testset_path, 4);
+            // test_dataset(model_path, testset_path, 5);
+        }        
         return 0;
     }
     catch (const Ort::Exception& e) {

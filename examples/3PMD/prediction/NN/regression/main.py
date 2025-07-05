@@ -1,3 +1,7 @@
+#################################################
+############### REGRESSION ######################
+#################################################
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -15,22 +19,22 @@ BATCH_SIZE  = 16
 EPOCHS      = 150
 PATIENCE    = 10
 LEARN_RATE  = 0.0001
-WEIGHT_DEC  = 1e-5
+WEIGHT_DEC  = 1e-3
 HIDDEN_SIZE = 128
 
-DO_TRAINING    = True
+DO_TRAINING    = False
 USE_ONLY_CPU   = False
 EXPORT_TO_ONNX = True
 
 THIS_FILE_PATH = os.path.abspath(__file__)
 PROJECT_PATH   = Path(THIS_FILE_PATH).parent
-DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets/old")
+DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets")
 MODELS_PATH    = os.path.join(PROJECT_PATH, "models")
 PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
 
-# DATASET_NAME   = os.path.join(DATASET_PATH, "big_smaller_new.csv")
-DATASET_NAME   = os.path.join(DATASET_PATH, "small.csv")
-MODEL_NAME     = os.path.join(MODELS_PATH, 'model.pt')
+DATASET_NAME   = os.path.join("/Users/enrico/Projects/mpdp/ds_out_4.csv")
+# DATASET_NAME   = os.path.join(DATASET_PATH, "small.csv")
+MODEL_NAME     = os.path.join(MODELS_PATH, 'model_frego1.pt')
 ONNX_NAME      = os.path.join(MODELS_PATH, 'model.onnx')
 
 os.makedirs(MODELS_PATH, exist_ok=True)
@@ -124,6 +128,56 @@ class ModelInference:
                     predicted_angles_rad, predicted_angles_deg)
 
 #################################################
+################  ONNX EXPORT  ##################
+#################################################
+
+class ScaledNeuralNet(nn.Module):
+    def __init__(self, model, scaler, device='cpu'):
+        super(ScaledNeuralNet, self).__init__()
+        self.model = model
+        self.register_buffer('mean', torch.tensor(scaler.mean_, dtype=torch.float32).to(device))
+        self.register_buffer('scale', torch.tensor(scaler.scale_, dtype=torch.float32).to(device))
+        
+    def forward(self, x):
+        x = (x - self.mean) / self.scale
+        return self.model(x)
+
+def export_to_onnx(model, save_path, input_size, scaler):
+    """
+    Export model to ONNX format, handling device issues correctly
+    
+    Args:
+        model: PyTorch model to export
+        save_path: Path where the ONNX model will be saved
+        input_size: Size of the input tensor (number of features)
+    """
+    # Create a dummy input on the same device as the model
+    device = next(model.parameters()).device
+    dummy_input = torch.randn(1, input_size, device=device)
+    
+    scaled_model = ScaledNeuralNet(model, scaler, device)
+    
+    # Make sure model is in evaluation mode
+    scaled_model.eval()
+    
+    # Export the model
+    torch.onnx.export(
+        scaled_model,                          # model being run
+        dummy_input,                           # model input (or a tuple for multiple inputs)
+        save_path,                             # where to save the model
+        export_params=True,                    # store the trained parameter weights inside the model file
+        opset_version=12,                      # the ONNX version to export the model to
+        do_constant_folding=True,              # whether to execute constant folding for optimization
+        input_names=['input'],                 # the model's input names
+        output_names=['output'],               # the model's output names
+        dynamic_axes={
+            'input': {0: 'batch_size'},        # variable length axes
+            'output': {0: 'batch_size'}
+        }
+    )
+    print(f"Model successfully exported to ONNX at {save_path}")
+
+#################################################
 ################ MAIN FUNCTION ##################
 #################################################
 
@@ -190,32 +244,80 @@ def main(data_path, model_save_path=MODEL_NAME):
         # Evaluate on test set
         print("\nEvaluating on test set...")
         test_loss, _, _ = evaluate_model(trained_model, test_loader, criterion, device)
+        
+        if EXPORT_TO_ONNX:
+            export_to_onnx(trained_model, ONNX_NAME, input_size, dataset.get_scaler())
     
     scaler = dataset.get_scaler()
     inference = ModelInference(model_save_path, scaler, input_size, hidden_size, device)
     
-    # Example features for prediction
-    th_i = 2.3562
-    th_f = 2.3562
-    alpha_m = 1.5708
-    alpha_f = 2.3562
+    if EXPORT_TO_ONNX and not DO_TRAINING:
+        export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
     
-    cos_th_i = np.cos(th_i)
-    sin_th_i = np.sin(th_i)
-    cos_th_f = np.cos(th_f)
-    sin_th_f = np.sin(th_f)
-    cos_alpha_m = np.cos(alpha_m)
-    sin_alpha_m = np.sin(alpha_m)
-    cos_alpha_f = np.cos(alpha_f)
-    sin_alpha_f = np.sin(alpha_f)
+    testset = DubinsDataset(data_path)
+    test_loader = DataLoader(testset, batch_size=1024)
+
+    #     # Split dataset
+    # train_size = int(0.7 * len(dataset))
+    # val_size = int(0.15 * len(dataset))
+    # test_size = len(dataset) - train_size - val_size
     
-    example_features = np.array([1, sin_th_i, cos_th_i, sin_th_f, cos_th_f, sin_alpha_m, cos_alpha_m, sin_alpha_f, cos_alpha_f])    
+    # train_dataset, val_dataset, test_dataset = random_split(
+    #     dataset, [train_size, val_size, test_size]
+    # )
     
-    # Predict
-    sin_val, cos_val, angle_rad, angle_deg = inference.predict(example_features)
-    print(f"Example features: {example_features}")
-    print(f"Predicted sin(th_m): {sin_val:.4f}, cos(th_m): {cos_val:.4f}")
-    print(f"Predicted angle: {angle_rad:.4f} radians ({angle_deg:.2f} degrees)")
+    # # Create data loaders
+    # batch_size = BATCH_SIZE
+    # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    test_loss, all_pred, all_tar = evaluate_model(inference.model, test_loader, criterion, device)
+    print("Model evaluation complete.")
+
+    # # Example features for prediction
+    # # k_max = 1.4
+    # # th_i = 1.309 
+    # # th_f = -1.11022e-16
+    # # alpha_m = -1.5708
+    # # alpha_f = 2.87979
+    # # th_m = 4.46804
+    
+    # k_max = 4 
+    # th_i = -2.0944
+    # th_f = -3.14159 
+    # alpha_m = 0.785398 
+    # alpha_f = -1.0472 
+    # th_m = 0.0174533 
+    # man = 11 
+    # # len = 3.26627
+
+    # print("th_i=-np.pi/2+np.arctan(0.25)", th_i)
+    # print("th_f=-3.0*np.pi/2+np.arctan(0.25)", th_f)
+    # print("alpha_m=-np.pi/2", alpha_m)
+    # print("alpha_f=2*np.arctan(0.25)-np.pi", alpha_f)
+    # print("k_max=np.sqrt(17)/2", k_max)
+
+    # cos_th_i = np.cos(th_i)
+    # sin_th_i = np.sin(th_i)
+    # cos_th_f = np.cos(th_f)
+    # sin_th_f = np.sin(th_f)
+    # cos_alpha_m = np.cos(alpha_m)
+    # sin_alpha_m = np.sin(alpha_m)
+    # cos_alpha_f = np.cos(alpha_f)
+    # sin_alpha_f = np.sin(alpha_f)
+    
+    # example_features = np.array([k_max, sin_th_i, cos_th_i, sin_th_f, cos_th_f, sin_alpha_m, cos_alpha_m, sin_alpha_f, cos_alpha_f])    
+    
+    # sin_val, cos_val, angle_rad, angle_deg = inference.predict(example_features)
+    # error = angle_rad - th_m
+    # while error < -np.pi:
+    #     error += 2*np.pi
+    # while error > np.pi:
+    #     error -= 2*np.pi
+    # print(f"Error: {error} {np.rad2deg(error)}")
+
+    # print(f"Example features: {example_features}")
+    # print(f"Predicted sin(th_m): {sin_val:.4f}, cos(th_m): {cos_val:.4f}")
+    # print(f"Predicted angle: {angle_rad:.4f} radians ({angle_deg:.2f} degrees)")
     
     
 if __name__ == "__main__":
