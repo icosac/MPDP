@@ -34,21 +34,21 @@ import torch.nn as nn
 
 class NeuralNet(nn.Module):
 
-    def __init__(self, in_size=5, hid_size=24, out_size=1):
+    def __init__(self, in_size=5, hid_size=64, out_size=2):  # Changed out_size to 2 for sin and cos
         super(NeuralNet, self).__init__()
         
         self.linear_stack = nn.Sequential(
-          nn.Linear(in_size, 100),
-          nn.ReLU(),
-          nn.Linear(100, 10000),
+          nn.Linear(in_size, hid_size // 2),
           nn.ReLU(),
           nn.Dropout(0.2),
-          nn.Linear(10000, 100000),
+          nn.Linear(hid_size // 2, hid_size),
           nn.ReLU(),
-          nn.Dropout(0.6),
-          nn.Linear(100000, 1000),
+          nn.Linear(hid_size, hid_size),
           nn.ReLU(),
-          nn.Linear(1000, out_size)
+          nn.Linear(hid_size, hid_size // 2),
+          nn.ReLU(),
+          nn.Dropout(0.2),
+          nn.Linear(hid_size // 2, out_size)
         )
         
         self.initialize_weights()

@@ -2,21 +2,24 @@ import torch.nn as nn
 
 class NeuralNet(nn.Module):
 
-    def __init__(self, in_size=9, hid_size=64, out_size=19):  # Updated in_size to 9
+    def __init__(self, in_size=5, hid_size=64, out_size=19):
         super(NeuralNet, self).__init__()
         
         self.linear_stack = nn.Sequential(
-          nn.Linear(in_size, hid_size // 2),
-          nn.ReLU(),
-          nn.Dropout(0.2),
-          nn.Linear(hid_size // 2, hid_size),
+          nn.Linear(in_size, hid_size),
           nn.ReLU(),
           nn.Linear(hid_size, hid_size),
+        #   nn.ReLU(),
+        #   nn.Linear(hid_size, 128),
+        #   nn.Dropout(),
+        #   nn.ReLU(),
+        #   nn.Linear(128, 128),
+        #   nn.ReLU(),
+        #   nn.Linear(128, hid_size),
           nn.ReLU(),
-          nn.Linear(hid_size, hid_size // 2),
-          nn.ReLU(),
-          nn.Dropout(0.2),
-          nn.Linear(hid_size // 2, out_size)
+          nn.Dropout(),
+          nn.Linear(hid_size, out_size),
+        #   nn.ReLU()
         )
         
         self.initialize_weights()

@@ -1,12 +1,7 @@
-<<<<<<< HEAD
 -r requirements.pytorch.txt
-=======
-torch
-torchvision
-torchaudio
->>>>>>> 1dc3c8af4d9d59ef4ce19725c4d790f7170c5d87
 scikit-learn
 pandas
 numpy
 matplotlib
 tqdm
+seaborn

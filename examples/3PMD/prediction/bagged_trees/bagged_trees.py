@@ -3,14 +3,19 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 
-import time
+import time, os
 import pandas as pd
 import numpy as np
 
 
 print("Reading ds")
 clock = time.time()
-data = pd.read_csv('/Users/enrico/Projects/mpdp/small.csv', sep='\s+')
+
+DATASETS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datasets")
+
+data = pd.read_csv(os.path.join(DATASETS_PATH, 'small.csv'), sep='\s+')
+# data = pd.read_csv(os.path.join(DATASETS_PATH, 'big_smaller.csv'), sep='\s+')
+# data = pd.read_csv(os.path.join(DATASETS_PATH, 'big.csv'), sep='\s+')
 
 features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
 target = 'id_man_comb'

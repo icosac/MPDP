@@ -2,10 +2,11 @@
 
 set(DEMOS_LIST DPS 3PMD MPMD P2PDubinsDataset P2PRSDataset)
 
-message(STATUS "Compiling the following demos: ${DEMOS_LIST}")
+message(STATUS "Compiling the following demos: ${DEMOS_LIST} # remember to add Demo at the end of the name")
 
 foreach(DEMO ${DEMOS_LIST})
-        file(GLOB_RECURSE ${DEMO}_SOURCES examples/${DEMO}/*.cc)
+        # file(GLOB_RECURSE ${DEMO}_SOURCES examples/${DEMO}/*.cc)
+        file(GLOB ${DEMO}_SOURCES examples/${DEMO}/*.cc)
         add_executable(${DEMO}Demo ${${DEMO}_SOURCES})
         target_link_libraries(${DEMO}Demo ${LIB_CXX})
         target_include_directories(${DEMO}Demo PUBLIC

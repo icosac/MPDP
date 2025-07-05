@@ -315,12 +315,12 @@ void compute3Pman(std::string ThreePman){
   }
 }
 
-void main3PDP(){
-  Configuration2 pi(0                 , 0                 , m_pi/3.0         );
-  Configuration2 pm(10                , 5                 , 0                );
-  Configuration2 pf(15                , 20                , m_pi/6.0         );
+double main3PDP(Configuration2& pi, Configuration2& pm, Configuration2& pf, K_T kmax){
+  // Configuration2 pi(-1.0  , 0.0  ,  m_pi/2.0 );
+  // Configuration2 pm( 0.25 , 0.75 ,  0.0      );
+  // Configuration2 pf( 1.0  , 0.0  , -m_pi/2.0 );
 
-  K_T kmax = 1.0;
+  // K_T kmax = 2.0;
 
 //  Dubins dub1 = Dubins(pi, pm, kmax);
 //  std::cout << std::endl << std::endl;
@@ -338,31 +338,37 @@ void main3PDP(){
   std::vector<double> curveParam = { kmax };
   TimePerf time1;
   time1.start();
-  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 360, 1);
+  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 1440, 1);
   std::cout << "ms: " << time1.getTime() << std::endl;
-//  std::cout << std::setprecision(12) << "Dub1: " << dub1.man_to_string() << " " << dub1.l() << std::endl;
-//  std::cout << std::setprecision(12) << "Dub2: " << dub2.man_to_string() << " " << dub2.l() << std::endl;
-//  std::cout << std::setprecision(12) << "Total length " << (dub1.l()+dub2.l()) << std::endl;
+  // std::cout << std::setprecision(12) << "Dub1: " << dub1.man_to_string() << " " << dub1.l() << std::endl;
+  // std::cout << std::setprecision(12) << "Dub2: " << dub2.man_to_string() << " " << dub2.l() << std::endl;
+  // std::cout << std::setprecision(12) << "Total length " << (dub1.l()+dub2.l()) << std::endl;
   std::cout << std::endl << std::endl << "MPDP len: " << ret.first << std::endl;
   std::cout << "#angles: " << ret.second.size() << std::endl;
   for (auto angle : ret.second){
     std::cout << std::setprecision(12) << angle << " ";
   }
   std::cout << std::endl;
+
   pm.th(ret.second[1]);
   std::cout << pm.th() << std::endl;
   Dubins curve1 = Dubins(pi, pm, kmax);
   std::cout << std::setprecision(12) << "Curve1: " << curve1.man_to_string() << " " << curve1.l() << std::endl;
+  std::cout << std::setprecision(12) << "Curve1: " << curve1 << std::endl;
+  std::cout << "s1: " << curve1.s1() << " " << "s2: " << curve1.s2() << " " << "s3: " << curve1.s3() << std::endl;
   std::cout << std::endl;
+
   Dubins curve2 = Dubins(pm, pf, kmax);
   std::cout << std::setprecision(12) << "Curve2: " << curve2.man_to_string() << " " << curve2.l() << std::endl;
+  std::cout << std::setprecision(12) << "Curve2: " << curve2 << std::endl;
+  std::cout << "s1: " << curve2.s1() << " " << "s2: " << curve2.s2() << " " << "s3: " << curve2.s3() << std::endl;
   std::cout << std::endl;
   std::cout << "Sum: " << (curve1.l()+curve2.l()) << std::endl;
 
   std::ofstream file1("Dubins1.asy");
   initAsyFile(file1);
-  // curve1.draw(file1, "P_i");
-  // curve2.draw(file1, "P_m");
+  curve1.draw(file1, "P_i");
+  curve2.draw(file1, "P_m");
   file1.close();
 
 //  std::cout << "BRUTE FORCE" << std::endl;
@@ -385,6 +391,101 @@ void main3PDP(){
 //  std::cout << "Shortest path with angle " << bestAngle << " and total length " << bestLen << " given man: " << bestMan << std::endl;
 }
 
+
+void main3PDPConfigurations(){
+  Configuration2 pi(-1.0  , 0.0  ,  m_pi/2.0 );
+  Configuration2 pm( 0.25 , 0.75 ,  0.0      );
+  Configuration2 pf( 1.0  , 0.0  , -m_pi/2.0 );
+
+  K_T kmax = 2.0;
+
+  main3PDP(pi, pm, pf, kmax);
+}
+
+
+void main3PDPCircle(){
+  // double thi = 2.3562;
+  // double thf = 1.5708;
+  // double alpham = -0.7854;
+  // double alphaf = 0.0;
+
+  double kmax = 1.5;
+  double thi = 1.88495559215;
+  double thm = 0.357692328704;
+  double thf = 0.628318530718;
+  double alpham = -3.14159265359; 
+  double alphaf = 1.88495559215;
+  double len = 6.19613;
+
+  Configuration2 pi(1, 0, thi);
+  Configuration2 pm(cos(alpham), sin(alpham), thm);
+  Configuration2 pf(cos(alphaf), sin(alphaf), thf);
+
+	std::string D_TYPE_STR__[7] = {"INVALID", "LRL", "RLR", "LSL", "LSR", "RSL", "RSR"};
+  for (int i=1; i<7; i++){
+    Dubins::D_TYPE man1 = static_cast<Dubins::D_TYPE>(i);
+    for (int j=1; j<7; j++){
+      Dubins::D_TYPE man2 = static_cast<Dubins::D_TYPE>(j);
+      std::cout << "Testing man1 " << D_TYPE_STR__[man1] << " man2 " << D_TYPE_STR__[man2] << std::endl;
+      try{
+        Dubins dub1_ = Dubins(pi, pm, {kmax}, man1);
+        Dubins dub2_ = Dubins(pm, pf, {kmax}, man2);
+        if (std::abs(dub1_.l() + dub2_.l() - len) < 1e-4){
+          std::cout << 
+            dub1_.man_to_string() << " " << dub2_.man_to_string() << " " << 
+            std::setprecision(12) <<
+            (std::abs(dub1_.l() + dub2_.l()) - len) << " " <<
+            (dub1_.l() + dub2_.l()) << " " << 
+            std::setprecision(4) <<
+            dub1_.s1() << " " << dub1_.s2() << " " << dub1_.s2() << " " <<
+            dub2_.s1() << " " << dub2_.s2() << " " << dub2_.s3() <<
+            std::endl;
+        }
+
+      } catch (std::runtime_error &e){
+        // std::cout << "Error in " << D_TYPE_STR__[man1] << " " << D_TYPE_STR__[man2] << std::endl;
+      }
+    }
+  }
+}
+
+void retesting_man_19(std::string filename){
+  std::ifstream file(filename);
+
+  double thi, thf, alpham, alphaf, kmax, len, thm;
+  int id_man;
+
+  // Skip first line
+  std::string line;
+  std::getline(file, line);
+
+  int total = 0, wrong = 0;
+
+  while(file >> kmax >> thi >> thf >> alpham >> alphaf >> thm >> id_man >> len){
+    if (id_man == 19){
+      Configuration2 pi(1, 0, thi);
+      Configuration2 pm(cos(alpham), sin(alpham), 0);
+      Configuration2 pf(cos(alphaf), sin(alphaf), thf);
+
+      std::vector<double> curveParam = {kmax};
+      std::vector<bool> fixedAngles = {true, false, true};
+      std::vector<Configuration2> points = {pi, pm, pf};
+
+      std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 2880, 5);
+      if (std::abs(ret.first - len) > 1e-4){
+        wrong++;
+        std::cout << "Error in " << kmax << " " << thi << " " << thf << " " << alpham << " " << alphaf << " " << thm << " " << id_man << " " << len << " " << ret.first << std::endl;
+      }
+      else {
+        std::cout << "Could not fix " << kmax << " " << thi << " " << thf << " " << alpham << " " << alphaf << " " << thm << " " << id_man << " " << len << " " << ret.first << std::endl;
+      }
+      total++;
+    }
+  }
+
+  std::cout << wrong << "/" << total << std::endl;
+}
+
 std::vector<double>
 find_best_circle(
 	Configuration2& pi,
@@ -397,8 +498,7 @@ find_best_circle(
 ){
 	std::vector<Configuration2> points = {pi, pm, pf};
 	double kmax = curveParam[0];
-	std::pair<LEN_T, std::vector<Angle> > ret = DP().solveDP(points, fixedAngles, curveParam, discr,
-																																			 refinements);
+	std::pair<LEN_T, std::vector<Angle> > ret = DP().solveDP(points, fixedAngles, curveParam, discr, refinements);
 	if (ret.first == 0.0) {
 		std::cout << pi << std::endl << pm << std::endl << pf << std::endl;
 		throw std::runtime_error("Zero length");
@@ -407,16 +507,21 @@ find_best_circle(
 	pm.th(ret.second[1]);
 	Dubins dub1 = Dubins(pi, pm, kmax);
 	Dubins dub2 = Dubins(pm, pf, kmax);
-	//           std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
+	// std::cout << "Took " << dtime << " ms to find Dubins" << std::endl;
 	LEN_T len = dub1.l() + dub2.l();
-	// Get the manoeuvre combination, and if it's not in the 18 valid ones, search for an alternative
+	// Get the manoeuver combination, and if it's not in the 18 valid ones, search for an alternative
 	std::string man_comb = dub1.man_to_string() + dub2.man_to_string();
 	int id_man_comb = 19;
 	auto search = P3DP_DICT.find(man_comb);
 	if (search == P3DP_DICT.end()) {
+    std::pair<std::string, double> shortest;
+    shortest.first = "";
+    shortest.second = std::numeric_limits<double>::infinity();
+	  std::string D_TYPE_STR_[7] = {"INVALID", "LRL", "RLR", "LSL", "LSR", "RSL", "RSR"};
 		for (auto man: P3DP_DICT) {
 			Dubins::D_TYPE dub1_man = std::get<1>(man.second);
 			Dubins::D_TYPE dub2_man = std::get<2>(man.second);
+      std::cout << "Testing alternative: " << D_TYPE_STR_[dub1_man] << " " << D_TYPE_STR_[dub2_man] << std::endl;
 			try {
 				Dubins dub1 = Dubins(pi, pm, { kmax }, dub1_man);
 				Dubins dub2 = Dubins(pm, pf, { kmax }, dub2_man);
@@ -424,11 +529,18 @@ find_best_circle(
 					id_man_comb = std::get<0>(man.second);
 					break;
 				}
+        else if (shortest.second > std::abs(dub1.l() + dub2.l() - len)) {
+          shortest.first = dub1.man_to_string() + dub2.man_to_string();
+          shortest.second = std::abs(dub1.l() + dub2.l() - len);
+        }
 			}
 			catch (std::runtime_error &e) {
 				continue;
 			}
 		}
+    if (shortest.first != "") {
+      std::cout << "Maneuver combination not found in the dictionary. Closest is " << shortest.first << " with error " << shortest.second << " out of " << len << std::endl;
+    }
 	} else {
 		id_man_comb = std::get<0>(search->second);
 	}
@@ -575,6 +687,161 @@ void generateDataset3PDPCircle(int argc, char** argv){
   }
 
   file.close();
+}
+
+
+/**
+ * @brief Generates a dataset of 3PDP problems with the circle constraint.
+ *
+ * @param argc The number of arguments, either 1, 4 or 5. Since they are passed directly from the command line, argc is always at least 1.
+ *             If argc is 4, the arguments are kmax_min, kmax_max, k_discr. If argc is 5, the arguments are kmax_min, kmax_max, k_discr, angle_discr.
+ * @param argv
+ */
+void generateDataset3PDPCircleWithAllLabels(int argc, char** argv){
+  // double kmax_min = 1;
+  // double kmax_max = 1;
+  // double k_step = 1;
+  // int angle_discr = 5;
+
+  // if (argc == 4) {
+  //   kmax_min = std::stof(argv[1]);
+  //   kmax_max = std::stof(argv[2]);
+  //   k_step  = std::stof(argv[3]);
+  // }
+  // else if (argc == 5) {
+  //   kmax_min = std::stof(argv[1]);
+  //   kmax_max = std::stof(argv[2]);
+  //   k_step  = std::stof(argv[3]);
+  //   angle_discr = std::stoi(argv[4]);
+  // }
+
+  // // Open file named 3PDS.csv
+  // std::string filename_base = "3PDS_CircleLabels" + std::to_string(angle_discr) + "_" + std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + std::to_string(k_step);
+  // std::string filename = filename_base + ".csv";
+  // std::string filename_log = filename_base + ".log";
+
+  // uint64_t counter = 0;
+  // uint64_t prev_counter = 0;
+  // uint64_t actual_counter = 0;
+
+	// uint64_t k_discr = (kmax_max-kmax_min)/k_step;
+	// std::vector<double> k_discrs (k_discr, 0.0);
+	// double dth = 2.0 * m_pi / angle_discr;
+	// std::vector<double> th_discrs (angle_discr, dth/2.0);
+
+	// std::generate(k_discrs.begin(), k_discrs.end(), [k_step, kmax_tmp = kmax_min]() mutable {
+	// 	return (kmax_tmp += k_step);
+	// });
+
+	// std::generate(th_discrs.begin(), th_discrs.end(), [dth, th = m_pi]() mutable{
+	// 	return (th -= dth);
+	// });
+
+  // uint64_t tot_counter = th_discrs.size()*th_discrs.size()*th_discrs.size()*th_discrs.size()*k_discrs.size();
+  // std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests." << std::endl;
+
+  // std::cout << "Writing entries to " << filename << std::endl;
+  // std::ofstream file(filename);
+  // if (!file.is_open()) {
+  //   std::cout << "Error opening db " << filename << std::endl;
+  //   return;
+  // }
+
+  // std::cout << "Writing log to " << filename_log << std::endl;
+  // std::ofstream log_file(filename_log);
+  // std::streambuf* coutbuf = nullptr;
+  // if (!log_file.is_open()) {
+  //   std::cout << "Error opening log file " << filename_log << std::endl;
+  //   return;
+  // }
+  // else {
+  //   coutbuf = std::cout.rdbuf();
+  //   std::cout.rdbuf(log_file.rdbuf());
+  // }
+
+  // std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
+
+  // file << "kmax" << " " << "theta_i" << " " << "theta_f" << " " << "alpha_m" << " "
+  //      << "alpha_f" << " " << "th_m" << " " << "id_man_comb" << " " << "len" << std::endl;
+
+  // std::cout << "k_discrs: " << k_discrs.size() << std::endl;
+  // for(auto kmax_tmp : k_discrs){
+  //   std::cout << kmax_tmp << " ";
+  // }
+  // std::cout << std::endl;
+  // std::cout << "th_discrs: " << th_discrs.size() << std::endl;
+  // for(auto th : th_discrs){
+  //   std::cout << th << " ";
+  // }
+  // std::cout << "Total: " << k_discrs.size()*th_discrs.size()*th_discrs.size()*th_discrs.size()*th_discrs.size() << std::endl;
+
+  // for (auto kmax : k_discrs){
+  //   TimePerf time1; time1.start();
+  //   for (double theta_i : th_discrs){
+  //     for (double theta_f : th_discrs) {
+  //       for (double alpha_m : th_discrs) {
+  //         for (double alpha_f : th_discrs) {
+  //           Configuration2 pi = Configuration2(1, 0, theta_i);
+  //           Configuration2 pm = Configuration2(cos(alpha_m), sin(alpha_m), 0);
+  //           Configuration2 pf = Configuration2(cos(alpha_f), sin(alpha_f), theta_f);
+
+  //           if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
+  //             counter ++;
+  //             // Solve multipoint problem
+  //             std::vector<Configuration2> points = {pi, pm, pf};
+  //             std::vector<bool> fixedAngles = {true, false, true};
+  //             std::vector<double> curveParam = { kmax };
+  //             int discr = 90;
+  //             int refinements = 4;
+  //             TimePerf time;
+  //             time.start();
+
+  //             std::vector<std::pair<double, int>> results;
+  //             for(int man1 = 1; man1 < 7; man1++){
+  //               for(int man2 = 1; man2 < 7; man2++){
+  //                 Dubins::D_TYPE man1_type = static_cast<Dubins::D_TYPE>(man1);
+  //                 Dubins::D_TYPE man2_type = static_cast<Dubins::D_TYPE>(man2);
+  //                 Dubins dub1 = Dubins(pi, pm, curveParam, man1_type);
+  //                 Dubins dub2 = Dubins(pm, pf, curveParam, man2_type);
+  //                 LEN_T len = dub1.l() + dub2.l();
+  //                 file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " "
+  //                      << alpha_f << " " << pm.th() << " " << man1 << " " << man2 << " " << len << std::endl;
+  //               }
+  //             }
+
+
+  //             auto dtime = time.getTime();
+
+  //           	int id_man_comb = static_cast<int>(res[0]);
+  //           	double len = res[1];
+
+  //             // Write data to file
+  //             file << std::setprecision(5) << kmax << " " << theta_i << " " << theta_f << " " << alpha_m << " "
+  //                   << alpha_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
+  //           }
+
+  //           // Print time
+  //           auto dtime1 = time1.getTime();
+  //         	auto part = tot_counter > 100 ? tot_counter/100 : 1;
+  //           if (counter % part == 0) {
+  //             std::cout << 100.0 * counter / tot_counter << "% " << counter << " in " << dtime1 << "ms, avg " << (dtime1/(1.0*(counter-prev_counter))) << "ms" << std::endl;
+  //             prev_counter = counter;
+  //             time1.start();
+  //           }
+  //           counter ++;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
+  // std::cout << "Generated " << PrintScientificLargeInt(actual_counter) << " entries to " << filename << std::endl;
+
+  // if (coutbuf != nullptr){
+  //   std::cout.rdbuf(coutbuf);
+  // }
+
+  // file.close();
 }
 
 /**
