@@ -17,8 +17,8 @@ from tqdm import tqdm  # Progress bar
 from pathlib import Path
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "regression", "datasets")
-DATASET_NAME = "small.csv"
+DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "..", "datasets")
+DATASET_NAME = "big_smaller.csv"
 DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
 SAVE_PATH = os.path.join(PROJECT_PATH, "models")
 SAVE_NAME = os.path.join(SAVE_PATH, "model.pt")
@@ -26,6 +26,7 @@ DO_PLOTS = True
 
 # Set device to GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = "cpu"
 print("Using device:", device)
 
 def model_train(model, X_train, y_class_train, y_reg_train, X_val, y_class_val, y_reg_val):
@@ -37,8 +38,8 @@ def model_train(model, X_train, y_class_train, y_reg_train, X_val, y_class_val, 
 
     optimizer = optim.AdamW(model.parameters(), lr=0.001)
 
-    n_epochs = 300
-    batch_size = 8
+    n_epochs = 100
+    batch_size = 16
 
     train_losses, val_losses = [], []
     train_accuracies, val_accuracies = [], []
@@ -142,7 +143,8 @@ def model_train(model, X_train, y_class_train, y_reg_train, X_val, y_class_val, 
         plt.ylabel("Accuracy")
         plt.legend()
 
-        plt.show()
+        # plt.show()
+        plt.savefig("loss_accuracy_multitask.png")
 
     return best_val_loss
 

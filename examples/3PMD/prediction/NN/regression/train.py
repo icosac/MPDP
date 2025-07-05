@@ -16,7 +16,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "regression", "datasets")
+DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "..", "datasets")
 DATASET_NAME = "small.csv"
 DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
 
@@ -27,6 +27,7 @@ DO_PLOTS = True
 
 # Set device to GPU if available, otherwise use CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = "cpu"
 print("Using device:", device)
 
 def model_train(model, X_train, y_train, X_val, y_val):
@@ -36,8 +37,8 @@ def model_train(model, X_train, y_train, X_val, y_val):
     loss_fn = nn.MSELoss()  
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
-    n_epochs = 100  
-    batch_size = 8  
+    n_epochs = 5
+    batch_size = 16  
 
     train_losses, val_losses = [], []
 
@@ -97,7 +98,8 @@ def model_train(model, X_train, y_train, X_val, y_val):
         plt.ylabel("Loss (MSE)")
         plt.title("Training vs Validation Loss")
         plt.legend()
-        plt.show()
+        # plt.show()
+        plt.savefig("loss_regression.png")
 
     return best_loss
 

@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, WeightedRandomSampler
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
@@ -17,7 +17,7 @@ from tqdm import tqdm  # Progress bar
 from pathlib import Path
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent, "regression", "datasets")
+DATASETS_PATH = os.path.join(Path(PROJECT_PATH).parent.parent, "datasets")
 DATASET_NAME = "small.csv"
 DATASET_PATH = os.path.join(DATASETS_PATH, DATASET_NAME)
 SAVE_PATH = os.path.join(PROJECT_PATH, "models")
@@ -28,20 +28,43 @@ DO_PLOTS = True
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
+def create_weighted_sampler(y):
+    """
+    Create a weighted sampler for imbalanced datasets.
+    """
+    class_counts = np.sum(y, axis=0)  # Sum one-hot encoded labels along rows
+    total_samples = len(y)
+    class_weights = total_samples / (len(class_counts) * class_counts)
+    sample_weights = [class_weights[label] for label in np.argmax(y, axis=1)]
+    return WeightedRandomSampler(sample_weights, len(sample_weights))
+
+def compute_class_weights(y):
+    """
+    Compute class weights based on the class distribution.
+    """
+    class_counts = np.sum(y, axis=0)  # Sum one-hot encoded labels along rows
+    total_samples = len(y)
+    class_weights = total_samples / (len(class_counts) * class_counts)
+    return torch.tensor(class_weights, dtype=torch.float32).to(device)
+
 def model_train(model, X_train, y_train, X_val, y_val):
     model.to(device)
 
-    # Loss function & optimizer
-    loss_fn = nn.CrossEntropyLoss()  # For multi-class classification
+    # Compute class weights
+    class_weights = compute_class_weights(y_train.cpu().numpy())
+    
+    # Loss function with class weights
+    loss_fn = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.AdamW(model.parameters(), lr=0.001)
 
-    n_epochs = 300
-    batch_size = 8
+    n_epochs = 10
+    batch_size = 32
 
     train_losses, val_losses = [], []
     train_accuracies, val_accuracies = [], []
 
-    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
+    sampler = create_weighted_sampler(y_train.cpu().numpy())
+    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, sampler=sampler)
     val_loader = DataLoader(TensorDataset(X_val, y_val), batch_size=batch_size, shuffle=False)
 
     best_acc = -np.inf
@@ -141,6 +164,13 @@ def evaluate_model(model, X_test, y_test):
     return y_pred.cpu().numpy(), y_test.cpu().numpy()
 
 
+def preprocess_data(data):
+    # Compute cosine and sine for angle features
+    for angle in ['theta_i', 'theta_f', 'alpha_m', 'alpha_f']:
+        data[f'{angle}_cos'] = np.cos(np.radians(data[angle]))
+        data[f'{angle}_sin'] = np.sin(np.radians(data[angle]))
+    return data
+
 def main():
     assert os.path.exists(DATASET_PATH), f"Dataset {DATASET_PATH} does not exist"
     if SAVE_NAME:
@@ -149,7 +179,13 @@ def main():
     time_start = clock()
 
     data = pd.read_csv(DATASET_PATH, sep='\s+')
-    features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
+    
+    # Preprocess data to add cosine and sine of angles
+    data = preprocess_data(data)
+    
+    # Update feature list to include cosine and sine of angles
+    features = ['kmax', 'theta_i_cos', 'theta_i_sin', 'theta_f_cos', 'theta_f_sin',
+                'alpha_m_cos', 'alpha_m_sin', 'alpha_f_cos', 'alpha_f_sin']
     target = 'id_man_comb'
 
     X = data[features].values
@@ -177,6 +213,11 @@ def main():
     print("Precision:", precision_score(y_test_np, y_pred_np, average='weighted'))
     print("Recall:", recall_score(y_test_np, y_pred_np, average='weighted'))
     print("F1 Score:", f1_score(y_test_np, y_pred_np, average='weighted'))
+
+    # Save X test and y test in one csv with header features and target 
+    test_data = pd.DataFrame(X_test.numpy(), columns=features)
+    test_data[target] = encoder.inverse_transform(y_test)
+    test_data.to_csv(os.path.join(SAVE_PATH, "test_data.csv"), index=False, sep=' ')
 
     # Save model
     if SAVE_NAME:
