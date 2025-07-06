@@ -1,0 +1,7 @@
+-r requirements.pytorch.txt
+scikit-learn
+pandas
+numpy
+matplotlib
+tqdm
+seaborn
