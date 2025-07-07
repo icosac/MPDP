@@ -24,6 +24,7 @@ class NeuralNet(nn.Module):
         
     def forward(self, x):
         out = self.linear_stack(x)
+        # No softmax here; BCEWithLogitsLoss expects raw logits
         return out
     
     def initialize_weights(self):

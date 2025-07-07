@@ -45,6 +45,8 @@ class NeuralNet(nn.Module):
           nn.ReLU(),
           nn.Linear(hid_size, hid_size),
           nn.ReLU(),
+          nn.Linear(hid_size, hid_size),
+          nn.ReLU(),
           nn.Linear(hid_size, hid_size // 2),
           nn.ReLU(),
           nn.Dropout(0.2),
@@ -62,3 +64,16 @@ class NeuralNet(nn.Module):
             if isinstance(layer, nn.Linear):
                 nn.init.xavier_normal_(layer.weight)
                 nn.init.zeros_(layer.bias)
+
+
+# -- 5 layers 
+# 128 - Test MSE 0.3318 MAE 0.1601
+# 256 - Test MSE 0.3017 MAE 0.1430
+# 512 - Test MSE 0.2766 MAE 0.1252
+
+# -- 4 layers
+# 512 - Test MSE 0.3252 MAE 0.1615
+
+# -- 6 layers
+# 128 - Test MSE 0.3363 MAE 0.1611
+# 512 - Test MSE 0.2718 MAE 0.1244

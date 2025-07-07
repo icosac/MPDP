@@ -6,6 +6,7 @@ plotly
 scikit-learn
 tensorflow
 annoy
+seaborn
 
 onnx
 skl2onnx

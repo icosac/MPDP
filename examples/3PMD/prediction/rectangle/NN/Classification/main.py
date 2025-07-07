@@ -21,7 +21,7 @@ EPOCHS      = 15
 PATIENCE    = 10
 LEARN_RATE  = 0.0001
 WEIGHT_DEC  = 1e-5
-HIDDEN_SIZE = 128
+HIDDEN_SIZE = 1024
 
 TRIG_FUNCS  = True  # Use trigonometric features
 
