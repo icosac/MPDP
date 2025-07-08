@@ -21,7 +21,7 @@ EPOCHS      = 15
 PATIENCE    = 10
 LEARN_RATE  = 0.0001
 WEIGHT_DEC  = 1e-5
-HIDDEN_SIZE = 1024
+HIDDEN_SIZE = 128
 
 TRIG_FUNCS  = True  # Use trigonometric features
 
@@ -34,7 +34,7 @@ DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets")
 MODELS_PATH    = os.path.join(PROJECT_PATH, "models")
 PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
 
-DATASET_NAME   = os.path.join(DATASET_PATH, "/Users/enrico/Projects/mpdp/small_rec.csv")
+DATASET_NAME   = os.path.join(DATASET_PATH, "/Users/enrico/Projects/mpdp/small_rect_string.csv")
 MODEL_NAME     = os.path.join(MODELS_PATH, 'model.pt')
 ONNX_NAME      = os.path.join(MODELS_PATH, 'model.onnx')
 

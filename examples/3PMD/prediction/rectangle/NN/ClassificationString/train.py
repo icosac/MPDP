@@ -125,7 +125,7 @@ def evaluate_model(model, test_loader, criterion, device):
     
     # Generate classification report
     print("\nClassification Report:")
-    print(classification_report(all_targets, all_preds))
+    print(classification_report(all_targets, all_preds, zero_division=0))
     
     # Get datasets object to access label mapping if needed
     dataset = test_loader.dataset
