@@ -17,11 +17,11 @@ import os
 from pathlib import Path
 
 BATCH_SIZE  = 32
-EPOCHS      = 15
+EPOCHS      = 2
 PATIENCE    = 10
 LEARN_RATE  = 0.0001
 WEIGHT_DEC  = 1e-5
-HIDDEN_SIZE = 1024
+HIDDEN_SIZE = 64
 
 TRIG_FUNCS  = True  # Use trigonometric features
 
@@ -103,22 +103,23 @@ class ModelInference:
         self.model.to(device)
         self.model.eval()
         
-    def predict(self, features):
+    def predict(self, features, topk=1):
         """
-        Predicts the class of a sample.
+        Predicts the top-k classes of a sample.
         
         Args:
-            features: Features as numpy array shape (5,) or (n, 5)
+            features: Features as numpy array shape (n_features,) or (n_samples, n_features)
+            topk: Number of top predictions to return (default 4)
         
         Returns:
-            Tuple of (predicted_class, original_class_label) or arrays of these
+            Tuple of (topk_predicted_classes, topk_original_class_labels)
         """
         # Handle single sample vs batch
         single_sample = False
         if len(features.shape) == 1:
             features = features.reshape(1, -1)
             single_sample = True
-            
+        
         # Preprocess features
         features = self.scaler.transform(features)
         features = torch.FloatTensor(features).to(self.device)
@@ -126,22 +127,21 @@ class ModelInference:
         # Get prediction
         with torch.no_grad():
             outputs = self.model(features)
-            # get topk results
-            # _, predicted = torch.topk(outputs, 3, dim=1)
-            _, predicted = torch.max(outputs, 1)
-            
-        model_output = predicted.cpu().numpy()
+            probs = torch.softmax(outputs, dim=1)
+            top_probs, top_indices = torch.topk(probs, topk, dim=1)
+        
+        model_outputs = top_indices.cpu().numpy()
         
         # Map back to original labels if mapping exists
         if self.inverse_mapping:
-            original_labels = np.array([self.inverse_mapping[idx] for idx in model_output])
+            original_labels = np.vectorize(self.inverse_mapping.get)(model_outputs)
         else:
-            original_labels = model_output
+            original_labels = model_outputs
         
         if single_sample:
-            return model_output[0], original_labels[0]
+            return model_outputs[0], original_labels[0]
         else:
-            return model_output, original_labels
+            return model_outputs, original_labels
     
 
 
@@ -262,7 +262,7 @@ def main(data_path, model_save_path=MODEL_NAME):
         
         # Evaluate on test set
         print("\nEvaluating on test set...")
-        test_acc, _, _ = evaluate_model(trained_model, test_loader, criterion, device)
+        test_acc, _, _ = evaluate_model(trained_model, test_loader, criterion, device, num_classes)
     
     scaler = dataset.get_scaler()
     label_mapping, inverse_mapping = dataset.get_label_mapping()
