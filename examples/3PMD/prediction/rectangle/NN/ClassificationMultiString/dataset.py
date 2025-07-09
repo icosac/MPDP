@@ -43,28 +43,24 @@ class DubinsDatasetRectangle(Dataset):
             self.features = self.data.iloc[:, 0:7].values
             self.labels = self.data.iloc[:, 8].values  
         
-        # Normalize labels to start from 0
+        # Convert all labels to string type
+        self.labels = self.labels.astype(str)
         unique_labels = np.unique(self.labels)
         print(f"Original unique labels: {unique_labels}")
-        
-        # Create a mapping from original labels to 0-indexed labels
+        # Create a mapping from string labels to 0-indexed integers
         self.label_mapping = {original: idx for idx, original in enumerate(unique_labels)}
         self.inverse_mapping = {idx: original for original, idx in self.label_mapping.items()}
-        
-        # Map the labels to 0-indexed values
-        self.labels = np.array([self.label_mapping[label] for label in self.labels])
+        # Map the string labels to 0-indexed integer values for training
+        self.labels_idx = np.array([self.label_mapping[label] for label in self.labels])
         print(f"Label mapping: {self.label_mapping}")
-        
         # Scale features
         self.scaler = StandardScaler()
         self.features = self.scaler.fit_transform(self.features)
-        
         # Convert to tensors
         self.features = torch.FloatTensor(self.features)
-        self.labels = torch.LongTensor(self.labels)
-        
+        self.labels_idx = torch.LongTensor(self.labels_idx)
         # Get number of unique classes
-        self.num_classes = len(np.unique(self.labels))
+        self.num_classes = len(unique_labels)
         
     def __len__(self):
         return len(self.data)
@@ -72,14 +68,11 @@ class DubinsDatasetRectangle(Dataset):
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
-            
         features = self.features[idx]
-        label = self.labels[idx]
-        
+        label_idx = self.labels_idx[idx]
         if self.transform:
             features = self.transform(features)
-            
-        return features, label
+        return features, label_idx
     
     def get_scaler(self):
         return self.scaler

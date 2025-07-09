@@ -83,7 +83,6 @@ class ModelInference:
     def __init__(self, model_path, scaler, input_size, hidden_size, num_classes, device='cpu', inverse_mapping=None):
         """
         Class for inference with a trained model.
-        
         Args:
             model_path: Path to the saved model
             scaler: StandardScaler fit on training data
@@ -96,20 +95,20 @@ class ModelInference:
         self.device = device
         self.scaler = scaler
         self.inverse_mapping = inverse_mapping
-        
         # Initialize model
         self.model = NeuralNet(input_size, hidden_size, num_classes)
         self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.to(device)
         self.model.eval()
-        
-    def predict(self, features):
+
+    def predict(self, features, topk=4):
         """
-        Predicts the class of a sample.
+        Predicts the top-k classes of a sample.
         Args:
             features: Features as numpy array shape (n_features,) or (n, n_features)
+            topk: Number of top predictions to return
         Returns:
-            Tuple of (predicted_class_idx, predicted_class_label) or arrays of these
+            Tuple of (topk_indices, topk_labels, topk_probs)
         """
         single_sample = False
         if len(features.shape) == 1:
@@ -119,17 +118,19 @@ class ModelInference:
         features = torch.FloatTensor(features).to(self.device)
         with torch.no_grad():
             outputs = self.model(features)
-            _, predicted = torch.max(outputs, 1)
-        model_output = predicted.cpu().numpy()
-        # Map back to string labels
+            probs = torch.softmax(outputs, dim=1)
+            topk_probs, topk_indices = torch.topk(probs, topk, dim=1)
+        topk_indices_np = topk_indices.cpu().numpy()
+        topk_probs_np = topk_probs.cpu().numpy()
+        # Map back to string labels if available
         if self.inverse_mapping:
-            original_labels = np.array([self.inverse_mapping[idx] for idx in model_output])
+            topk_labels = np.vectorize(self.inverse_mapping.get)(topk_indices_np)
         else:
-            original_labels = model_output
+            topk_labels = topk_indices_np
         if single_sample:
-            return model_output[0], original_labels[0]
+            return topk_indices_np[0], topk_labels[0], topk_probs_np[0]
         else:
-            return model_output, original_labels
+            return topk_indices_np, topk_labels, topk_probs_np
     
 
 
@@ -259,15 +260,16 @@ def main(data_path, model_save_path=MODEL_NAME):
     # Class of this sample is 12
     if TRIG_FUNCS:
         from math import sin, cos
-        example_features = np.array([1, 0.1, 0, 0.1, 0.5, sin(-0.2618), cos(-0.2618), sin(1.5708), cos(1.5708)])  
+        example_features = np.array([1, 0.1, 0, 0.1, 0.5, sin(-0.2618), cos(-0.2618), sin(1.5708), cos(1.5708)])
     else:
         example_features = np.array([1, 0.1, 0, 0.1, 0.5, -0.2618, 1.5708])
 
-    # Predict
-    predicted_class, original_class = inference.predict(example_features)
+    # Predict top-4
+    topk_indices, topk_labels, topk_probs = inference.predict(example_features, topk=4)
     print(f"Example features: {example_features}")
-    # print(f"Predicted class (model output): {predicted_class}")
-    print(f"Original class ID (in your data): {original_class}")
+    print(f"Top-4 predicted class indices: {topk_indices}")
+    print(f"Top-4 predicted class labels: {topk_labels}")
+    print(f"Top-4 probabilities: {topk_probs}")
     
     if EXPORT_TO_ONNX:
         export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())

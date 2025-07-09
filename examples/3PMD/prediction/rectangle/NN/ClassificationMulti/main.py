@@ -47,7 +47,7 @@ os.makedirs(PLOT_PATH,   exist_ok=True)
 
 def plot_training_results(history):
     """
-    Plots training and validation metrics
+    Plots training and validation metrics.
     
     Args:
         history: Dictionary containing training history
@@ -103,23 +103,23 @@ class ModelInference:
         self.model.to(device)
         self.model.eval()
         
-    def predict(self, features, top_k=4):
+    def predict(self, features, topk=4):
         """
-        Predicts the class of a sample.
+        Predicts the top-k classes of a sample.
         
         Args:
-            features: Features as numpy array shape (5,) or (n, 5)
-            top_k: Number of top classes to return (for multi-label problems)
+            features: Features as numpy array shape (n_features,) or (n_samples, n_features)
+            topk: Number of top predictions to return (default 4)
         
         Returns:
-            Tuple of (predicted_class, original_class_label) or arrays of these
+            Tuple of (topk_predicted_classes, topk_original_class_labels)
         """
         # Handle single sample vs batch
         single_sample = False
         if len(features.shape) == 1:
             features = features.reshape(1, -1)
             single_sample = True
-            
+        
         # Preprocess features
         features = self.scaler.transform(features)
         features = torch.FloatTensor(features).to(self.device)
@@ -127,20 +127,21 @@ class ModelInference:
         # Get prediction
         with torch.no_grad():
             outputs = self.model(features)
-            # Get top-k results for multi-label
-            topk_vals, topk_indices = torch.topk(outputs, top_k, dim=1)
-        model_output = topk_indices.cpu().numpy()
+            probs = torch.softmax(outputs, dim=1)
+            top_probs, top_indices = torch.topk(probs, topk, dim=1)
+        
+        model_outputs = top_indices.cpu().numpy()
         
         # Map back to original labels if mapping exists
         if self.inverse_mapping:
-            original_labels = np.array([[self.inverse_mapping[idx] for idx in row] for row in model_output])
+            original_labels = np.vectorize(self.inverse_mapping.get)(model_outputs)
         else:
-            original_labels = model_output
+            original_labels = model_outputs
         
         if single_sample:
-            return model_output[0], original_labels[0]
+            return model_outputs[0], original_labels[0]
         else:
-            return model_output, original_labels
+            return model_outputs, original_labels
     
 
 
@@ -241,7 +242,7 @@ def main(data_path, model_save_path=MODEL_NAME):
     model = NeuralNet(input_size, HIDDEN_SIZE, num_classes)
     
     # Define loss function and optimizer
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
     
     if DO_TRAINING:
@@ -275,16 +276,14 @@ def main(data_path, model_save_path=MODEL_NAME):
         example_features = np.array([1, 0.1, 0, 0.1, 0.5, -0.2618, 1.5708])
 
     # Predict
-    predicted_classes, original_classes = inference.predict(example_features)
+    predicted_class, original_class = inference.predict(example_features)
     print(f"Example features: {example_features}")
-    print(f"Top-4 predicted class indices: {predicted_classes}")
-    print(f"Top-4 original class IDs (in your data): {original_classes}")
-    print("Note: The label for each sample is a set of valid classes. Prediction is considered correct if any predicted class is in the set.")
+    # print(f"Predicted class (model output): {predicted_class}")
+    print(f"Original class ID (in your data): {original_class}")
     
     if EXPORT_TO_ONNX:
         export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
 
 
 if __name__ == "__main__":
-    main(DATASET_NAME)
     main(DATASET_NAME)

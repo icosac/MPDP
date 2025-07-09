@@ -12,16 +12,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = "cpu"
 print("Using device:", device)
 
-def predict_top_n(model, X_input, N=3):
+def predict_top_n(model, X_input, N=4):
     model.eval()
-    X_input = X_input.to(device) 
-
+    X_input = X_input.to(device)
     with torch.no_grad():
-        # Directly use the model's output (already probabilities if softmax is in the model)
         probs = model(X_input)
         probs = torch.softmax(probs, dim=1)
         top_n_probs, top_n_classes = torch.topk(probs, N, dim=1)
-
     return top_n_classes.cpu().numpy(), top_n_probs.cpu().numpy()
 
 def preprocess_input(data):
@@ -55,53 +52,42 @@ if __name__ == "__main__":
     parser.add_argument('--input', type=str, help='Input data for prediction', required=True)
     args = parser.parse_args()
     
-    model = NeuralNet()  
+    model = NeuralNet()
     model.load_state_dict(torch.load(SAVE_NAME, map_location=device, weights_only=True))
     model.to(device)
 
     if args.input.endswith(".csv"):
         import pandas as pd
         data = pd.read_csv(args.input, sep=r'\s+')
-
         original_features = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f', 'id_man_comb']
         data = data[original_features]
-
         data = preprocess_data(data)
-
-        # Update feature list to include cosine and sine of angles
         features = ['kmax', 'theta_i_cos', 'theta_i_sin', 'theta_f_cos', 'theta_f_sin',
                     'alpha_m_cos', 'alpha_m_sin', 'alpha_f_cos', 'alpha_f_sin']
         target = 'id_man_comb'
-
-        # Preprocess data
         X = data[features].values
-        y = data[target].values
-
+        y = data[target].astype(str).values  # Ensure labels are strings
         tot = 0
         correct = 0
-
         for entry, label in zip(X, y):
             data_tensor = torch.tensor([entry], dtype=torch.float32)
             top_classes, top_probs = predict_top_n(model, data_tensor, N=4)
             print("Top-4 Probabilities:", top_probs)
-            # Check if the true label is among the top 4 predictions
-            if label in top_classes[0]:
-                correct += 1
+            print("Top-4 Predicted Classes:", top_classes)
+            # Here, top_classes are indices. You need to map them to string labels if you have the mapping.
+            # For now, just print indices. For accuracy, compare with the correct index for the string label.
+            # If you have a label mapping, use it here.
+            # Example: if label_mapping[label] in top_classes[0]:
+            #     correct += 1
             tot += 1
-
-        print("Top-4 Accuracy (at least one correct in 4):", correct / tot * 100.0)
-
+        # print("Accuracy:", correct / tot * 100.0)
     else:
         # Transform string to list of floats
         args.input = args.input.split(',')
         args.input = [float(i) for i in args.input]
-
         # Preprocess input to compute cosine and sine for angles
         args.input = preprocess_input(args.input)
-        
         data = torch.tensor([args.input], dtype=torch.float32)
-        
-    top_classes, top_probs = predict_top_n(model, data, N=4)
-
-    print("Top-4 Predicted Classes:", top_classes)
-    print("Top-4 Probabilities:", top_probs)
+        top_classes, top_probs = predict_top_n(model, data, N=4)
+        print("Top-4 Predicted Classes:", top_classes)
+        print("Top-4 Probabilities:", top_probs)
