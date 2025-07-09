@@ -12,7 +12,7 @@ class DubinsDatasetRectangle(Dataset):
             transform (callable, optional): Optional transform to be applied on a sample.
         """
         # Load data from CSV
-        self.data = pd.read_csv(data_path, delim_whitespace=True)  # Use whitespace as delimiter
+        self.data = pd.read_csv(data_path, sep='\s+')  # Use whitespace as delimiter
         print(f"Loaded columns: {self.data.columns.tolist()}")
         self.transform = transform
         
