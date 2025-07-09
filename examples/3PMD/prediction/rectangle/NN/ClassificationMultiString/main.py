@@ -17,11 +17,11 @@ import os
 from pathlib import Path
 
 BATCH_SIZE  = 32
-EPOCHS      = 15
+EPOCHS      = 2
 PATIENCE    = 10
 LEARN_RATE  = 0.0001
 WEIGHT_DEC  = 1e-5
-HIDDEN_SIZE = 1024
+HIDDEN_SIZE = 64
 
 TRIG_FUNCS  = True  # Use trigonometric features
 
@@ -251,7 +251,7 @@ def main(data_path, model_save_path=MODEL_NAME):
         
         # Evaluate on test set
         print("\nEvaluating on test set...")
-        test_acc, _, _ = evaluate_model(trained_model, test_loader, criterion, device)
+        test_acc, _, _ = evaluate_model(trained_model, test_loader, criterion, device, num_classes)
     
     scaler = dataset.get_scaler()
     label_mapping, inverse_mapping = dataset.get_label_mapping()

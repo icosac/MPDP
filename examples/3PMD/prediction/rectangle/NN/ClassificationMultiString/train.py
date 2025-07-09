@@ -86,32 +86,33 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
     model.load_state_dict(best_model_state)
     return model, {"train_losses": train_losses, "val_losses": val_losses, "train_accs": train_accs, "val_accs": val_accs}
 
-def evaluate_model(model, test_loader, criterion, device):
-    
+
+def evaluate_model(model, test_loader, criterion, device, num_classes):
     model.eval()
     running_loss = 0.0
     all_targets = []
     all_topk_preds = []
-    k = 4  # Number of classes to consider for top-k accuracy
     with torch.no_grad():
         for inputs, labels in test_loader:
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             running_loss += loss.item() * inputs.size(0)
-            _, topk_preds = torch.topk(outputs, k, dim=1)
+            _, topk_preds = torch.topk(outputs, num_classes, dim=1)
             all_topk_preds.append(topk_preds.cpu().numpy())
             all_targets.extend(labels.cpu().numpy())
     # Flatten predictions
     all_topk_preds = np.concatenate(all_topk_preds, axis=0)
-    # Compute top-k accuracy: at least one of the predicted classes is correct
-    correct = 0
-    for i, label in enumerate(all_targets):
-        if label in all_topk_preds[i]:
-            correct += 1
+    for k in range(1, num_classes + 1):
+        # Compute top-k accuracy: at least one of the predicted classes is correct
+        correct = 0
+        for i, label in enumerate(all_targets):
+            if label in all_topk_preds[i][:k]:
+                correct += 1
+        test_acc = correct / len(all_targets)
+        print(f'Test Top-{k} Accuracy: {test_acc:.4f}')
     test_loss = running_loss / len(test_loader.dataset)
-    test_acc = correct / len(all_targets)
-    print(f'Test Loss: {test_loss:.4f}, Test Top-{k} Accuracy: {test_acc:.4f}')
+    print(f'Test Loss: {test_loss:.4f}')
     # For reporting, use the top-1 prediction for confusion matrix and report
     all_preds = all_topk_preds[:, 0]
     print("\nClassification Report (Top-1):")
