@@ -29,6 +29,7 @@ file*.txt
 inc/
 tmp.txt
 
+*.zip
 *.pdf
 *.png
 
