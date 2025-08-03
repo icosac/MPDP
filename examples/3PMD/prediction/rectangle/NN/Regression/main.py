@@ -14,32 +14,38 @@ from train import model_train, evaluate_model
 
 import os
 from pathlib import Path
+import time
 
-BATCH_SIZE  = 16
-EPOCHS      = 15
-PATIENCE    = 10
-LEARN_RATE  = 0.0001
-WEIGHT_DEC  = 1e-3
-HIDDEN_SIZE = 128*2*2
+import yaml
+import argparse
+
+
+BATCH_SIZE  = 1
+EPOCHS      = 1
+PATIENCE    = 1
+WEIGHT_DEC  = 1
+LEARN_RATE  = 1
+HIDDEN_SIZE = 1
 
 TRIG_FUNCS   = True  # Use trigonometric features
 
 DO_TRAINING    = True
 USE_ONLY_CPU   = False
-EXPORT_TO_ONNX = False
+EXPORT_TO_ONNX = True
 
 THIS_FILE_PATH = os.path.abspath(__file__)
 PROJECT_PATH   = Path(THIS_FILE_PATH).parent
 DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets")
-MODELS_PATH    = os.path.join(PROJECT_PATH, "models")
+MODEL_PATH     = os.path.join(PROJECT_PATH, "models")
 PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
 
-DATASET_NAME   = os.path.join("/Users/enrico/Projects/mpdp/small_rec.csv")
-MODEL_NAME     = os.path.join(MODELS_PATH, 'model_regression.pt')
-ONNX_NAME      = os.path.join(MODELS_PATH, 'model_regression.onnx')
+SLURM_JOB_ID   = os.environ.get('SLURM_JOB_ID', '')
+SLURM_ID_STR   = f"_{SLURM_JOB_ID}" if SLURM_JOB_ID else ""
 
-os.makedirs(MODELS_PATH, exist_ok=True)
-os.makedirs(PLOT_PATH,   exist_ok=True)
+DATASET_NAME   = os.path.join("/Users/enrico/Projects/mpdp/small_rect.csv")
+MODEL_NAME     = os.path.join(MODEL_PATH, 'model_regression{}.pt'.format(SLURM_ID_STR))
+ONNX_NAME      = os.path.join(MODEL_PATH, 'model_regression{}.onnx'.format(SLURM_ID_STR))
+
 
 #################################################
 ################ PLOT FUNCS #####################
@@ -47,7 +53,7 @@ os.makedirs(PLOT_PATH,   exist_ok=True)
 
 def plot_training_results(history):
     """
-    Plots training and validation metrics.
+    Plots training and validation metrics
     
     Args:
         history: Dictionary containing training history
@@ -63,7 +69,7 @@ def plot_training_results(history):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig(os.path.join(PLOT_PATH, 'training_history.png'))
+    plt.savefig(os.path.join(PLOT_PATH, 'training_history{}.png'.format(SLURM_ID_STR)))
 
 #################################################
 ################ INFERENCE CLASS ################
@@ -228,98 +234,129 @@ def main(data_path, model_save_path=MODEL_NAME):
     optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
     
     if DO_TRAINING:
+        training_time = time.time()
         # Train model       
         print("Starting training...")
         trained_model, history = model_train(
             model, train_loader, val_loader, criterion, optimizer, device, 
             num_epochs=EPOCHS, patience=PATIENCE
         )
-        
+
+        print(f"Training completed in {time.time() - training_time:.4f} seconds")
+        training_time = time.time()
+
         # Save the model
         torch.save(trained_model.state_dict(), model_save_path)
-        print(f"Model saved to {model_save_path}")
+        if EXPORT_TO_ONNX:
+            export_to_onnx(trained_model, ONNX_NAME, input_size, dataset.get_scaler())
+        print(f"Model saved to {model_save_path} in {time.time() - training_time:.4f} seconds")
         
         # Plot training results
         plot_training_results(history)
         
         # Evaluate on test set
         print("\nEvaluating on test set...")
-        test_loss, _, _ = evaluate_model(trained_model, test_loader, criterion, device)
+        training_time = time.time()
+        test_loss, _, _ = evaluate_model(trained_model, test_loader, criterion, device, plot_path=PLOT_PATH, slurm_id_str=SLURM_ID_STR, eval_test=True)
+        print(f"Model evaluation complete in {time.time() - training_time:.4f} seconds")
+    
+    else:
+        scaler = dataset.get_scaler()
+        inference = ModelInference(model_save_path, scaler, input_size, hidden_size, device)
         
         if EXPORT_TO_ONNX:
-            export_to_onnx(trained_model, ONNX_NAME, input_size, dataset.get_scaler())
-    
-    scaler = dataset.get_scaler()
-    inference = ModelInference(model_save_path, scaler, input_size, hidden_size, device)
-    
-    if EXPORT_TO_ONNX and not DO_TRAINING:
-        export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
-    
-    testset = DubinsDatasetRectangle(data_path, use_trigonometric_features=TRIG_FUNCS)
-    test_loader = DataLoader(testset, batch_size=1024)
+            export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
+        
+        testset = DubinsDatasetRectangle(data_path, use_trigonometric_features=TRIG_FUNCS)
+        test_loader = DataLoader(testset, batch_size=1024)
 
-    #     # Split dataset
-    # train_size = int(0.7 * len(dataset))
-    # val_size = int(0.15 * len(dataset))
-    # test_size = len(dataset) - train_size - val_size
-    
-    # train_dataset, val_dataset, test_dataset = random_split(
-    #     dataset, [train_size, val_size, test_size]
-    # )
-    
-    # # Create data loaders
-    # batch_size = BATCH_SIZE
-    # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        test_loss, _, _ = evaluate_model(inference.model, test_loader, criterion, device, plot_path=PLOT_PATH, slurm_id_str=SLURM_ID_STR, eval_test=True)
+        print("Model evaluation complete.")
 
-    test_loss, all_pred, all_tar = evaluate_model(inference.model, test_loader, criterion, device)
-    print("Model evaluation complete.")
-
-    # # Example features for prediction
-    # # k_max = 1.4
-    # # th_i = 1.309 
-    # # th_f = -1.11022e-16
-    # # alpha_m = -1.5708
-    # # alpha_f = 2.87979
-    # # th_m = 4.46804
-    
-    # k_max = 4 
-    # th_i = -2.0944
-    # th_f = -3.14159 
-    # alpha_m = 0.785398 
-    # alpha_f = -1.0472 
-    # th_m = 0.0174533 
-    # man = 11 
-    # # len = 3.26627
-
-    # print("th_i=-np.pi/2+np.arctan(0.25)", th_i)
-    # print("th_f=-3.0*np.pi/2+np.arctan(0.25)", th_f)
-    # print("alpha_m=-np.pi/2", alpha_m)
-    # print("alpha_f=2*np.arctan(0.25)-np.pi", alpha_f)
-    # print("k_max=np.sqrt(17)/2", k_max)
-
-    # cos_th_i = np.cos(th_i)
-    # sin_th_i = np.sin(th_i)
-    # cos_th_f = np.cos(th_f)
-    # sin_th_f = np.sin(th_f)
-    # cos_alpha_m = np.cos(alpha_m)
-    # sin_alpha_m = np.sin(alpha_m)
-    # cos_alpha_f = np.cos(alpha_f)
-    # sin_alpha_f = np.sin(alpha_f)
-    
-    # example_features = np.array([k_max, sin_th_i, cos_th_i, sin_th_f, cos_th_f, sin_alpha_m, cos_alpha_m, sin_alpha_f, cos_alpha_f])    
-    
-    # sin_val, cos_val, angle_rad, angle_deg = inference.predict(example_features)
-    # error = angle_rad - th_m
-    # while error < -np.pi:
-    #     error += 2*np.pi
-    # while error > np.pi:
-    #     error -= 2*np.pi
-    # print(f"Error: {error} {np.rad2deg(error)}")
-
-    # print(f"Example features: {example_features}")
-    # print(f"Predicted sin(th_m): {sin_val:.4f}, cos(th_m): {cos_val:.4f}")
-    # print(f"Predicted angle: {angle_rad:.4f} radians ({angle_deg:.2f} degrees)")
     
     
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run regression model for 3 Point Dubins path prediction.")
+
+    parser.add_argument('--yaml-config', type=str, default=None, help='Path to YAML configuration file. If additional arguments are provided, they will override the YAML config.')
+
+    # Set all arguments to default=None except yaml-config
+    parser.add_argument('--dataset', type=str, default=None, help='Path to the dataset CSV file')
+    parser.add_argument('--batch-size', type=int, default=None, help='Batch size for training and evaluation')
+    parser.add_argument('--epochs', type=int, default=None, help='Number of epochs for training')
+    parser.add_argument('--patience', type=int, default=None, help='Early stopping patience')
+    parser.add_argument('--learn-rate', type=float, default=None, help='Learning rate for the optimizer')
+    parser.add_argument('--weight-decay', type=float, default=None, help='Weight decay for the optimizer')
+    parser.add_argument('--hidden-size', type=int, default=None, help='Number of hidden units in the model')
+    parser.add_argument('--trig-funcs', type=lambda x: (str(x).lower() == 'true'), default=None, help='Enable trigonometric features (sin, cos)')
+    parser.add_argument('--do-training', type=lambda x: (str(x).lower() == 'true'), default=None, help='Enable training mode')
+    parser.add_argument('--use-only-cpu', type=lambda x: (str(x).lower() == 'true'), default=None, help='Use only CPU for training and evaluation')
+    parser.add_argument('--export-to-onnx', type=lambda x: (str(x).lower() == 'true'), default=None, help='Export model to ONNX format')
+    parser.add_argument('--model-path', type=str, default=None, help='Path to save the trained model')
+    parser.add_argument('--plot-path', type=str, default=None, help='Path to save training plots')
+
+    args = parser.parse_args()
+
+    # Load YAML config if provided
+    config = {}
+    if args.yaml_config:
+        with open(args.yaml_config, 'r') as f:
+            config = yaml.safe_load(f)
+            print(f"Loaded configuration from {args.yaml_config}")
+            print(config)
+
+    # Helper function to resolve value priority
+    def resolve_arg(arg_val, config_key, default_val):
+        if arg_val is not None:
+            return arg_val
+        elif config_key in config:
+            if config_key in ['BATCH_SIZE', 'EPOCHS', 'PATIENCE', 'HIDDEN_SIZE']:
+                return int(config[config_key])
+            elif config_key in ['LEARN_RATE', 'WEIGHT_DEC']:
+                return float(config[config_key])
+            elif config_key in ['TRIG_FUNCS', 'DO_TRAINING', 'USE_ONLY_CPU', 'EXPORT_TO_ONNX']:
+                return bool(config[config_key])
+            else:
+                return config[config_key]
+        else:
+            return default_val
+
+    # Set all parameters with correct priority
+    DATASET_NAME = resolve_arg(args.dataset, 'DATASET', DATASET_NAME)
+    BATCH_SIZE = resolve_arg(args.batch_size, 'BATCH_SIZE', BATCH_SIZE)
+    EPOCHS = resolve_arg(args.epochs, 'EPOCHS', EPOCHS)
+    PATIENCE = resolve_arg(args.patience, 'PATIENCE', PATIENCE)
+    LEARN_RATE = resolve_arg(args.learn_rate, 'LEARN_RATE', LEARN_RATE)
+    WEIGHT_DEC = resolve_arg(args.weight_decay, 'WEIGHT_DEC', WEIGHT_DEC)
+    HIDDEN_SIZE = resolve_arg(args.hidden_size, 'HIDDEN_SIZE', HIDDEN_SIZE)
+    TRIG_FUNCS = resolve_arg(args.trig_funcs, 'TRIG_FUNCS', TRIG_FUNCS)
+    DO_TRAINING = resolve_arg(args.do_training, 'DO_TRAINING', DO_TRAINING)
+    USE_ONLY_CPU = resolve_arg(args.use_only_cpu, 'USE_ONLY_CPU', USE_ONLY_CPU)
+    EXPORT_TO_ONNX = resolve_arg(args.export_to_onnx, 'EXPORT_TO_ONNX', EXPORT_TO_ONNX)
+    MODEL_PATH = resolve_arg(args.model_path, 'MODEL_PATH', MODEL_PATH)
+    PLOT_PATH = resolve_arg(args.plot_path, 'PLOT_PATH', PLOT_PATH)
+
+    MODEL_NAME = os.path.join(MODEL_PATH, 'model_regression{}.pt'.format(SLURM_ID_STR))
+    ONNX_NAME = os.path.join(MODEL_PATH, 'model_regression{}.onnx'.format(SLURM_ID_STR))
+
+    print(f"Running main with dataset: {DATASET_NAME}")
+    print(f"Model will be saved to: {MODEL_NAME}")
+    print(f"ONNX model will be saved to: {ONNX_NAME}")
+    print(f"Plots will be saved to: {PLOT_PATH}")
+    print(f"SLURM ID: {SLURM_JOB_ID if SLURM_JOB_ID else 'Not running on SLURM'}")
+    print(f"Using device: {torch.device('cuda:0' if (not USE_ONLY_CPU and torch.cuda.is_available()) else 'cpu')}")
+    print(f"Trigonometric features: {'Enabled' if TRIG_FUNCS else 'Disabled'}")
+    print(f"Training enabled: {DO_TRAINING}")
+    print(f"Exporting to ONNX: {'Enabled' if EXPORT_TO_ONNX else 'Disabled'}")
+    print(f"Batch size: {BATCH_SIZE}, Epochs: {EPOCHS}, Patience: {PATIENCE}")
+    print(f"Learning rate: {LEARN_RATE}, Weight decay: {WEIGHT_DEC}, Hidden size: {HIDDEN_SIZE}")
+    print(f"Dataset path: {DATASET_NAME}")
+    print(f"Model save path: {MODEL_NAME}")
+    print(f"ONNX save path: {ONNX_NAME}")
+
+
+    os.makedirs(MODEL_PATH, exist_ok=True)
+    os.makedirs(PLOT_PATH,  exist_ok=True)
+
     main(DATASET_NAME)
+

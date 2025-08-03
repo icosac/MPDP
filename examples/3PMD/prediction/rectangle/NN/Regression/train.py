@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import seaborn as sns
-from tqdm import tqdm  # Add tqdm import
+from tqdm import tqdm  
+import os
 
 # Set random seed for reproducibility
 torch.manual_seed(42)
@@ -104,7 +105,9 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
     
     return model, {"train_losses": train_losses, "val_losses": val_losses}
 
-def evaluate_model(model, test_loader, criterion, device):
+def evaluate_model(model, test_loader, criterion, device, plot_path = "./", slurm_id_str = "", eval_test=False):
+
+    print("Evaluating model...")
     
     model.eval()
     running_loss = 0.0
@@ -180,8 +183,8 @@ def evaluate_model(model, test_loader, criterion, device):
     plt.grid(True)
     
     plt.tight_layout()
-    plt.savefig('regression_predictions.png')
-    
+    plt.savefig(os.path.join(plot_path, 'regression_predictions{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)))
+
     # Plot histogram of angular errors
     plt.figure(figsize=(10, 6))
     plt.hist(np.degrees(angle_errors), bins=50, alpha=0.7)
@@ -194,6 +197,6 @@ def evaluate_model(model, test_loader, criterion, device):
     plt.ylabel('Frequency')
     plt.legend()
     plt.grid(True)
-    plt.savefig('angular_errors.png')
-    
+    plt.savefig(os.path.join(plot_path, 'angular_errors{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)))
+
     return test_loss, all_preds, all_targets
