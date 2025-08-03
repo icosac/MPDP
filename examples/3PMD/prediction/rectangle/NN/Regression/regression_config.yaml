@@ -17,3 +17,17 @@ DATASET: /Users/enrico/Projects/mpdp/small_rect.csv
 
 MODEL_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Regression/models
 PLOT_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Regression/plots
+
+# Model 
+LAYERS:
+  - Linear(in_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.1)
+  - Linear(hid_size // 2, hid_size)
+  - LeakyReLU()
+  - Linear(hid_size, hid_size)
+  - LeakyReLU()
+  - Linear(hid_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.1)
+  - Linear(hid_size // 2, out_size)

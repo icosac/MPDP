@@ -15,5 +15,19 @@ EXPORT_TO_ONNX: true
 
 DATASET: /Users/enrico/Projects/mpdp/small_rect.csv
 
-MODEL_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/models
+OUTPUT_MODEL_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/models
 PLOT_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/plots
+
+# Model 
+LAYERS:
+  - Linear(in_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.2)
+  - Linear(hid_size // 2, hid_size)
+  - ReLU()
+  - Linear(hid_size, hid_size)
+  - ReLU()
+  - Linear(hid_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.2)
+  - Linear(hid_size // 2, out_size)

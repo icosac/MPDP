@@ -26,26 +26,28 @@ EPOCHS      = 1
 PATIENCE    = 1
 WEIGHT_DEC  = 1
 LEARN_RATE  = 1
+
+LAYERS      = []
 HIDDEN_SIZE = 1
 
 TRIG_FUNCS  = True  # Use trigonometric features
 
-DO_TRAINING    = True
-EXPORT_TO_ONNX = True
-USE_ONLY_CPU   = False
+DO_TRAINING       = True
+EXPORT_TO_ONNX    = True
+USE_ONLY_CPU      = False
 
-THIS_FILE_PATH = os.path.abspath(__file__)
-PROJECT_PATH   = Path(THIS_FILE_PATH).parent
-DATASET_PATH   = os.path.join(PROJECT_PATH.parent.parent, "datasets")
-MODEL_PATH     = os.path.join(PROJECT_PATH, "models")
-PLOT_PATH      = os.path.join(PROJECT_PATH, "plots")
+THIS_FILE_PATH    = os.path.abspath(__file__)
+PROJECT_PATH      = Path(THIS_FILE_PATH).parent
+DATASET_PATH      = os.path.join(PROJECT_PATH.parent.parent, "datasets")
+OUTPUT_MODEL_PATH = os.path.join(PROJECT_PATH, "models")
+PLOT_PATH         = os.path.join(PROJECT_PATH, "plots")
 
-SLURM_JOB_ID   = os.environ.get('SLURM_JOB_ID', '')
-SLURM_ID_STR   = f"_{SLURM_JOB_ID}" if SLURM_JOB_ID else ""
+SLURM_JOB_ID      = os.environ.get('SLURM_JOB_ID', '')
+SLURM_ID_STR      = f"_{SLURM_JOB_ID}" if SLURM_JOB_ID else ""
 
-DATASET_NAME   = os.path.join(DATASET_PATH, "/Users/enrico/Projects/mpdp/small_rect.csv")
-MODEL_NAME     = os.path.join(MODEL_PATH, 'model_id_{}.pt'.format(SLURM_ID_STR))
-ONNX_NAME      = os.path.join(MODEL_PATH, 'model_id_{}.onnx'.format(SLURM_ID_STR))
+DATASET_NAME      = os.path.join(DATASET_PATH, "/Users/enrico/Projects/mpdp/small_rect.csv")
+OUTPUT_MODEL_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_id_{}.pt'.format(SLURM_ID_STR))
+ONNX_NAME         = os.path.join(OUTPUT_MODEL_PATH, 'model_id_{}.onnx'.format(SLURM_ID_STR))
 
 
 #################################################
@@ -87,12 +89,12 @@ def plot_training_results(history):
 #################################################
 
 class ModelInference:
-    def __init__(self, model_path, scaler, input_size, hidden_size, num_classes, device='cpu', inverse_mapping=None):
+    def __init__(self, saved_model_path, scaler, input_size, hidden_size, num_classes, layers=LAYERS, device='cpu', inverse_mapping=None):
         """
         Class for inference with a trained model.
         
         Args:
-            model_path: Path to the saved model
+            saved_model_path: Path to the saved model
             scaler: StandardScaler fit on training data
             input_size: Number of input features
             hidden_size: Number of hidden units
@@ -105,8 +107,8 @@ class ModelInference:
         self.inverse_mapping = inverse_mapping
         
         # Initialize model
-        self.model = NeuralNet(input_size, hidden_size, num_classes)
-        self.model.load_state_dict(torch.load(model_path, map_location=device))
+        self.model = NeuralNet(input_size, hidden_size, num_classes, layers=layers)
+        self.model.load_state_dict(torch.load(saved_model_path, map_location=device))
         self.model.to(device)
         self.model.eval()
         
@@ -188,7 +190,7 @@ def export_to_onnx(model, save_path, input_size, scaler):
     
     # Export the model
     torch.onnx.export(
-        scaled_model,                          # model being run
+        scaled_model,                   # model being run
         dummy_input,                    # model input (or a tuple for multiple inputs)
         save_path,                      # where to save the model
         export_params=True,             # store the trained parameter weights inside the model file
@@ -208,7 +210,7 @@ def export_to_onnx(model, save_path, input_size, scaler):
 ################ MAIN FUNCTION ##################
 #################################################
 
-def main(data_path, model_save_path=MODEL_NAME):
+def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
     try:
         with open(data_path, 'r') as f:
             print("Data preview:")
@@ -246,7 +248,7 @@ def main(data_path, model_save_path=MODEL_NAME):
 
     print(f"Input size: {input_size}, Hidden size: {HIDDEN_SIZE}, Num classes: {num_classes}")
     
-    model = NeuralNet(input_size, HIDDEN_SIZE, num_classes)
+    model = NeuralNet(input_size, HIDDEN_SIZE, num_classes, layers=LAYERS)
     
     # Define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -267,8 +269,8 @@ def main(data_path, model_save_path=MODEL_NAME):
         # Save the model
         if EXPORT_TO_ONNX:
             export_to_onnx(trained_model, ONNX_NAME, input_size, dataset.get_scaler())
-        torch.save(trained_model.state_dict(), model_save_path)
-        print(f"Model saved to {model_save_path} in {time.time() - training_time:.4f} seconds")
+        torch.save(trained_model.state_dict(), output_model_path)
+        print(f"Model saved to {output_model_path} in {time.time() - training_time:.4f} seconds")
         
         # Plot training results
         plot_training_results(history)
@@ -282,7 +284,7 @@ def main(data_path, model_save_path=MODEL_NAME):
     else:
         scaler = dataset.get_scaler()
         label_mapping, inverse_mapping = dataset.get_label_mapping()
-        inference = ModelInference(model_save_path, scaler, input_size, HIDDEN_SIZE, num_classes, device, inverse_mapping)
+        inference = ModelInference(output_model_path, scaler, input_size, HIDDEN_SIZE, num_classes, device, inverse_mapping)
         if EXPORT_TO_ONNX:
             export_to_onnx(model, ONNX_NAME, input_size, scaler)
     
@@ -305,7 +307,8 @@ if __name__ == "__main__":
     parser.add_argument('--use-only-cpu', type=lambda x: (str(x).lower() == 'true'), default=None, help='Use only CPU for training and evaluation')
     parser.add_argument('--export-to-onnx', type=lambda x: (str(x).lower() == 'true'), default=None, help='Export model to ONNX format')
     parser.add_argument('--dataset', type=str, default=None, help='Path to the dataset CSV file')
-    parser.add_argument('--model-path', type=str, default=None, help='Path to save the trained model')
+    parser.add_argument('--model-config', type=str, default=None, help='Path to the model configuration file (YAML)')
+    parser.add_argument('--output-model-path', type=str, default=None, help='Path to save the trained model')
     parser.add_argument('--plot-path', type=str, default=None, help='Path to save training plots')
 
     args = parser.parse_args()
@@ -341,20 +344,23 @@ if __name__ == "__main__":
     PATIENCE = resolve_arg(args.patience, 'PATIENCE', PATIENCE)
     WEIGHT_DEC = resolve_arg(args.weight_decay, 'WEIGHT_DEC', WEIGHT_DEC)
     LEARN_RATE = resolve_arg(args.learn_rate, 'LEARN_RATE', LEARN_RATE)
+    LAYERS = resolve_arg(None, 'LAYERS', LAYERS)
     HIDDEN_SIZE = resolve_arg(args.hidden_size, 'HIDDEN_SIZE', HIDDEN_SIZE)
     TRIG_FUNCS = resolve_arg(args.trig_funcs, 'TRIG_FUNCS', TRIG_FUNCS)
     DO_TRAINING = resolve_arg(args.do_training, 'DO_TRAINING', DO_TRAINING)
     USE_ONLY_CPU = resolve_arg(args.use_only_cpu, 'USE_ONLY_CPU', USE_ONLY_CPU)
     EXPORT_TO_ONNX = resolve_arg(args.export_to_onnx, 'EXPORT_TO_ONNX', EXPORT_TO_ONNX)
     DATASET_NAME = resolve_arg(args.dataset, 'DATASET', DATASET_NAME)
-    MODEL_PATH = resolve_arg(args.model_path, 'MODEL_PATH', MODEL_PATH)
+    OUTPUT_MODEL_PATH = resolve_arg(args.output_model_path, 'OUTPUT_MODEL_PATH', OUTPUT_MODEL_PATH)
     PLOT_PATH = resolve_arg(args.plot_path, 'PLOT_PATH', PLOT_PATH)
+    OUTPUT_MODEL_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_classification{}.pt'.format(SLURM_ID_STR))
+    ONNX_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_classification{}.onnx'.format(SLURM_ID_STR))
 
-    MODEL_NAME = os.path.join(MODEL_PATH, 'model_classification{}.pt'.format(SLURM_ID_STR))
-    ONNX_NAME = os.path.join(MODEL_PATH, 'model_classification{}.onnx'.format(SLURM_ID_STR))
+    if not os.path.exists(DATASET_NAME):
+        raise FileNotFoundError(f"Dataset file not found: {DATASET_NAME}")
 
     print(f"Running main with dataset: {DATASET_NAME}")
-    print(f"Model will be saved to: {MODEL_NAME}")
+    print(f"Model will be saved to: {OUTPUT_MODEL_NAME}")
     print(f"ONNX model will be saved to: {ONNX_NAME}")
     print(f"Plots will be saved to: {PLOT_PATH}")
     print(f"SLURM ID: {SLURM_JOB_ID if SLURM_JOB_ID else 'Not running on SLURM'}")
@@ -365,14 +371,16 @@ if __name__ == "__main__":
     print(f"Batch size: {BATCH_SIZE}, Epochs: {EPOCHS}, Patience: {PATIENCE}")
     print(f"Learning rate: {LEARN_RATE}, Weight decay: {WEIGHT_DEC}, Hidden size: {HIDDEN_SIZE}")
     print(f"Dataset path: {DATASET_NAME}")
-    print(f"Model save path: {MODEL_NAME}")
+    print(f"Model save path: {OUTPUT_MODEL_NAME}")
     print(f"ONNX save path: {ONNX_NAME}")
+    print(f"Plot path: {PLOT_PATH}")
+    print(f"Random seed: {RANDOM_SEED}")
 
     # Set random seed for reproducibility
     torch.manual_seed(RANDOM_SEED)
     np.random.seed(RANDOM_SEED)
 
-    os.makedirs(MODEL_PATH, exist_ok=True)
-    os.makedirs(PLOT_PATH,  exist_ok=True)
+    os.makedirs(OUTPUT_MODEL_PATH, exist_ok=True)
+    os.makedirs(PLOT_PATH, exist_ok=True)
 
-    main(DATASET_NAME, model_save_path=MODEL_NAME)
+    main(DATASET_NAME, output_model_path=OUTPUT_MODEL_NAME)
