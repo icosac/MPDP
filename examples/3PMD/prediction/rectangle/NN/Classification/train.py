@@ -3,11 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import seaborn as sns
-from tqdm import tqdm  # Add tqdm import
+from tqdm import tqdm  
 
-# Set random seed for reproducibility
-torch.manual_seed(42)
-np.random.seed(42)
+import os
 
 def model_train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100, patience=10):
 
@@ -99,7 +97,7 @@ def model_train(model, train_loader, val_loader, criterion, optimizer, device, n
     return model, {"train_losses": train_losses, "val_losses": val_losses, 
                 "train_accs": train_accs, "val_accs": val_accs}
 
-def evaluate_model(model, test_loader, criterion, device, num_classes):
+def evaluate_model(model, test_loader, criterion, device, num_classes, plot_path="./", slurm_id_str="", eval_test=True):
     
     model.eval()
     running_loss = 0.0
@@ -153,7 +151,7 @@ def evaluate_model(model, test_loader, criterion, device, num_classes):
     plt.title('Confusion Matrix')
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
-    plt.savefig('confusion_matrix.png')
-    
+    plt.savefig(os.path.join(plot_path, 'confusion_matrix{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)))
+
     return test_acc, all_preds, all_targets
 

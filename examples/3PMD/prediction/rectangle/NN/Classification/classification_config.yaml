@@ -1,0 +1,19 @@
+# Configuration file for examples/3PMD/Prediction/Rectangle/NN/Classification/main.py
+
+RANDOM_SEED: 42
+
+BATCH_SIZE: 32
+EPOCHS: 1
+PATIENCE: 10
+WEIGHT_DEC: 1e-3
+LEARN_RATE: 5e-5
+HIDDEN_SIZE: 16
+
+TRIG_FUNCS: true  
+USE_ONLY_CPU: false
+EXPORT_TO_ONNX: true
+
+DATASET: /Users/enrico/Projects/mpdp/small_rect.csv
+
+MODEL_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/models
+PLOT_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/plots

@@ -6,9 +6,6 @@ import seaborn as sns
 from tqdm import tqdm  
 import os
 
-# Set random seed for reproducibility
-torch.manual_seed(42)
-np.random.seed(42)
 
 def model_train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100, patience=10):
 
