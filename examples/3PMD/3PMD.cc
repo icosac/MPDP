@@ -1058,36 +1058,43 @@ generateDataset3PDPCircleTest (int argc, char** argv){
 * @param argv
 */
 void generateDataset3PDPRect(int argc, char** argv){
-  if (argc != 9) {
-    std::cout << "Usage: " << argv[0] << " xi_discr xm_discr ym_discr xf_discr kmax_min kmax_max k_discr angle_discr" << std::endl;
+  if (argc != 8) {
+    std::cerr << "Invalid number of arguments, expected 7 got " << argc-1 << std::endl;
+    std::cout << "Usage: " << argv[0] << " c_discr xm_discr ym_discr kmax_min kmax_max k_discr angle_discr" << std::endl;
     return ;
   }
-  int xi_discr    = std::atoi(argv[1]);
+  int c_discr    = std::atoi(argv[1]);
   int xm_discr    = std::atoi(argv[2]);
   int ym_discr    = std::atoi(argv[3]);
-  int xf_discr    = std::atoi(argv[4]);
-  double kmax_min = std::atof(argv[5]);
-  double kmax_max = std::atof(argv[6]);
-  int k_discr_in  = std::atoi(argv[7]);
-  int angle_discr = std::atoi(argv[8]);
+  double kmax_min = std::atof(argv[4]);
+  double kmax_max = std::atof(argv[5]);
+  int k_discr_in  = std::atoi(argv[6]);
+  int angle_discr = std::atoi(argv[7]);
+
+  ASSERT(c_discr > 1,         "c_discr must be greater than 1, got " + std::to_string(c_discr));
+  ASSERT(xm_discr > 1,        "xm_discr must be greater than 1, got " + std::to_string(xm_discr));
+  ASSERT(ym_discr > 1,        "ym_discr must be greater than 1, got " + std::to_string(ym_discr));
+  ASSERT(kmax_min < kmax_max, "kmax_min must be less than kmax_max, got " + std::to_string(kmax_min) + " and " + std::to_string(kmax_max));
+  ASSERT(k_discr_in > 1,      "k_discr must be greater than 1, got " + std::to_string(k_discr_in));
+  ASSERT(angle_discr > 1,     "angle_discr must be greater than 1, got " + std::to_string(angle_discr));
 
   std::uniform_real_distribution<double> th_distribution(-m_pi, m_pi);
   std::uniform_real_distribution<double> k_distribution(kmax_min, kmax_max);
-  std::uniform_real_distribution<double> xc_distribution(0.5, 1.0+0.5);
+  std::uniform_real_distribution<double> xc_distribution(-0.5, 1.0+0.5);
   std::uniform_real_distribution<double> m_distribution(-0.5, 1.0+0.5);
 
   std::mt19937 rng;
   rng.seed(41);
  
   std::string filename_base = "3PDS_Rect_random" + 
-            std::to_string(angle_discr) + "_" + std::to_string(xi_discr) + "_" + 
+            std::to_string(angle_discr) + "_" + std::to_string(c_discr) + "_" + 
             std::to_string(xm_discr) + "_" + std::to_string(ym_discr) + "_" +
-            std::to_string(xf_discr) + "_" + std::to_string(kmax_min) + "_"  + 
-            std::to_string(kmax_max) + "_"  + std::to_string(k_discr_in);
+            std::to_string(kmax_min) + "_"  + std::to_string(kmax_max) + "_"  + 
+            std::to_string(k_discr_in);
   std::string filename = filename_base + ".csv";
   std::string filename_log = filename_base + ".log";
 
-  uint64_t tot_counter = xi_discr*xm_discr*ym_discr*xf_discr*angle_discr*angle_discr*k_discr_in;
+  uint64_t tot_counter = c_discr*xm_discr*ym_discr*angle_discr*angle_discr*k_discr_in;
   std::cout << "Generating at most " << PrintScientificLargeInt(tot_counter) << " tests." << std::endl;
 
   std::cout << "Writing entries to " << filename << std::endl;
@@ -1111,7 +1118,7 @@ void generateDataset3PDPRect(int argc, char** argv){
 
   std::cout << "Generating " << PrintScientificLargeInt(tot_counter) << " tests" << std::endl;
 
-  file << "kmax" << " " << "xi" << " " << "xm" << " " << "ym" << " " << "xf" << " " << 
+  file << "kmax" << " " << "c" << " " << "xm" << " " << "ym" << " " << 
           "theta_i" << " " << "theta_f" << " " << "th_m" << " " << "id_man_comb" << " " << "len" << std::endl;
  
   uint64_t counter = 0;
@@ -1121,55 +1128,49 @@ void generateDataset3PDPRect(int argc, char** argv){
   unsigned long time_sd = 0;
   unsigned long time_ps = 0;
 
-  int part = tot_counter/100;
+  double part = (double)(tot_counter/(tot_counter < 100.0 ? 10.0 : 100.0));
 
-  std::vector<double> k_discrs (k_discr_in+1, 0.0);
+  std::vector<double> k_discrs   (k_discr_in,  0.0);
   std::vector<double> thi_discrs (angle_discr, 0.0);
   std::vector<double> thf_discrs (angle_discr, 0.0);
-  std::vector<double> xi_discrs (xi_discr, 0.0);
-  std::vector<double> xm_discrs (xm_discr+1, 0.0);
-  std::vector<double> ym_discrs (ym_discr+1, 0.0);
-  std::vector<double> xf_discrs (xf_discr, 0.0);
-  double k_step = (kmax_max - kmax_min) / (double)(k_discr_in);
-  std::generate(k_discrs.begin(), k_discrs.end(), [kmax_min, kmax_tmp = kmax_min, kmax_max = kmax_max, k_step=k_step]() mutable {
-    double k = kmax_tmp;
-    kmax_tmp += k_step;
+  std::vector<double> c_discrs   (c_discr,     0.0);
+  std::vector<double> xm_discrs  (xm_discr,    0.0);
+  std::vector<double> ym_discrs  (ym_discr,    0.0);
+  double k_tmp = kmax_min, k_step = (kmax_max - kmax_min) / (double)(k_discr_in - 1);
+  std::generate(k_discrs.begin(), k_discrs.end(), [kmax_min, &k_tmp, kmax_max = kmax_max, k_step=k_step]() mutable {
+    double k = k_tmp;
+    k_tmp += k_step;
     return k;
   });
-  std::generate(thi_discrs.begin(), thi_discrs.end(), [angle_discr, th = -m_pi]() mutable{
+  double th = -m_pi, dth = (2.0 * m_pi) / (double)(angle_discr - 1);
+  std::generate(thi_discrs.begin(), thi_discrs.end(), [angle_discr, dth, &th]() mutable{
     double th_i = th;
-    th += (2.0 * m_pi) / (double)angle_discr;
+    th += dth;
     return th_i;
   });
-  std::generate(thf_discrs.begin(), thf_discrs.end(), [angle_discr, th = -m_pi]() mutable{
+  th = -m_pi;
+  std::generate(thf_discrs.begin(), thf_discrs.end(), [angle_discr, dth, &th]() mutable{
     double th_f = th;
-    th += (2.0 * m_pi) / (double)angle_discr;
+    th += dth;
     return th_f;
   });
-  double xi_step = 1.0 / (double)xi_discr;
-  std::generate(xi_discrs.begin(), xi_discrs.end(), [xi_step, xi_tmp = xi_step]() mutable {
-    double xi = xi_tmp;
-    xi_tmp += xi_step;
-    return xi;
+  double c_tmp = 0, c_step = 1.0 / (double)(c_discr - 1);
+  std::generate(c_discrs.begin(), c_discrs.end(), [c_step, &c_tmp]() mutable {
+    double c = c_tmp;
+    c_tmp += c_step;
+    return c;
   });
-  double xm_step = 1.0 / (double)xm_discr;
-  double first_step = 0;
-  std::generate(xm_discrs.begin(), xm_discrs.end(), [xm_step, xm_tmp = first_step]() mutable {
+  double xm_tmp = 0, xm_step = 1.0 / (double)(xm_discr - 1);
+  std::generate(xm_discrs.begin(), xm_discrs.end(), [xm_step, &xm_tmp]() mutable {
     double xm = xm_tmp;
     xm_tmp += xm_step;
     return xm;
   });
-  double ym_step = 1.0 / (double)ym_discr;
-  std::generate(ym_discrs.begin(), ym_discrs.end(), [ym_step, ym_tmp = first_step]() mutable {
+  double ym_tmp = 0, ym_step = 1.0 / (double)(ym_discr - 1);
+  std::generate(ym_discrs.begin(), ym_discrs.end(), [ym_step, &ym_tmp]() mutable {
     double ym = ym_tmp;
     ym_tmp += ym_step;
     return ym;
-  });
-  double xf_step = 1.0 / (double)xf_discr;
-  std::generate(xf_discrs.begin(), xf_discrs.end(), [xf_step, xf_tmp = xf_step]() mutable {
-    double xf = xf_tmp;
-    xf_tmp += xf_step;
-    return xf;
   });
   std::cout << "k_discrs: " << k_discrs.size() << std::endl;
   for(auto kmax_tmp : k_discrs){
@@ -1186,9 +1187,9 @@ void generateDataset3PDPRect(int argc, char** argv){
     std::cout << th << " ";
   }
   std::cout << std::endl;
-  std::cout << "xi_discrs: " << xi_discrs.size() << std::endl;
-  for(auto xi : xi_discrs){
-    std::cout << xi << " ";
+  std::cout << "c_discrs: " << c_discrs.size() << std::endl;
+  for(auto c : c_discrs){
+    std::cout << c << " ";
   }
   std::cout << std::endl;
   std::cout << "xm_discrs: " << xm_discrs.size() << std::endl;
@@ -1201,58 +1202,49 @@ void generateDataset3PDPRect(int argc, char** argv){
     std::cout << ym << " ";
   }
   std::cout << std::endl;
-  std::cout << "xf_discrs: " << xf_discrs.size() << std::endl;
-  for(auto xf : xf_discrs){
-    std::cout << xf << " ";
-  }
-  std::cout << std::endl;
-  std::cout << "Total: " << k_discrs.size()*xi_discrs.size()*xm_discrs.size()*ym_discrs.size()*xf_discrs.size()*thi_discrs.size()*thf_discrs.size() << std::endl;
-
+  std::cout << "Total: " << k_discrs.size()*c_discrs.size()*xm_discrs.size()*ym_discrs.size()*angle_discr*angle_discr << std::endl;
   std::cout << "Part: " << part << std::endl;
 
+  TimePerf time1; time1.start();
   auto start = std::chrono::high_resolution_clock::now();
   for(auto k_max : k_discrs){
-    for(auto xi : xi_discrs){
+    for(auto c : c_discrs){
       for(auto xm : xm_discrs){
         for(auto ym : ym_discrs){
-          for(auto xf : xf_discrs){
-            for(auto theta_i : thi_discrs){
-              for(auto theta_f : thf_discrs){
-                Configuration2 pi = Configuration2(xi, 0, theta_i);
-                Configuration2 pm = Configuration2(xm, ym, 0);
-                Configuration2 pf = Configuration2(xf, 0, theta_f);
+          for(auto theta_i : thi_discrs){
+            for(auto theta_f : thf_discrs){
+              Configuration2 pi = Configuration2(-c, 0, theta_i);
+              Configuration2 pm = Configuration2(xm, ym, 0);
+              Configuration2 pf = Configuration2(c, 0, theta_f);
 
-                if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
-                  counter ++;
-                  // Solve multipoint problem
-                  std::vector<Configuration2> points = {pi, pm, pf};
-                  std::vector<bool> fixedAngles = {true, false, true};
-                  std::vector<double> curveParam = { k_max };
-                  int discr = 90;
-                  int refinements = 4;
+              if (pm.x() != pi.x() && pm.y() != pi.y() && pm.x() != pf.x() && pm.y() != pf.y()){
+                // Solve multipoint problem
+                std::vector<Configuration2> points = {pi, pm, pf};
+                std::vector<bool> fixedAngles = {true, false, true};
+                std::vector<double> curveParam = { k_max };
+                int discr = 90;
+                int refinements = 4;
 
-                  std::vector<double> res = find_best_circle(pi, pm, pf, fixedAngles, curveParam, discr, refinements);
+                std::vector<double> res = find_best_circle(pi, pm, pf, fixedAngles, curveParam, discr, refinements);
 
-                  int id_man_comb = static_cast<int>(res[0]);
-                  double len = res[1];
+                int id_man_comb = static_cast<int>(res[0]);
+                double len = res[1];
 
-                  if (id_man_comb < 19 && id_man_comb > 0){
-                    actual_counter ++;
-                    // Write data to file
-                    file << std::setprecision(5) << k_max << " " << xi << " " << xm << " " << ym << " " << xf << " " << 
-                            theta_i << " " << theta_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
-                  }
+                if (id_man_comb < 19 && id_man_comb > 0){
+                  actual_counter ++;
+                  // Write data to file
+                  file << std::setprecision(5) << k_max << " " << c << " " << xm << " " << ym << " " << 
+                          theta_i << " " << theta_f << " " << pm.th() << " " << id_man_comb << " " << len << std::endl;
                 }
-
-                auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
-
-                // Print time
-                auto part = tot_counter > 100 ? tot_counter/100 : 1;
-                if (counter % part == 0) {
-                  std::cout << 100.0 * counter / tot_counter << "% " << counter << " in " << dtime << "ms, avg " << (dtime/(1.0*counter)) << "ms" << std::endl;
-                }
-                counter ++;
               }
+
+              auto dtime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+
+              // Print time
+              if (counter % (int)part == 0) {
+                std::cout << 100.0 * counter / tot_counter << "% " << counter << " in " << dtime << "ms, avg " << (dtime/(1.0*counter)) << "ms" << std::endl;
+              }
+              counter ++;
             }
           }
         }
@@ -1260,14 +1252,15 @@ void generateDataset3PDPRect(int argc, char** argv){
     }
   }
 
-  std::cout << "Generated " << PrintScientificLargeInt(actual_counter) << " entries to " << filename << std::endl;
+  auto dtime1 = time1.getTime();
+  std::cout << "Generated " << PrintScientificLargeInt(actual_counter) << " entries to " << filename << " in " << dtime1 << "ms" << std::endl;
 
   if (coutbuf != nullptr){
     std::cout.rdbuf(coutbuf);
   }
 
   file.close();
- }
+}
 
 
 

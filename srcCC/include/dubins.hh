@@ -488,7 +488,7 @@ class Dubins : public Curve {
 			size_t height			= 8,
 			bool solve				= false,
 			bool close				= false,
-			bool init					= false);
+			bool init				= false);
 #else
 #warning "MPDP_DRAW not defined. Drawing functions are disabled."
 #endif	// MPDP_DRAW
