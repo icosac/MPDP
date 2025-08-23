@@ -1,4 +1,5 @@
 import torch.nn as nn
+from prettytable import PrettyTable
 
 class NeuralNet(nn.Module):
     def __init__(self, in_size, hid_size, out_size, layers=[]):
@@ -102,3 +103,17 @@ class NeuralNet(nn.Module):
                 print_layer = print_layer.replace("Dropout", "D")
             print(print_layer, end=",")
         print()  
+
+    def summarize(self):        
+        table = PrettyTable(["Modules", "Parameters"])
+        total_params = 0
+        for name, parameter in self.named_parameters():
+            if not parameter.requires_grad:
+                continue
+            params = parameter.numel()
+            table.add_row([name, params])
+            total_params += params
+        print(table)
+        print(f"Total Trainable Params: {total_params}")
+        return total_params
+ 

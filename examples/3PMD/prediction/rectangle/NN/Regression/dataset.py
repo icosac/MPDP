@@ -17,7 +17,7 @@ class DubinsDatasetRectangle(Dataset):
         self.transform = transform
         
         # Check if columns exist, otherwise use positional columns
-        if all(col in self.data.columns for col in ['kmax', 'xi', 'xm', 'ym', 'xf', 'theta_i', 'theta_f', 'th_m']):
+        if all(col in self.data.columns for col in ['kmax', 'c', 'xm', 'ym', 'theta_i', 'theta_f', 'th_m']):
             if use_trigonometric_features:
                 print("Using trigonometric features for 'theta_i' and 'theta_f'.")
                 # Extract features and target using column names
@@ -29,9 +29,9 @@ class DubinsDatasetRectangle(Dataset):
                 sin_th_fs = np.sin(th_fs)
                 cos_th_fs = np.cos(th_fs)
 
-                self.features = np.column_stack((self.data['kmax'].values, self.data['xi'].values, 
+                self.features = np.column_stack((self.data['kmax'].values, self.data['c'].values, 
                                                  self.data['xm'].values, self.data['ym'].values, 
-                                                 self.data['xf'].values, sin_th_is, cos_th_is, 
+                                                 sin_th_is, cos_th_is, 
                                                  sin_th_fs, cos_th_fs))
                 # self.features = self.data[['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']].values
                 # Extract th_m and convert to sin and cos
@@ -40,7 +40,7 @@ class DubinsDatasetRectangle(Dataset):
                 self.cos_th_m = np.cos(th_m_values)
             else:
                 # Extract features using column names without trigonometric transformations
-                self.features = self.data[['kmax', 'xi', 'xm', 'ym', 'xf', 'theta_i', 'theta_f']].values
+                self.features = self.data[['kmax', 'c', 'xm', 'ym', 'theta_i', 'theta_f']].values
 
             # Extract th_m and convert to sin and cos
             th_m_values = self.data['th_m'].values

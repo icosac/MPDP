@@ -17,7 +17,7 @@ class DubinsDatasetRectangle(Dataset):
         self.transform = transform
         
         # Check if columns exist, otherwise use positional columns
-        if all(col in self.data.columns for col in ['kmax', 'xi', 'xm', 'ym', 'xf', 'theta_i', 'theta_f']):
+        if all(col in self.data.columns for col in ['kmax', 'c', 'xm', 'ym', 'theta_i', 'theta_f']):
             # Extract features and labels using column names
 
             if use_trigonometric_features:
@@ -30,11 +30,12 @@ class DubinsDatasetRectangle(Dataset):
                 sin_theta_fs = np.sin(theta_fs)
                 cos_theta_fs = np.cos(theta_fs)
 
-                self.features = np.column_stack((self.data['kmax'].values, self.data['xi'].values, self.data['xm'].values,
-                                                self.data['ym'].values, self.data['xf'].values, sin_theta_is,
-                                                cos_theta_is, sin_theta_fs, cos_theta_fs))
+                self.features = np.column_stack((self.data['kmax'].values, self.data['c'].values, 
+                                                self.data['xm'].values, self.data['ym'].values, 
+                                                sin_theta_is, cos_theta_is, 
+                                                sin_theta_fs, cos_theta_fs))
             else:
-                self.features = self.data[['kmax', 'xi', 'xm', 'ym', 'xf', 'theta_i', 'theta_f']].values
+                self.features = self.data[['kmax', 'c', 'xm', 'ym', 'theta_i', 'theta_f']].values
 
             self.labels = self.data['id_man_comb'].values
         else:

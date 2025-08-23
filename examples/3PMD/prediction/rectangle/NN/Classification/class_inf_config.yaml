@@ -9,13 +9,15 @@ WEIGHT_DEC: 1e-5
 LEARN_RATE: 1e-5
 HIDDEN_SIZE: 4096
 
+DO_TRAINING: false
 TRIG_FUNCS: true  
 USE_ONLY_CPU: false
-EXPORT_TO_ONNX: true
+EXPORT_TO_ONNX: false
 
 DATASET: /home/enrico.saccon/mpdp_new/new_rect.csv
 
-OUTPUT_MODEL_PATH: /home/enrico.saccon/mpdp_new/sbatch/classification_id/models
+# OUTPUT_MODEL_PATH: /home/enrico.saccon/mpdp_new/sbatch/classification_id/models
+OUTPUT_MODEL_NAME: /home/enrico.saccon/mpdp_new/sbatch/classification_id/models/model_classification_56971.pt
 PLOT_PATH: /home/enrico.saccon/mpdp_new/sbatch/classification_id/plots
 
 # Model 

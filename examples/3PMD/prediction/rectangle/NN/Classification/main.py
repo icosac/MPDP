@@ -138,7 +138,9 @@ class ModelInference:
             outputs = self.model(features)
             probs = torch.softmax(outputs, dim=1)
             top_probs, top_indices = torch.topk(probs, topk, dim=1)
-        
+
+        print(f"Highest prob: {top_probs.cpu().numpy()[0][0].astype(float):.24f}")
+
         model_outputs = top_indices.cpu().numpy()
         
         # Map back to original labels if mapping exists
@@ -152,6 +154,8 @@ class ModelInference:
         else:
             return model_outputs, original_labels
     
+    def summarize(self):
+        self.model.summarize()
 
 
 #################################################
@@ -242,19 +246,21 @@ def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
     
-    # Initialize model
     input_size = dataset.get_num_features()
     num_classes = dataset.num_classes
 
     print(f"Input size: {input_size}, Hidden size: {HIDDEN_SIZE}, Num classes: {num_classes}")
-    
-    model = NeuralNet(input_size, HIDDEN_SIZE, num_classes, layers=LAYERS)
-    
-    # Define loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
-    
+
     if DO_TRAINING:
+        print("Starting training...")
+
+        # Initialize model        
+        model = NeuralNet(input_size, HIDDEN_SIZE, num_classes, layers=LAYERS)
+        
+        # Define loss function and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
+
         training_time = time.time()
         # Train model       
         print("Starting training...")
@@ -282,11 +288,29 @@ def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
         print(f"Movel evaluation completed in {time.time() - training_time:.4f} seconds")
 
     else:
+        print("Running inference...")
         scaler = dataset.get_scaler()
         label_mapping, inverse_mapping = dataset.get_label_mapping()
-        inference = ModelInference(output_model_path, scaler, input_size, HIDDEN_SIZE, num_classes, device, inverse_mapping)
+        inference_model = ModelInference(
+            saved_model_path=output_model_path,
+            scaler=scaler,
+            input_size=input_size,
+            hidden_size=HIDDEN_SIZE,
+            num_classes=num_classes,
+            layers=LAYERS,
+            device='cpu',
+            inverse_mapping=inverse_mapping
+        )
+
+        now = time.time()
+        output, label = inference_model.predict(features=np.array([2, 1, 0.25, 0.75, np.sin(np.pi/2.0), np.cos(np.pi/2.0), np.sin(-np.pi/2.0), np.cos(-np.pi/2.0)]), topk=18)
+        print(f"Inference completed in {time.time() - now:.4f} seconds")
+        print(output, label)
+
+
         if EXPORT_TO_ONNX:
-            export_to_onnx(model, ONNX_NAME, input_size, scaler)
+            print("Exporting to ONNX")
+        #     export_to_onnx(model, ONNX_NAME, input_size, scaler)
     
 
 if __name__ == "__main__":
@@ -309,6 +333,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default=None, help='Path to the dataset CSV file')
     parser.add_argument('--model-config', type=str, default=None, help='Path to the model configuration file (YAML)')
     parser.add_argument('--output-model-path', type=str, default=None, help='Path to save the trained model')
+    parser.add_argument('--output-model-name', type=str, default=None, help='Name of the output model file')
+    parser.add_argument('--onnx-name', type=str, default=None, help='Name of the output ONNX file')
     parser.add_argument('--plot-path', type=str, default=None, help='Path to save training plots')
 
     args = parser.parse_args()
@@ -353,8 +379,8 @@ if __name__ == "__main__":
     DATASET_NAME = resolve_arg(args.dataset, 'DATASET', DATASET_NAME)
     OUTPUT_MODEL_PATH = resolve_arg(args.output_model_path, 'OUTPUT_MODEL_PATH', OUTPUT_MODEL_PATH)
     PLOT_PATH = resolve_arg(args.plot_path, 'PLOT_PATH', PLOT_PATH)
-    OUTPUT_MODEL_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_classification{}.pt'.format(SLURM_ID_STR))
-    ONNX_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_classification{}.onnx'.format(SLURM_ID_STR))
+    OUTPUT_MODEL_NAME = resolve_arg(args.output_model_name, 'OUTPUT_MODEL_NAME', os.path.join(OUTPUT_MODEL_PATH, 'model_classification{}.pt'.format(SLURM_ID_STR)))
+    ONNX_NAME = resolve_arg(args.onnx_name, 'ONNX_NAME', os.path.join(OUTPUT_MODEL_PATH, 'model_classification{}.onnx'.format(SLURM_ID_STR)))
 
     if not os.path.exists(DATASET_NAME):
         raise FileNotFoundError(f"Dataset file not found: {DATASET_NAME}")

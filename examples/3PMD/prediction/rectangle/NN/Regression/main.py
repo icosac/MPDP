@@ -223,18 +223,18 @@ def main(data_path, model_save_path=MODEL_NAME):
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
     
-    # Initialize model
     input_size = dataset.get_num_features()  # Number of features
     hidden_size = HIDDEN_SIZE
     output_size = 2  # sin and cos components
     
-    model = NeuralNet(input_size, hidden_size, output_size, layers=LAYERS)
-    
-    # Define loss function and optimizer
-    criterion = nn.MSELoss()  # Mean Squared Error loss for regression
-    optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
-    
     if DO_TRAINING:
+        # Initialize model
+        model = NeuralNet(input_size, hidden_size, output_size, layers=LAYERS)
+        
+        # Define loss function and optimizer
+        criterion = nn.MSELoss()  # Mean Squared Error loss for regression
+        optimizer = optim.Adam(model.parameters(), lr=LEARN_RATE, weight_decay=WEIGHT_DEC)
+
         training_time = time.time()
         # Train model       
         print("Starting training...")
@@ -262,17 +262,30 @@ def main(data_path, model_save_path=MODEL_NAME):
         print(f"Model evaluation complete in {time.time() - training_time:.4f} seconds")
     
     else:
+        print("Running inference...")
         scaler = dataset.get_scaler()
-        inference = ModelInference(model_save_path, scaler, input_size, hidden_size, device)
-        
+        inference_model = ModelInference(
+            model_path=model_save_path, 
+            scaler=scaler, 
+            input_size=input_size, 
+            hidden_size=hidden_size, 
+            device=device
+        )
+
         if EXPORT_TO_ONNX:
+            print("Exporting to ONNX")
             export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
         
-        testset = DubinsDatasetRectangle(data_path, use_trigonometric_features=TRIG_FUNCS)
-        test_loader = DataLoader(testset, batch_size=1024)
+        sin, cos, rad, deg = inference_model.predict(np.array([2, 1, 0.25, 0.75, np.sin(np.pi/2.0), np.cos(np.pi/2.0), np.sin(-np.pi/2.0), np.cos(-np.pi/2.0)]))
 
-        test_loss, _, _ = evaluate_model(inference.model, test_loader, criterion, device, plot_path=PLOT_PATH, slurm_id_str=SLURM_ID_STR, eval_test=True)
-        print("Model evaluation complete.")
+        print(sin, cos)
+        print(2*np.pi+rad, 360+deg)
+
+        # testset = DubinsDatasetRectangle(data_path, use_trigonometric_features=TRIG_FUNCS)
+        # test_loader = DataLoader(testset, batch_size=1024)
+
+        # test_loss, _, _ = evaluate_model(inference_model.model, test_loader, criterion, device, plot_path=PLOT_PATH, slurm_id_str=SLURM_ID_STR, eval_test=True)
+        # print("Model evaluation complete.")
 
     
     
@@ -295,6 +308,8 @@ if __name__ == "__main__":
     parser.add_argument('--export-to-onnx', type=lambda x: (str(x).lower() == 'true'), default=None, help='Export model to ONNX format')
     parser.add_argument('--dataset', type=str, default=None, help='Path to the dataset CSV file')
     parser.add_argument('--output-model-path', type=str, default=None, help='Path to save the trained model')
+    parser.add_argument('--output-model-name', type=str, default=None, help='Name of the output model file')
+    parser.add_argument('--onnx-name', type=str, default=None, help='Name of the output ONNX file')
     parser.add_argument('--plot-path', type=str, default=None, help='Path to save training plots')
 
     args = parser.parse_args()
@@ -339,14 +354,13 @@ if __name__ == "__main__":
     DATASET_NAME = resolve_arg(args.dataset, 'DATASET', DATASET_NAME)
     OUTPUT_MODEL_PATH = resolve_arg(args.output_model_path, 'OUTPUT_MODEL_PATH', OUTPUT_MODEL_PATH)
     PLOT_PATH = resolve_arg(args.plot_path, 'PLOT_PATH', PLOT_PATH)
-    MODEL_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_regression{}.pt'.format(SLURM_ID_STR))
-    ONNX_NAME = os.path.join(OUTPUT_MODEL_PATH, 'model_regression{}.onnx'.format(SLURM_ID_STR))
+    MODEL_NAME = resolve_arg(args.output_model_name, 'OUTPUT_MODEL_NAME', os.path.join(OUTPUT_MODEL_PATH, 'model_regression{}.pt'.format(SLURM_ID_STR)))
+    ONNX_NAME = resolve_arg(args.onnx_name, 'ONNX_NAME', os.path.join(OUTPUT_MODEL_PATH, 'model_regression{}.onnx'.format(SLURM_ID_STR)))
 
     if not os.path.exists(DATASET_NAME):
         raise FileNotFoundError(f"Dataset file not found: {DATASET_NAME}")
 
     print(f"Running main with dataset: {DATASET_NAME}")
-    print(f"Model will be saved to: {MODEL_NAME}")
     print(f"ONNX model will be saved to: {ONNX_NAME}")
     print(f"Plots will be saved to: {PLOT_PATH}")
     print(f"SLURM ID: {SLURM_JOB_ID if SLURM_JOB_ID else 'Not running on SLURM'}")
@@ -369,4 +383,4 @@ if __name__ == "__main__":
     os.makedirs(OUTPUT_MODEL_PATH, exist_ok=True)
     os.makedirs(PLOT_PATH, exist_ok=True)
 
-    main(DATASET_NAME)   
+    main(DATASET_NAME, model_save_path=MODEL_NAME)   
