@@ -285,7 +285,7 @@ def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
         print("\nEvaluating on test set...")
         training_time = time.time()
         test_acc, _, _ = evaluate_model(trained_model, test_loader, criterion, device, num_classes, plot_path=PLOT_PATH, slurm_id_str=SLURM_ID_STR, eval_test=True)
-        print(f"Movel evaluation completed in {time.time() - training_time:.4f} seconds")
+        print(f"Model evaluation completed in {time.time() - training_time:.4f} seconds")
 
     else:
         print("Running inference...")
@@ -307,6 +307,10 @@ def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
         print(f"Inference completed in {time.time() - now:.4f} seconds")
         print(output, label)
 
+        training_time = time.time()
+        criterion = nn.CrossEntropyLoss()
+        test_acc, _, _ = evaluate_model(inference_model.model, test_loader, criterion, device, num_classes, plot_path=PLOT_PATH, slurm_id_str=SLURM_ID_STR, eval_test=True)
+        print(f"Model evaluation completed in {time.time() - training_time:.4f} seconds")
 
         if EXPORT_TO_ONNX:
             print("Exporting to ONNX")

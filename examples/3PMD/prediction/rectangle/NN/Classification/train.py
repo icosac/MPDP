@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, ConfusionMatrixDisplay
 import seaborn as sns
 from tqdm import tqdm  
 
@@ -145,13 +145,22 @@ def evaluate_model(model, test_loader, criterion, device, num_classes, plot_path
             print(f"  Model class {model_idx} → Original label {original_label}")
     
     # Plot confusion matrix
-    cm = confusion_matrix(all_targets, all_preds)
-    plt.figure(figsize=(12, 10))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-    plt.title('Confusion Matrix')
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.savefig(os.path.join(plot_path, 'confusion_matrix{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)))
+    from matplotlib.colors import LogNorm
+    cm = confusion_matrix(all_targets, all_preds, normalize="true")
+    fig, ax = plt.subplots(figsize=(24, 20))
+    # sns.heatmap(cm, norm=LogNorm(), annot=True, fmt='d', cmap='Blues')
+    # plt.title('Confusion Matrix')
+    # plt.ylabel('True Label')
+    # plt.xlabel('Predicted Label')
+    # plt.savefig(os.path.join(plot_path, 'confusion_matrix{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)))
+
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot(cmap="Blues", values_format=".2f", xticks_rotation=45, ax=ax) 
+    plt.savefig(
+        os.path.join(plot_path, 'confusion_matrix_norm{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)),
+        dpi=600,
+        bbox_inches="tight"
+    )
 
     return test_acc, all_preds, all_targets
 

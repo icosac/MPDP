@@ -540,7 +540,7 @@ find_best_circle(
 			}
 		}
     if (shortest.first != "") {
-      std::cout << "Maneuver combination not found in the dictionary. Closest is " << shortest.first << " with error " << shortest.second << " out of " << len << std::endl;
+      std::cout << "Maneuver combination " << man_comb << " not found in the dictionary for points " << pi << " " << pm << " " << pf << " Closest is " << shortest.first << " with error " << shortest.second << " out of " << len << std::endl;
     }
 	} else {
 		id_man_comb = std::get<0>(search->second);
@@ -1142,16 +1142,16 @@ void generateDataset3PDPRect(int argc, char** argv){
     k_tmp += k_step;
     return k;
   });
-  double th = -m_pi, dth = (2.0 * m_pi) / (double)(angle_discr - 1);
+  double th = -m_pi, dth = (2.0 * m_pi) / (double)(angle_discr);
   std::generate(thi_discrs.begin(), thi_discrs.end(), [angle_discr, dth, &th]() mutable{
-    double th_i = th;
     th += dth;
+    double th_i = th;
     return th_i;
   });
   th = -m_pi;
   std::generate(thf_discrs.begin(), thf_discrs.end(), [angle_discr, dth, &th]() mutable{
-    double th_f = th;
     th += dth;
+    double th_f = th;
     return th_f;
   });
   double c_tmp = 0, c_step = 1.0 / (double)(c_discr - 1);

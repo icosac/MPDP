@@ -24,8 +24,7 @@ def predict_top_n(model, X_input, N=3):
     return top_n_classes.cpu().numpy(), top_n_probs.cpu().numpy()
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser(description='Inference script for the Neural Network model')
+    parser = argparse.ArgumentParser(description='Inference script for a regression Neural Network model')
     parser.add_argument('--input', type=str, help='Input data for prediction', required=True)
     args = parser.parse_args()
     
@@ -43,3 +42,4 @@ if __name__ == "__main__":
 
     print("Top-N Predicted Classes:", top_classes)
     print("Top-N Probabilities:", top_probs)
+    

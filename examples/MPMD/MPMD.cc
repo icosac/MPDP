@@ -13,19 +13,22 @@ std::vector<std::string> testsNames = {
 
 //! Tests descriptions
 std::vector<std::vector<Configuration2> > Tests = {
-    kaya1, kaya2, kaya3, kaya4, omega, spa
+    kaya1, kaya2, kaya3, kaya4 //, omega, spa
 };
 
 //! The tests's curvature
 std::vector<K_T> Ks = {3.0, 3.0, 5.0, 3.0, 3.0, 3.0};
+// std::vector<K_T> Ks = {3.0/2.0, 3.0/2.0, 5.0/2.0, 3.0/2.0, 3.0/2.0, 3.0/2.0};
 
 //! The tests's lengths
 std::vector<LEN_T> exampleLenghts={3.41557885807514871601142658619, 6.27803455030931356617429628386, 11.9162126542854860389297755319, 7.46756219733842652175326293218, 41.0725016438839318766440555919, 6988.66098639942993031581863761}; //the last length is SPA
 
 //! The number of discretizations to tests
-std::vector<uint> discrs = {4, 16, 90, 360};
+// std::vector<uint> discrs = {4, 16, 90, 360};
+std::vector<uint> discrs = {360};
 //! The number of refinements to tests
-std::vector<uint> refins = {1, 2, 4, 8, 16};
+// std::vector<uint> refins = {1, 2, 4, 8, 16};
+std::vector<uint> refins = {4};
 
 /**
  * @brief This functions runs all the examples and prints the results in a LaTeX-like table
@@ -35,8 +38,7 @@ std::vector<uint> refins = {1, 2, 4, 8, 16};
 int allexamples (){
   std::cout << "DISCR & ref & dl & t\\" << std::endl;
   for (uint testID=0; testID<Tests.size(); testID++){
-    std::cout << "Test " << testID << std::endl;
-    if (testID!=2){continue;}
+    // if (testID!=3) continue;
     real_type dLen=exampleLenghts[testID];
 
     std::vector<bool> fixedAngles;
@@ -51,10 +53,7 @@ int allexamples (){
     std::vector<real_type> curveParam={Ks[testID]};
 
     for (auto DISCR :  discrs){
-//      if (DISCR!=4){continue;}
       for (auto r : refins){
-//        if (r!=4){continue;}
-        //std::cout << DISCR << " " << r << " ";
         TimePerf tp, tp1;
         std::vector<Configuration2>points=Tests[testID];
 
@@ -66,14 +65,16 @@ int allexamples (){
 
         LEN_T Length = 0.0;
 
-        for (unsigned int idjijij=points.size()-1; idjijij>0; idjijij--){
-          points[idjijij-1].th(vtheta[idjijij-1]);
-          points[idjijij].th(vtheta[idjijij]);
-          RS c(points[idjijij-1], points[idjijij], {Ks[testID]});
-          // std::cout << c << std::endl;
-          Length+=c.l();
+        std::ofstream file;
+        file.open("dubins_" + std::to_string(testID) + ".asy");
+        for (unsigned int point_id = 0; point_id < points.size() - 1; point_id++) {
+          Dubins d(points[point_id].x(), points[point_id].y(), vtheta[point_id],
+                   points[point_id + 1].x(), points[point_id + 1].y(), vtheta[point_id + 1],
+                   curveParam);
+          Length += d.l();
+          d.draw(file, "Dubins" + std::to_string(point_id), 800, 600, true, false, point_id==0);
         }
-        // std::cout << Length << " " << exampleLenghts[testID] << std::endl;
+        file.close();
         printf("%3d & %2d & ", DISCR, r);
         PrintScientific2D((ComLength-exampleLenghts[testID])*1000.0);
         printf(" & ");

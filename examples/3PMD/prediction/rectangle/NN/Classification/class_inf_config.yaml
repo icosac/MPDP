@@ -14,11 +14,11 @@ TRIG_FUNCS: true
 USE_ONLY_CPU: false
 EXPORT_TO_ONNX: false
 
-DATASET: /home/enrico.saccon/mpdp_new/new_rect.csv
+DATASET: /Users/enrico/Projects/mpdp/new_rect.csv
 
 # OUTPUT_MODEL_PATH: /home/enrico.saccon/mpdp_new/sbatch/classification_id/models
-OUTPUT_MODEL_NAME: /home/enrico.saccon/mpdp_new/sbatch/classification_id/models/model_classification_56971.pt
-PLOT_PATH: /home/enrico.saccon/mpdp_new/sbatch/classification_id/plots
+OUTPUT_MODEL_NAME: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/models/model_classification_56971.pt
+PLOT_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/plots
 
 # Model 
 LAYERS:

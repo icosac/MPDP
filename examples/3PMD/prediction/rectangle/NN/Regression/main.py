@@ -276,10 +276,53 @@ def main(data_path, model_save_path=MODEL_NAME):
             print("Exporting to ONNX")
             export_to_onnx(model, ONNX_NAME, input_size, dataset.get_scaler())
         
-        sin, cos, rad, deg = inference_model.predict(np.array([2, 1, 0.25, 0.75, np.sin(np.pi/2.0), np.cos(np.pi/2.0), np.sin(-np.pi/2.0), np.cos(-np.pi/2.0)]))
+        # now = time.time()
+        # sin, cos, rad, deg = inference_model.predict(np.array([2, 1, 0.25, 0.75, np.sin(np.pi/2.0), np.cos(np.pi/2.0), np.sin(-np.pi/2.0), np.cos(-np.pi/2.0)]))
 
-        print(sin, cos)
-        print(2*np.pi+rad, 360+deg)
+        # print(f"Inference completed in {time.time() - now:.4f} seconds")
+
+        # print(sin, cos)
+        # print(2*np.pi+rad, 360+deg)
+
+        total_time = 0.0
+        total_n = 0
+        error = 0.0
+        with open("/Users/enrico/Projects/mpdp/small_rect.csv", "r") as input_file:
+            for line in input_file:
+                values = line.strip().split(' ')
+# kmax c xm ym theta_i theta_f th_m id_man_comb len
+                k = float(values[0])
+                c = float(values[1])
+                xm = float(values[2])
+                ym = float(values[3])
+                theta_i = float(values[4])
+                theta_f = float(values[5])
+                th_m = float(values[6])
+
+                sin_th_i = np.sin(theta_i)
+                cos_th_i = np.cos(theta_i)
+                sin_th_f = np.sin(theta_f)
+                cos_th_f = np.cos(theta_f)
+                sin_th_m = np.sin(th_m)
+                cos_th_m = np.cos(th_m)
+
+                now = time.time()
+                sin, cos, rad, deg = inference_model.predict(np.array([k, c, xm, ym, sin_th_i, cos_th_i, sin_th_f, cos_th_f]))
+                took = time.time() - now
+                total_time += took
+                total_n += 1
+
+                while rad < 0:
+                    rad += 2 * np.pi
+                    deg = np.degrees(rad)
+
+                error += abs(th_m - rad)
+
+                # print(f"Inference completed in {took:.4f} seconds", (abs(th_m - rad)))
+
+        total_time /= total_n
+        print(f"Average inference time: {total_time:.4f} seconds")
+        print(f"Average error: {error/total_n:.4f} radians, {np.degrees(error/total_n):.4f} degrees")
 
         # testset = DubinsDatasetRectangle(data_path, use_trigonometric_features=TRIG_FUNCS)
         # test_loader = DataLoader(testset, batch_size=1024)
