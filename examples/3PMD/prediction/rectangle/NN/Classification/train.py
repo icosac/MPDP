@@ -155,12 +155,14 @@ def evaluate_model(model, test_loader, criterion, device, num_classes, plot_path
     # plt.savefig(os.path.join(plot_path, 'confusion_matrix{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)))
 
     disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-    disp.plot(cmap="Blues", values_format=".2f", xticks_rotation=45, ax=ax) 
+    disp.plot(cmap="Blues", values_format=".4f", xticks_rotation=45, ax=ax) 
     plt.savefig(
         os.path.join(plot_path, 'confusion_matrix_norm{}{}.png'.format(("_test" if eval_test else ""), slurm_id_str)),
-        dpi=600,
-        bbox_inches="tight"
+        dpi=300,
+        # bbox_inches="tight"
     )
+
+    np.savetxt(os.path.join(plot_path, 'confusion_matrix_norm{}{}.csv'.format(("_test" if eval_test else ""), slurm_id_str)), cm, delimiter=",", fmt="%.4f")
 
     return test_acc, all_preds, all_targets
 

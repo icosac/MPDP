@@ -18,7 +18,7 @@ class DubinsDatasetRectangle(Dataset):
         
         # Check if columns exist, otherwise use positional columns
         if all(col in self.data.columns for col in ['kmax', 'c', 'xm', 'ym', 'theta_i', 'theta_f']):
-            # Extract features and labels using column names
+            print("Column names for rectangle detected.")
 
             if use_trigonometric_features:
                 print("Using trigonometric features.")
@@ -38,6 +38,33 @@ class DubinsDatasetRectangle(Dataset):
                 self.features = self.data[['kmax', 'c', 'xm', 'ym', 'theta_i', 'theta_f']].values
 
             self.labels = self.data['id_man_comb'].values
+
+        elif all(col in self.data.columns for col in ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']):
+            print("Column names for circle detected.")
+            if use_trigonometric_features:
+                print("Using trigonometric features.")
+                theta_is = self.data['theta_i'].values
+                theta_fs = self.data['theta_f'].values
+                alpha_ms = self.data['alpha_m'].values
+                alpha_fs = self.data['alpha_f'].values
+
+                sin_theta_is = np.sin(theta_is)
+                cos_theta_is = np.cos(theta_is)
+                sin_theta_fs = np.sin(theta_fs)
+                cos_theta_fs = np.cos(theta_fs)
+                sin_alpha_ms = np.sin(alpha_ms)
+                cos_alpha_ms = np.cos(alpha_ms)
+                sin_alpha_fs = np.sin(alpha_fs)
+                cos_alpha_fs = np.cos(alpha_fs)
+
+                self.features = np.column_stack((self.data['kmax'].values, sin_theta_is, cos_theta_is,
+                                                  sin_theta_fs, cos_theta_fs, sin_alpha_ms, cos_alpha_ms,
+                                                  sin_alpha_fs, cos_alpha_fs))
+            else:
+                self.features = self.data[['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']].values
+            
+            self.labels = self.data['id_man_comb'].values
+            
         else:
             print("Column names not found. Using positional columns instead.")
             # Extract features from the first 7 columns and labels from the 9th column

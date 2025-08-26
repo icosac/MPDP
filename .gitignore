@@ -497,3 +497,4 @@ shrink_db.py
 examples/3PMD/prediction/rectangle/NN/Classification/models/output_classification_id_56971.txt
 examples/3PMD/prediction/rectangle/NN/Regression/models/output_regression_55993.txt
 kaya_tests/clothoidLib.asylib
+script.py
