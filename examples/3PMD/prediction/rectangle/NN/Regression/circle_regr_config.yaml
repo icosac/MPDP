@@ -1,0 +1,33 @@
+# Configuration file for examples/3PMD/Prediction/Rectangle/NN/Classification/main.py
+
+RANDOM_SEED: 42
+
+BATCH_SIZE: 64
+EPOCHS: 15
+PATIENCE: 10
+WEIGHT_DEC: 1e-5
+LEARN_RATE: 1e-5
+HIDDEN_SIZE: 2048
+
+DO_TRAINING: true
+TRIG_FUNCS: true  
+USE_ONLY_CPU: false
+EXPORT_TO_ONNX: true
+
+DATASET: /Users/enrico/Projects/mpdp/circl_small.csv
+
+OUTPUT_MODEL_PATH: /Users/enrico/Projects/mpdp/circl_small/circle/models
+PLOT_PATH: /Users/enrico/Projects/mpdp/circl_small/circle/plots
+
+# Model 
+LAYERS:
+  - Linear(in_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.1)
+  - Linear(hid_size // 2, hid_size)
+  - LeakyReLU()
+  - Linear(hid_size, hid_size)
+  - LeakyReLU()
+  - Linear(hid_size, hid_size // 2)
+  - ReLU()
+  - Linear(hid_size // 2, out_size)

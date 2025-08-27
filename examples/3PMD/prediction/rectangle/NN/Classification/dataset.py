@@ -21,7 +21,7 @@ class DubinsDatasetRectangle(Dataset):
             print("Column names for rectangle detected.")
 
             if use_trigonometric_features:
-                print("Using trigonometric features.")
+                print("Using trigonometric features for 'theta_i' and 'theta_f'.")
                 theta_is = self.data['theta_i'].values
                 theta_fs = self.data['theta_f'].values
                 
