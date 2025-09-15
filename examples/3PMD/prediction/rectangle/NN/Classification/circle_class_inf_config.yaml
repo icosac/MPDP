@@ -1,0 +1,35 @@
+# Configuration file for examples/3PMD/Prediction/Rectangle/NN/Classification/main.py
+
+RANDOM_SEED: 42
+
+BATCH_SIZE: 64
+EPOCHS: 150
+PATIENCE: 10
+WEIGHT_DEC: 1e-5
+LEARN_RATE: 1e-5
+HIDDEN_SIZE: 4096
+
+DO_TRAINING: false
+TRIG_FUNCS: true  
+USE_ONLY_CPU: false
+EXPORT_TO_ONNX: false
+
+DATASET: /Users/enrico/Projects/mpdp/circ_new.csv
+
+# OUTPUT_MODEL_PATH: /home/enrico.saccon/mpdp_new/sbatch/classification_id/models
+OUTPUT_MODEL_NAME: /Users/enrico/Projects/mpdp/sbatch/circle/models/model_classification_62695.pt
+PLOT_PATH: /Users/enrico/Projects/mpdp/examples/3PMD/prediction/rectangle/NN/Classification/plots
+
+# Model 
+LAYERS:
+  - Linear(in_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.2)
+  - Linear(hid_size // 2, hid_size)
+  - ReLU()
+  - Linear(hid_size, hid_size)
+  - ReLU()
+  - Linear(hid_size, hid_size // 2)
+  - ReLU()
+  - Dropout(0.2)
+  - Linear(hid_size // 2, out_size)

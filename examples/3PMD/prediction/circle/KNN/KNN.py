@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 
 RUN_TESTS       = 1 # Set 1 or 2 or 3 to run test set 1, 2, or both
-DATASETS_PATH   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "datasets")
+DATASETS_PATH   = "/Users/enrico/Projects/mpdp/"
 FEATURES        = ['kmax', 'theta_i', 'theta_f', 'alpha_m', 'alpha_f']
 TARGET          = 'id_man_comb'
 TRAINING        = True
@@ -22,9 +22,7 @@ if TRAINING:
     print("Reading ds")
     clock = time.time()
 
-    # data = pd.read_csv(os.path.join(DATASETS_PATH, 'small.csv'), sep='\s+')
-    data = pd.read_csv(os.path.join(DATASETS_PATH, 'big_smaller_new.csv'), sep='\s+')
-    # data = pd.read_csv(os.path.join(DATASETS_PATH, 'big.csv'), sep='\s+')
+    data = pd.read_csv(os.path.join(DATASETS_PATH, 'circ_new_train_val_cc.csv'), sep='\s+')
     
     # Order data for the id_man_comb column so that the labels are in increasing order
     data = data.sort_values("id_man_comb", axis=0, ascending=True)
@@ -71,13 +69,13 @@ if TRAINING:
 
     print("Saving index")
     clock = time.time()
-    annoy_index.save('knn_new.ann')
+    annoy_index.save('knn.ann')
     print(f"Time to save index: {time.time() - clock}")
 
     # Save X_val and y_val
     # np.savetxt('X_val_new.csv', np.asarray(X_val), delimiter=' ')
     # np.savetxt('y_val_new.csv', np.asarray(y_val), delimiter=' ')
-    np.savetxt('y_train_new.csv', np.asarray(y_train), delimiter=' ')
+    np.savetxt('y_train.csv', np.asarray(y_train), delimiter=' ')
     
     map_labels = {y_train[0]: [0]}
     label = y_train[0]
@@ -87,7 +85,7 @@ if TRAINING:
             map_labels[y_train[i+1]] = [i+1]
             label = y_train[i+1]
     map_labels[label].append(len(y_train)-1)
-    with open("y_labels_intervals_new.csv", "w") as f:
+    with open("y_labels_intervals.csv", "w") as f:
         for k, v in map_labels.items():
             f.write(f"{k} {v[0]} {v[1]}\n")
     
@@ -109,19 +107,40 @@ else:
     y_train = np.loadtxt('y_train.csv', delimiter=' ')
 
 
-def predict_knn(X_val, k=3):
+def predict_knn(X_val, k=3, knn_index=1e1):
     """Predict labels for X_val using k-nearest neighbors with majority voting."""
     y_pred = []
+    def_k = int(knn_index)
+    print(f"Predicting with k={k} knn_index={def_k}")
+    for id_x in range(len(X_val)):
+        x = X_val[id_x]
+        # Only with probability 1 in 1e5
+        if True or np.random.uniform(0, 1) < 1e-5:
+            knn_indexes = def_k
+            predicted_labels = {}
+            while len(set(predicted_labels.keys())) < k:
+                indices = annoy_index.get_nns_by_vector(x, knn_indexes)  # Get k nearest neighbors
+                nearest_labels = y_train[indices].astype(int)  # Retrieve corresponding labels
+                # print(f"k {k} Nearest labels: {len(list(set(nearest_labels)))}")
+                # for i, l in zip (indices, nearest_labels):
+                #     print(f"Index: {i}, Label: {l}")
+                for label in nearest_labels:
+                    if label in predicted_labels:
+                        predicted_labels[label] += 1
+                    else:
+                        predicted_labels[label] = 1
+
+                # Return the k keys in order of their values (highest first)
+                if len(set(predicted_labels.keys())) < k:
+                    knn_indexes *= 10
+                else:
+                    predicted_labels = dict(sorted(predicted_labels.items(), key=lambda item: item[1], reverse=True)[:k])
+                    y_pred.append((id_x, list(predicted_labels.keys())))
+                    break
+            if id_x % 1e5 == 0:
+                print(f"Completed {id_x/len(X_val)*100}% {id_x}/{len(X_val)} predictions")
     
-    for x in X_val:
-        indices = annoy_index.get_nns_by_vector(x, k)  # Get k nearest neighbors
-        nearest_labels = y_train[indices].astype(int)  # Retrieve corresponding labels
-        # for i, l in zip (indices, nearest_labels):
-        #     print(f"Index: {i}, Label: {l}")
-        predicted_label = np.bincount(nearest_labels).argmax()  # Majority vote
-        y_pred.append(predicted_label)
-    
-    return np.array(y_pred)
+    return y_pred
 
 
 print("###############\nPredicting")
@@ -164,21 +183,44 @@ if RUN_TESTS in [1, 3]:
     print("###############\nRunning test1")
 
     # data = pd.read_csv(os.path.join(DATASETS_PATH, 'testset1.csv'), sep='\s+')
-    data = pd.read_csv("/Users/enrico/Projects/mpdp/ds_out_4.csv", sep='\s+')
+    data = pd.read_csv("/Users/enrico/Projects/mpdp/circ_new_test_cc.csv", sep='\s+')
     X_test = data[FEATURES].values
     y_test = data[TARGET].values
 
-    clock = time.time()
-    # Make predictions
-    y_pred = predict_knn(X_test, k=4)
+    test_k = [
+        (1, 1e1),
+        (2, 1e2),
+        (3, 1e3),
+        (4, 1e4),
+        (5, 1e5),  
+    ]
 
-    # Evaluate performance
-    accuracy = accuracy_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred, average='weighted')
+    for (k, knn_index) in test_k:
+        print(f"Testing k={k} with knn_index={knn_index}")
+        clock = time.time()
+        # Make predictions
+        y_pred = predict_knn(X_test, k=k)
+        # assert that all the values in y_pred are different with one another
+        if not all(len(set(x)) == len(x) for (_,x) in y_pred):
+            print("All predicted values are not different!")
+            print(y_pred)
 
-    print(f"Accuracy: {accuracy*100:.1f}%")
-    print(f"F1 Score: {f1:.4f}")
-    print(f"Time to predict: {time.time() - clock}")
+        # Evaluate performance
+        # accuracy = accuracy_score(y_test, y_pred)
+        # f1 = f1_score(y_test, y_pred, average='weighted')
+        correct = 0
+        # for entry in zip(y_test, y_pred):
+        #     if entry[0] in entry[1]:
+        #         correct += 1
+        # accuracy = correct / len(y_test)
+        for (id_x, pred) in y_pred:
+            if y_test[id_x] in pred:
+                correct += 1
+        accuracy = correct / len(y_pred)
+        
+        print(f"Accuracy: {accuracy*100:.1f}%")
+        # print(f"F1 Score: {f1:.4f}")
+        print(f"Time to predict: {time.time() - clock}")
 
 if RUN_TESTS in [2, 3]:
     print("###############\nRunning test2")

@@ -240,6 +240,57 @@ def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
     train_dataset, val_dataset, test_dataset = random_split(
         dataset, [train_size, val_size, test_size]
     )
+
+    # loaded_csv_data = np.genfromtxt(data_path, delimiter=' ', skip_header=1)
+
+    # testset_data = loaded_csv_data[test_dataset.indices]
+    # np.savetxt("/Users/enrico/Projects/mpdp/circ_big_smaller_test_np.csv", testset_data, delimiter=' ')
+    # trainning_val_data = np.delete(loaded_csv_data, test_dataset.indices, axis=0)
+    # np.savetxt("/Users/enrico/Projects/mpdp/circ_big_smaller_train_val_np.csv", trainning_val_data, delimiter=' ')
+
+    print("indices")
+    print(test_dataset.indices)
+    # print()
+    with open(data_path, 'r') as f:
+        with open("/Users/enrico/Projects/mpdp/circ_big_smaller_test.csv", "w+") as fout_test:
+            with open("/Users/enrico/Projects/mpdp/circ_big_smaller_train_val.csv", "w+") as fout_train_val:
+                f_lines = f.readlines()[1:]
+                print(len(f_lines))
+                init_time_io = time.time()
+                for i, line in enumerate(f_lines):
+                    if i in test_dataset.indices:
+                        fout_test.write(line)
+                    else:
+                        fout_train_val.write(line)
+
+                    if True and i % 1000 == 0 and i > 0:
+                        percent = i*100/len(f_lines)
+                        took_io = time.time()-init_time_io
+                        remaining_io = took_io*100/percent - took_io
+
+                        print(f"i = {i}, percent = {percent:.2f}%, took_io = {took_io:.2f}s, remaining_io = {remaining_io:.2f}s")
+        # with open("/Users/enrico/Projects/mpdp/circ_big_smaller_test.csv", "w+") as fout_test:
+        #     with open("/Users/enrico/Projects/mpdp/circ_big_smaller_train_val.csv", "w+") as fout_train_val:
+        #         for i, line in enumerate(f_lines):
+        #             if i in test_dataset.indices:
+        #                 fout_test.write(line)
+        #             else:
+        #                 fout_train_val.write(line)
+                    
+        #             if True and i % 1000 == 0 and i > 0:
+        #                 percent = i*100/len(f_lines)
+        #                 took_io = time.time()-init_time_io
+        #                 remaining_io = took_io*100/percent - took_io
+
+        #                 print(f"i = {i}, percent = {percent:.2f}%, took_io = {took_io:.2f}s, remaining_io = {remaining_io:.2f}s")
+                        
+        #                 print(f"\rProcessed {percent:.2%} lines in {took_io:.2f}s, finishing in {remaining_io:.2f}s", end='', flush=True)
+
+
+
+
+    import sys
+    sys.exit(0)
     
     # Create data loaders
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -303,9 +354,9 @@ def main(data_path, output_model_path=OUTPUT_MODEL_NAME):
         )
 
         now = time.time()
-        output, label = inference_model.predict(features=np.array([2, 1, 0.25, 0.75, np.sin(np.pi/2.0), np.cos(np.pi/2.0), np.sin(-np.pi/2.0), np.cos(-np.pi/2.0)]), topk=18)
-        print(f"Inference completed in {time.time() - now:.4f} seconds")
-        print(output, label)
+        # output, label = inference_model.predict(features=np.array([2, 1, 0.25, 0.75, np.sin(np.pi/2.0), np.cos(np.pi/2.0), np.sin(-np.pi/2.0), np.cos(-np.pi/2.0)]), topk=18)
+        # print(f"Inference completed in {time.time() - now:.4f} seconds")
+        # print(output, label)
 
         training_time = time.time()
         criterion = nn.CrossEntropyLoss()

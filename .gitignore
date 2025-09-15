@@ -498,3 +498,6 @@ examples/3PMD/prediction/rectangle/NN/Classification/models/output_classificatio
 examples/3PMD/prediction/rectangle/NN/Regression/models/output_regression_55993.txt
 kaya_tests/clothoidLib.asylib
 script.py
+ds.cc
+build*/
+build_new/
