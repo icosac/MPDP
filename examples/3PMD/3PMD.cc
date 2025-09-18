@@ -338,7 +338,7 @@ double main3PDP(Configuration2& pi, Configuration2& pm, Configuration2& pf, K_T 
   std::vector<double> curveParam = { kmax };
   TimePerf time1;
   time1.start();
-  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 1440, 1);
+  std::pair<LEN_T, std::vector<Angle> >ret=DP().solveDP(points, fixedAngles, curveParam, 360, 1);
   std::cout << "ms: " << time1.getTime() << std::endl;
   // std::cout << std::setprecision(12) << "Dub1: " << dub1.man_to_string() << " " << dub1.l() << std::endl;
   // std::cout << std::setprecision(12) << "Dub2: " << dub2.man_to_string() << " " << dub2.l() << std::endl;
@@ -393,9 +393,9 @@ double main3PDP(Configuration2& pi, Configuration2& pm, Configuration2& pf, K_T 
 
 
 void main3PDPConfigurations(){
-  Configuration2 pi( 2.0    , 0.0    , -3.1416 );
-  Configuration2 pm( 3.8637 , 2.4289 ,  0.0      );
-  Configuration2 pf(-2.0    , 0.0    , -4.1887  );
+  Configuration2 pi( 2.0    , 0.0    , -3.1416);
+  Configuration2 pm( sqrt(2)*(1+sqrt(3)) , (2-sqrt(2))*sqrt(3)+sqrt(2),  0.0);
+  Configuration2 pf(-2.0    , 0.0    , -4.0*3.1416/3.0);
 
   // xi = 2., yi = 0., xm = 3.8637, ym = 2.4289, xf = -2., yf = 0., thi = -3.1416, thf = -4.1887, r = 1.
 
