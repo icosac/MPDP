@@ -8,7 +8,6 @@ np.set_printoptions(threshold=np.inf, precision = 5, linewidth = 10000, suppress
 # to allow relative import when you call the script directly
 # add the parent folder of this file to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from unicycle import Unicycle
 
 
 TWOPI = 2.0 * math.pi
@@ -90,53 +89,6 @@ def dubins_shortest_path(x0, y0, th0, xf, yf, thf, Kmax):
     lengths = [curve.a1.L, curve.a2.L, curve.a3.L] if curve else [0, 0, 0]
 
     return curve, k, lengths
-
-
-def get_discretized_path_from_dubins(q0, v_max, curve, lengths, dt=None):
-    omegas = [0,0,0]
-    #get angular velocity from dubins curvature
-    omegas[0]=  curve.a1.k *  v_max
-    omegas[1] = curve.a2.k * v_max
-    omegas[2] = curve.a3.k * v_max
-
-    # initialize model
-    unicycle_model = Unicycle(q0[0], q0[1], q0[2], dt)
-
-    # compute total time
-    tf = sum(lengths) / v_max
-
-    # switching times (when each arc ends)
-    switch_times = np.cumsum(lengths) / v_max
-
-    # initialize outputs
-    x_ref = []
-    y_ref = []
-    theta_ref = []
-    v_ref = []
-    omega_ref = []
-    time = []
-
-    t_ = 0.0
-    while t_ <= tf + 1e-12:   # tolerance to include final step
-        if t_ < switch_times[0]:
-            omega = omegas[0]
-        elif t_ < switch_times[1]:
-            omega = omegas[1]
-        else:
-            omega = omegas[2]
-
-        omega_ref.append(omega)
-        v_ref.append(v_max)
-
-        unicycle_model.update(v_max, omega)
-        x_ref.append(unicycle_model.x)
-        y_ref.append(unicycle_model.y)
-        theta_ref.append(unicycle_model.theta)
-        time.append(t_)
-
-        t_ += dt
-
-    return np.array(x_ref), np.array(y_ref), np.array(theta_ref), np.array(v_ref), np.array(omega_ref),  np.array(time)
 
 
 # LSL
@@ -324,7 +276,7 @@ def plotarc(arc: DubinsArc, color='b', npts=100):
     pts = np.array(pts)
     plt.plot(pts[:, 0], pts[:, 1], color=color, linewidth=2)
 
-def plotdubins(curve: DubinsCurve, color1='r', color2='g', color3='b'):
+def plotdubins(curve: DubinsCurve, color1='r', color2='g', color3='b', show=False):
     plotarc(curve.a1, color1)
     plotarc(curve.a2, color2)
     plotarc(curve.a3, color3)
@@ -339,7 +291,8 @@ def plotdubins(curve: DubinsCurve, color1='r', color2='g', color3='b'):
     plt.grid(True)
 
     plt.axis('equal')
-    plt.show()
+    if show:
+        plt.show()
 
 if __name__ == "__main__":
     q0 = (0.0, 0.0, -0.3)

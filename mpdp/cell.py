@@ -12,6 +12,6 @@ class Cell:
     def l(self):
         return self._length
     
-    def next(self):
+    def prev(self):
         return self._next
     
