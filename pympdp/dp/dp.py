@@ -1,14 +1,29 @@
 from __future__ import annotations
 
+import sys
 import time
+from pathlib import Path
+
 import numpy as np
 
-from pympdp.logger import logger
-from pympdp.utility import circles
-from pympdp.dubins import dubins_shortest_path
+if __package__:
+    from ..logger import logger
+    from ..utility import circles
+    from ..dubins import dubins_shortest_path
+    from .cell import Cell
+    from ._viz_mixin import _VizMixin
+else:  # pragma: no cover - script entry convenience
+    pkg_root = Path(__file__).resolve().parents[1]
+    dp_dir = Path(__file__).resolve().parent
+    for path in (pkg_root, dp_dir):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    from logger import logger
+    from utility import circles
+    from dubins import dubins_shortest_path
+    from cell import Cell
+    from _viz_mixin import _VizMixin
 
-from cell import Cell
-from _viz_mixin import _VizMixin
 
 class DP(_VizMixin):
     def __init__(self, points, fixed_angles, k_max, discretizations, refinements, def_thetas=None):
@@ -239,17 +254,17 @@ if __name__ == "__main__":
     if args.debug:
         logger.set_debug()
 
-    points = [(0, 0), (1, 1), (2, 2), (3, 0)]
+    points = [(0, 0), (1, 1), (2, 1), (3, 0)]
     def_thetas = [-np.pi, 0.0, 0.0, np.pi]
 
     # points = [(0, 0), (1, 1), (2, 0)]
 
-    dp_instance = DP(points, fixed_angles=[True, False, False, True], k_max=2, discretizations=90, refinements=1, def_thetas=def_thetas)
+    dp_instance = DP(points, fixed_angles=[True, False, False, True], k_max=3, discretizations=90, refinements=1, def_thetas=def_thetas)
     now = time.time()
     dp_instance.solve_dp()
     logger.info(f"Solved in {time.time()-now:.4f} seconds")
     # dp_instance.print_dp_matrix()
-    dp_instance.visualize_dp_matrix()
+    dp_instance.visualize_dp_matrix(show_optimal_path=True)
 
 
     # from dubins import plotdubins

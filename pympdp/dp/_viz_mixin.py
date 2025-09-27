@@ -4,12 +4,28 @@ if TYPE_CHECKING:
     # Only for type checkers to know what `self` is
     from .dp import DP as _DP
 
+import json
+import sys
+from pathlib import Path
+
 import numpy as np
-from pympdp.logger import logger
-from pympdp.dp.cell import Cell
+
+if __package__:
+    from ..logger import logger
+    from ..dubins import dubins_shortest_path, circline, plotdubins
+    from .cell import Cell
+else:  # pragma: no cover - script entry convenience
+    pkg_root = Path(__file__).resolve().parents[1]
+    dp_dir = Path(__file__).resolve().parent
+    for path in (pkg_root, dp_dir):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    from logger import logger
+    from dubins import dubins_shortest_path, circline, plotdubins
+    from cell import Cell
 
 class _VizMixin:
-    def visualize_dp_matrix(self : "_DP", output_path=None, open_in_browser=True):
+    def visualize_dp_matrix(self: "_DP", output_path=None, open_in_browser=True, show_optimal_path=False, samples_per_segment=80):
         """Render an interactive HTML dashboard that reflects the current DP matrix."""
         from pathlib import Path
         import html
@@ -75,6 +91,109 @@ class _VizMixin:
         best_path_ids = {f"cell-{row}-{col}" for row, col in best_path_positions}
         default_target_id = f"cell-{best_path_positions[-1][0]}-{best_path_positions[-1][1]}" if best_path_positions else ""
         default_target_attr = html.escape(default_target_id)
+
+        def build_optimal_path_payload():
+            if not show_optimal_path:
+                return None
+            try:
+                angles = self.best_angles(self.points)
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning("Unable to recover optimal angles for visualization: %s", exc)
+                return None
+            if not angles or len(angles) != len(self.points):
+                return None
+
+            sampled_points: list[tuple[float, float]] = []
+            node_points: list[dict[str, object]] = []
+            segment_curves = []
+            total_length = 0.0
+            for idx, (px, py) in enumerate(self.points):
+                node_points.append({"x": float(px), "y": float(py), "label": f"#{idx}"})
+
+            for idx in range(len(self.points) - 1):
+                x0, y0 = self.points[idx]
+                x1, y1 = self.points[idx + 1]
+                th0 = angles[idx]
+                th1 = angles[idx + 1]
+                try:
+                    curve, _, seg_lengths = dubins_shortest_path(x0, y0, th0, x1, y1, th1, self.k_max)
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.warning("Failed to compute Dubins segment for visualization: %s", exc)
+                    curve = None
+
+                segment_samples: list[tuple[float, float]] = []
+                if curve is not None:
+                    segment_curves.append(curve)
+                    total_length += float(sum(seg_lengths))
+                    for arc in (curve.a1, curve.a2, curve.a3):
+                        if arc.L <= 0:
+                            continue
+                        steps = max(4, int(max(arc.L * samples_per_segment, samples_per_segment)))
+                        for step in range(steps):
+                            s = arc.L * step / max(steps - 1, 1)
+                            x, y, _ = circline(s, arc.x0, arc.y0, arc.th0, arc.k)
+                            segment_samples.append((x, y))
+                    segment_samples.append((curve.a3.xf, curve.a3.yf))
+                else:
+                    segment_samples = [(float(x0), float(y0)), (float(x1), float(y1))]
+
+                if sampled_points:
+                    segment_samples = segment_samples[1:]
+                sampled_points.extend((float(px), float(py)) for px, py in segment_samples)
+
+            if not sampled_points:
+                return None
+
+            xs = [pt[0] for pt in sampled_points]
+            ys = [pt[1] for pt in sampled_points]
+            pad_source = max((max(xs) - min(xs)), (max(ys) - min(ys)))
+            pad = (pad_source if pad_source > 0 else 1.0) * 0.05
+            bounds = {
+                "min_x": min(xs) - pad,
+                "max_x": max(xs) + pad,
+                "min_y": min(ys) - pad,
+                "max_y": max(ys) + pad,
+            }
+            image_data_url = None
+            if segment_curves:
+                try:
+                    from io import BytesIO
+                    import base64
+                    import matplotlib.pyplot as plt
+
+                    fig, ax = plt.subplots(figsize=(6, 6))
+                    ax.set_aspect('equal', 'box')
+                    plt.sca(ax)
+                    for curve in segment_curves:
+                        plotdubins(curve, show=False)
+                    ax.set_xlabel('x')
+                    ax.set_ylabel('y')
+                    ax.set_title('Optimal Dubins Path')
+                    for px, py in self.points:
+                        ax.plot(px, py, 'ko', markersize=4)
+                    buf = BytesIO()
+                    fig.savefig(buf, format='png', bbox_inches='tight')
+                    buf.seek(0)
+                    image_data_url = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.warning("Unable to render Dubins plot: %s", exc)
+                finally:
+                    try:
+                        plt.close(fig)
+                    except Exception:
+                        pass
+
+            return {
+                "path": [{"x": x, "y": y} for x, y in sampled_points],
+                "nodes": node_points,
+                "bounds": bounds,
+                "totalLength": total_length,
+                "imageDataUrl": image_data_url,
+            }
+
+        path_payload = build_optimal_path_payload()
+        path_payload_attr = html.escape(json.dumps(path_payload)) if path_payload else ""
+        path_panel_class = "path-panel" + ("" if path_payload else " hidden")
 
         rows_html = []
         for row_idx, (row, point) in enumerate(zip(self.dp_matrix, self.points)):
@@ -307,6 +426,30 @@ class _VizMixin:
             .details em {{
                 color: #587089;
             }}
+            .path-panel {{
+                margin-top: 1.75rem;
+                padding: 1.5rem;
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 6px 18px rgba(12, 30, 51, 0.08);
+            }}
+            .path-panel.hidden {{
+                display: none;
+            }}
+            .path-panel img {{
+                width: 100%;
+                max-height: 360px;
+                object-fit: contain;
+                display: block;
+            }}
+            .path-panel h2 {{
+                margin-top: 0;
+                margin-bottom: 0.75rem;
+            }}
+            .path-panel .path-meta {{
+                margin-bottom: 0.75rem;
+                color: #4a6278;
+            }}
         </style>
     </head>
     <body data-default-target=\"{default_target_attr}\">
@@ -323,10 +466,16 @@ class _VizMixin:
             </tbody>
         </table>
         <div class=\"details\" id=\"details\"><em>Select a cell to explore its optimal path.</em></div>
+        <div class=\"{path_panel_class}\" id=\"path-panel\" data-path-payload=\"{path_payload_attr}\">
+            <h2>Optimal Path</h2>
+            <p class=\"path-meta\" id=\"path-meta\">Visualizes the current best sequence of Dubins segments.</p>
+            <img id=\"path-image\" alt=\"Optimal Dubins path\" />
+        </div>
         <script>
             (function() {{
                 const cells = Array.from(document.querySelectorAll('button.cell'));
                 const details = document.getElementById('details');
+                const pathPanel = document.getElementById('path-panel');
                 const defaultTargetId = document.body.dataset.defaultTarget;
                 const scaleControl = document.getElementById('cell-scale');
                 const scaleValueLabel = document.getElementById('cell-scale-value');
@@ -486,6 +635,43 @@ class _VizMixin:
                         updateBackArrowPosition();
                         requestAnimationFrame(updateBackArrowPosition);
                     }}
+                    renderOptimalPathPanel();
+                }}
+
+                function renderOptimalPathPanel() {{
+                    if (!pathPanel) {{
+                        return;
+                    }}
+                    const payloadRaw = pathPanel.dataset.pathPayload;
+                    if (!payloadRaw) {{
+                        pathPanel.classList.add('hidden');
+                        return;
+                    }}
+                    let payload;
+                    try {{
+                        payload = JSON.parse(payloadRaw);
+                    }} catch (error) {{
+                        console.warn('Unable to parse optimal path payload', error);
+                        pathPanel.classList.add('hidden');
+                        return;
+                    }}
+                    const imageEl = pathPanel.querySelector('#path-image');
+                    const metaEl = pathPanel.querySelector('#path-meta');
+                    const imageUrl = payload.imageDataUrl || '';
+                    if (!payload || !imageUrl) {{
+                        pathPanel.classList.add('hidden');
+                        return;
+                    }}
+                    pathPanel.classList.remove('hidden');
+                    if (imageEl) {{
+                        imageEl.src = imageUrl;
+                    }}
+                    if (metaEl) {{
+                        const lengthText = typeof payload.totalLength === 'number'
+                            ? `Length ≈ ${{payload.totalLength.toFixed(4)}}`
+                            : 'Visualizes the current best sequence of Dubins segments.';
+                        metaEl.textContent = lengthText;
+                    }}
                 }}
 
                 if (scaleControl) {{
@@ -493,6 +679,8 @@ class _VizMixin:
                     scaleControl.addEventListener('input', event => {{
                         applyScale(event.currentTarget.value);
                     }});
+                }} else {{
+                    renderOptimalPathPanel();
                 }}
 
                 ['scroll', 'resize'].forEach(eventName => {{
@@ -503,7 +691,9 @@ class _VizMixin:
                     }}, {{ passive: true }});
                 }});
 
-                cells.forEach(cell => {{
+                renderOptimalPathPanel();
+
+            cells.forEach(cell => {{
                     cell.addEventListener('mouseenter', event => {{
                         const target = event.currentTarget;
                         clearHover();
