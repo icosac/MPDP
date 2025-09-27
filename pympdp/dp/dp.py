@@ -191,6 +191,9 @@ class DP(_VizMixin):
                         self.k_max
                     )
 
+                    if not lengths or any(np.isnan(lengths)):
+                        continue
+                    
                     curr_length = sum(lengths) + (cell_i.l() if idx > 0 and not np.isinf(cell_i.l()) else 0)
 
                     if curr_length < cell_j.l():
