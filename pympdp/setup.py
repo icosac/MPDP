@@ -30,18 +30,18 @@ def find_version(package: str) -> str:
     m = re.search(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", content, re.M)
     return m.group(1) if m else "0.0.0"
 
-# Replace 'mpdp' below with the actual package directory name if different
-PACKAGE_NAME = "mpdp"
+# Replace 'pympdp' below with the actual package directory name if different
+PACKAGE_NAME = "pympdp"
 VERSION = find_version(PACKAGE_NAME)
 
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
-    description="A short description of the mpdp package",
+    description="A short description of the pympdp package",
     long_description=long_description,
     long_description_content_type="text/markdown" if (ROOT / "README.md").exists() else "text/plain",
-    author="",
-    author_email="",
+    author="Enrico Saccon",
+    author_email="enricosaccon96@gmail.com",
     url="",
     packages=find_packages(exclude=("tests", "docs")),
     include_package_data=True,

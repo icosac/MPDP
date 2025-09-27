@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pympdp"
+version = "0.1.0"
+description = "Python tooling for the MPDP examples and utilities"
+readme = "README.md"
+authors = [
+    { name = "Enrico Saccon", email = "enricosaccon96@gmail.com" }
+]
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.8"
+keywords = ["dubins", "trajectory", "dynamic-programming"]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.urls]
+homepage = "https://www.github.com/icosac/mpdp"
+repository = "https://www.github.com/icosac/mpdp"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pympdp*"]
+
+[tool.setuptools.package-data]
+"pympdp" = [
+    "examples/**",
+]

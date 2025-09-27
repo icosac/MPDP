@@ -1,8 +1,12 @@
 import math
 import matplotlib
-matplotlib.use('TkAgg')
+try:
+    matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt  # type: ignore
+except Exception:  # pragma: no cover - fallback for headless environments
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt  # type: ignore
 import sys, os
-import matplotlib.pyplot as plt
 import numpy as np
 np.set_printoptions(threshold=np.inf, precision = 5, linewidth = 10000, suppress = True)
 # to allow relative import when you call the script directly

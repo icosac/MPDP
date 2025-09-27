@@ -501,3 +501,7 @@ script.py
 ds.cc
 build*/
 build_new/
+
+dp_matrix_visualization.html
+
+*.egg-info
