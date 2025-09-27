@@ -1,10 +1,8 @@
-import sys
 import numpy as np
 
-sys.path.append('..')
-import dp
-
-from logger import logger
+from pympdp.dp import DP
+from pympdp.dp.cell import Cell
+from pympdp.logger import logger
 # logger.set_critical()
 
 """
@@ -18,7 +16,7 @@ def test_initialization():
     discretizations = 8
     refinements = 2
 
-    dp_instance = dp.DP(points, fixed_angles, k_max, discretizations, refinements)
+    dp_instance = DP(points, fixed_angles, k_max, discretizations, refinements)
 
     assert dp_instance.points == points
     assert dp_instance.fixed_angles == fixed_angles
@@ -36,12 +34,12 @@ def test_reset_matrix():
     discretizations = 8
     refinements = 2
 
-    dp_instance = dp.DP(points, fixed_angles, k_max, discretizations, refinements)
+    dp_instance = DP(points, fixed_angles, k_max, discretizations, refinements)
 
     # Modify the dp_matrix to have non-default values
     for i in range(len(points)):
         for j in range(discretizations):
-            dp_instance.dp_matrix[i][j] = dp.Cell(_angle=1.0, _length=1.0, _next=None)
+            dp_instance.dp_matrix[i][j] = Cell(_angle=1.0, _length=1.0, _next=None)
 
     dp_instance._reset_matrix()
 
@@ -60,7 +58,7 @@ def test_set_sampling_angles1():
     refinements = 0
     def_thetas = [0.0, 0.0, 0.0]
 
-    dp_instance = dp.DP(points, fixed_angles, k_max, discretizations, refinements, def_thetas=def_thetas)
+    dp_instance = DP(points, fixed_angles, k_max, discretizations, refinements, def_thetas=def_thetas)
     # dp_instance.set_sampling_angles(hrange=2*np.pi)
 
     # assert len(dp_instance.dp_matrix) == len(points), f"The matrix should have {len(points)} rows, but has {len(dp_instance.dp_matrix)}"
@@ -83,7 +81,7 @@ def test_set_sampling_angles1():
 #     refinements = 0
 #     def_thetas = [0, -np.pi/2, np.pi/2]
 
-#     dp_instance = dp.DP(points, fixed_angles, k_max, discretizations, refinements)
+#     dp_instance = DP(points, fixed_angles, k_max, discretizations, refinements)
 #     dp_instance.set_sampling_angles(def_thetas, hrange=2*np.pi)
 
 #     for i in range(len(points)):

@@ -6,12 +6,8 @@ try:
 except Exception:  # pragma: no cover - fallback for headless environments
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt  # type: ignore
-import sys, os
 import numpy as np
-np.set_printoptions(threshold=np.inf, precision = 5, linewidth = 10000, suppress = True)
-# to allow relative import when you call the script directly
-# add the parent folder of this file to sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+np.set_printoptions(threshold=np.inf, precision=5, linewidth=10000, suppress=True)
 
 
 TWOPI = 2.0 * math.pi

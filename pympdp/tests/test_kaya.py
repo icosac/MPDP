@@ -1,7 +1,7 @@
 import math
 
-from mpdp.logger import logger
-from mpdp.mpmd import run_example
+from pympdp.logger import logger
+from pympdp.examples.MPMD import run_example
 
 # Silence the verbose INFO logging from the DP solver during unit tests.
 logger.set_warning()

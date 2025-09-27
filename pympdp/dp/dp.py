@@ -3,10 +3,11 @@ from __future__ import annotations
 import time
 import numpy as np
 
-from logger import logger
+from pympdp.logger import logger
+from pympdp.utility import circles
+from pympdp.dubins import dubins_shortest_path
+
 from cell import Cell
-from utility import circles
-from dubins import dubins_shortest_path
 from _viz_mixin import _VizMixin
 
 class DP(_VizMixin):
@@ -128,19 +129,33 @@ class DP(_VizMixin):
         # First round is on the house
         self.solve_dp_inner()
 
-        # Extract optimal angles
+        # Extract optimal angles and best length
+        opt_len = min(cell.l() for cell in self.dp_matrix[-1] if np.isfinite(cell.l()))
         opt_angles = self.best_angles(self.points)
         logger.debug(f"Initial optimal angles: {opt_angles}")
+        logger.debug(f"Initial best length found: {opt_len}")
+        self.def_thetas = opt_angles
 
         # Refinement rounds
         for r in range(self.refinements):
             logger.debug(f"Refinement round {r+1}/{self.refinements}")
             self._reset_matrix()
-            self.def_thetas = opt_angles
             self.set_sampling_angles(hrange = np.pi)
+            
             self.solve_dp_inner()
+
+            tmp_len = min(cell.l() for cell in self.dp_matrix[-1] if np.isfinite(cell.l()))
             opt_angles = self.best_angles(self.points)
-            logger.info(f"Optimal angles for refinement {r+1}: {opt_angles}")
+
+            logger.debug(f"Optimal angles for refinement {r+1}: {opt_angles}")
+
+            if tmp_len < opt_len:
+                opt_len = tmp_len
+                self.def_thetas = opt_angles
+                logger.info(f"New best length found: {opt_len}")
+            else:
+                logger.info(f"No improvement in length: {tmp_len} >= {opt_len}")
+                break
 
         logger.info(f"Optimal angles: {opt_angles}")
 
@@ -155,7 +170,6 @@ class DP(_VizMixin):
 
                 for i, cell_i in enumerate(self.dp_matrix[idx]):
                     # Compute Dubins path from (idx-1, cell_i) to (idx, cell_j)
-                    logger.debug(f"Computing path between point {idx} and point {idx - 1} with angles {i} and {j}")
                     _, _, lengths = dubins_shortest_path(
                         self.points[idx][0],     self.points[idx][1],     cell_i.th(),
                         self.points[idx + 1][0], self.points[idx + 1][1], cell_j.th(),
@@ -167,8 +181,6 @@ class DP(_VizMixin):
                     if curr_length < cell_j.l():
                         cell_j._length = curr_length
                         cell_j._next = self.dp_matrix[idx][i]
-                    else:
-                        logger.debug(f"Skipping path from point {idx + 1} angle {j} to point {idx} angle {i} with length {curr_length} because a better path with length {cell_i.l()} already exists")
 
                 # logger.debug(f"Best from point {idx + 1} angle {j} is to point {idx} angle {i} with length {cell_j.l()}")
         logger.debug("Finished DP")
@@ -227,12 +239,12 @@ if __name__ == "__main__":
     if args.debug:
         logger.set_debug()
 
-    points = [(0, 0), (1, 1), (2, 0)]
-    def_thetas = [-np.pi, 0.0, np.pi]
+    points = [(0, 0), (1, 1), (2, 2), (3, 0)]
+    def_thetas = [-np.pi, 0.0, 0.0, np.pi]
 
     # points = [(0, 0), (1, 1), (2, 0)]
 
-    dp_instance = DP(points, fixed_angles=[True, False, True], k_max=2, discretizations=90, refinements=1, def_thetas=def_thetas)
+    dp_instance = DP(points, fixed_angles=[True, False, False, True], k_max=2, discretizations=90, refinements=1, def_thetas=def_thetas)
     now = time.time()
     dp_instance.solve_dp()
     logger.info(f"Solved in {time.time()-now:.4f} seconds")

@@ -1,30 +1,24 @@
 from __future__ import annotations
 
 import math
-import sys
 import time
-from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
-_PACKAGE_ROOT = Path(__file__).resolve().parent
-if str(_PACKAGE_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PACKAGE_ROOT))
+from ...dp import DP
+from ...dubins import dubins_shortest_path
+from .mpmd_data import EXAMPLE_RAW_DATA
 
-from dp import DP
-from dubins import dubins_shortest_path
-from mpmd_data import EXAMPLE_RAW_DATA
-
-DEFAULT_DISCRETIZATIONS: Sequence[int] = (90, )#(4, 16, 90, 360)
-DEFAULT_REFINEMENTS: Sequence[int] = (4, )#(1, 2, 4, 8, 16)
+DEFAULT_DISCRETIZATIONS: Sequence[int] = (4, 16, 90, 360)
+DEFAULT_REFINEMENTS: Sequence[int] = (1, 2, 4, 8, 16)
 
 _SPEC_TABLE: Tuple[Tuple[str, str, float, float], ...] = (
     ("kaya1", "Kaya Example 1", 3.0, 3.4155788580751487),
     ("kaya2", "Kaya Example 2", 3.0, 6.2780345503093136),
     ("kaya3", "Kaya Example 3", 5.0, 11.916212654285486),
     ("kaya4", "Kaya Example 4", 3.0, 7.4675621973384265),
-    # ("omega", "Omega", 3.0, 41.07250164388393),
-    # ("spa", "Circuit", 3.0, 6988.66098639943),
+    ("omega", "Omega", 3.0, 41.07250164388393),
+    ("spa", "Circuit", 3.0, 6988.66098639943),
 )
 
 
@@ -36,7 +30,7 @@ class ExampleSpec:
     example_length: float
     raw_points: List[Tuple[float, float, Optional[float]]]
 
-    def __post_init__(self) -> None:  # eager pre-computation for downstream speed
+    def __post_init__(self) -> None:
         self.points: List[Tuple[float, float]] = [
             (x, y) for x, y, _ in self.raw_points
         ]
@@ -86,13 +80,12 @@ EXAMPLES_BY_NAME = _build_example_specs()
 EXAMPLES_BY_KEY = {spec.key: spec for spec in EXAMPLES_BY_NAME.values()}
 EXAMPLE_ORDER: Tuple[str, ...] = tuple(name for _, name, _, _ in _SPEC_TABLE)
 
-# Convenience exports mirroring the original C++ header
 kaya1 = EXAMPLES_BY_KEY["kaya1"].points
 kaya2 = EXAMPLES_BY_KEY["kaya2"].points
 kaya3 = EXAMPLES_BY_KEY["kaya3"].points
 kaya4 = EXAMPLES_BY_KEY["kaya4"].points
-# omega = EXAMPLES_BY_KEY["omega"].points
-# circuit = EXAMPLES_BY_KEY["spa"].points
+omega = EXAMPLES_BY_KEY["omega"].points
+circuit = EXAMPLES_BY_KEY["spa"].points
 
 
 def iter_example_results(
@@ -100,11 +93,6 @@ def iter_example_results(
     discretizations: Sequence[int] = DEFAULT_DISCRETIZATIONS,
     refinements: Sequence[int] = DEFAULT_REFINEMENTS,
 ) -> Iterator[ExampleResult]:
-    """Yield DP results for the requested examples.
-
-    The implementation mirrors the logic in the original C++ `allexamples` helper,
-    but returns structured data instead of printing LaTeX rows.
-    """
     if example_names is None:
         names = EXAMPLE_ORDER
     else:
@@ -171,9 +159,9 @@ def _extract_solution(dp_instance: DP, expected_length: int) -> Tuple[List[float
     final_row = dp_instance.dp_matrix[-1]
     finite_cells = [cell for cell in final_row if math.isfinite(cell.l())]
     if not finite_cells:
-        raise ValueError('No finite solution found in DP matrix')
+        raise ValueError("No finite solution found in DP matrix")
     best_cell = min(finite_cells, key=lambda cell: cell.l())
-    chain = []
+    chain: List[object] = []
     current = best_cell
     while current is not None:
         chain.append(current)
@@ -181,7 +169,7 @@ def _extract_solution(dp_instance: DP, expected_length: int) -> Tuple[List[float
     chain.reverse()
     if len(chain) != expected_length:
         raise ValueError(
-            f'Expected {expected_length} states in optimal chain, got {len(chain)}'
+            f"Expected {expected_length} states in optimal chain, got {len(chain)}"
         )
     angles = [float(cell.th()) for cell in chain]
     length = float(chain[-1].l())

@@ -5,8 +5,8 @@ if TYPE_CHECKING:
     from .dp import DP as _DP
 
 import numpy as np
-from logger import logger
-from cell import Cell
+from pympdp.logger import logger
+from pympdp.dp.cell import Cell
 
 class _VizMixin:
     def visualize_dp_matrix(self : "_DP", output_path=None, open_in_browser=True):
