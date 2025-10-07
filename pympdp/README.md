@@ -1,5 +1,14 @@
 # PyMPDP -- Python Package from MPDP
 
+
+# Running the examples without installing the package
+
+To run the examples without installing the package, navigate to the `pympdp/examples` folder and run the desired example using Python. For example, to run the MPMD example, navigate to the `pympdp/examples/MPMD` folder and run:
+```bash
+python mpmd.py
+```
+
+
 ## Installation 
 
 From the main folder of the repository, run the following commands.

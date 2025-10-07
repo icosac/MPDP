@@ -8,23 +8,32 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
-if __package__:
-    from ..dp import DP
-    from ..dubins import dubins_shortest_path
-    from .mpmd_data import EXAMPLE_RAW_DATA
-else:  # pragma: no cover - script entry convenience
-    pkg_root = Path(__file__).resolve().parents[1]
-    dp_dir = Path(__file__).resolve().parent
-    for path in (pkg_root, dp_dir):
-        if str(path) not in sys.path:
-            sys.path.insert(0, str(path))
-    from dp import DP
-    from dubins import dubins_shortest_path
-    from mpmd_data import EXAMPLE_RAW_DATA
+try:
+    from pympdp.dp import DP
+    from pympdp.dubins import dubins_shortest_path
+    from pympdp.examples.MPMD.mpmd_data import EXAMPLE_RAW_DATA
+    from pympdp.logger import logger
+except ModuleNotFoundError as exc:  # pragma: no cover - developer convenience
+    if exc.name not in {
+        "pympdp",
+        "pympdp.dp",
+        "pympdp.dubins",
+        "pympdp.examples",
+        "pympdp.examples.MPMD",
+        "pympdp.examples.MPMD.mpmd_data",
+    }:
+        raise
+    repo_root = Path(__file__).resolve().parents[3]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from pympdp.dp import DP
+    from pympdp.dubins import dubins_shortest_path
+    from pympdp.examples.MPMD.mpmd_data import EXAMPLE_RAW_DATA
+    from pympdp.logger import logger
 
 
-DEFAULT_DISCRETIZATIONS: Sequence[int] = (4, 16, 90, 360)
-DEFAULT_REFINEMENTS: Sequence[int] = (1, 2, 4, 8, 16)
+DEFAULT_DISCRETIZATIONS: Sequence[int] = (4,) #(4, 16, 90, 360)
+DEFAULT_REFINEMENTS: Sequence[int] = (1,) #(1, 2, 4, 8, 16)
 
 
 _SPEC_TABLE: Tuple[Tuple[str, str, float, float], ...] = (
@@ -233,4 +242,5 @@ def print_table(
 
 
 if __name__ == "__main__":
+    logger.set_critical()
     print_table(allexamples())

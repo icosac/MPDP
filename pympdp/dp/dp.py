@@ -6,23 +6,31 @@ from pathlib import Path
 
 import numpy as np
 
-if __package__:
-    from ..logger import logger
-    from ..utility import circles
-    from ..dubins import dubins_shortest_path
-    from .cell import Cell
-    from ._viz_mixin import _VizMixin
-else:  # pragma: no cover - script entry convenience
-    pkg_root = Path(__file__).resolve().parents[1]
-    dp_dir = Path(__file__).resolve().parent
-    for path in (pkg_root, dp_dir):
-        if str(path) not in sys.path:
-            sys.path.insert(0, str(path))
-    from logger import logger
-    from utility import circles
-    from dubins import dubins_shortest_path
-    from cell import Cell
-    from _viz_mixin import _VizMixin
+try:
+    from pympdp.logger import logger
+    from pympdp.utility import circles
+    from pympdp.dubins import dubins_shortest_path
+    from pympdp.dp.cell import Cell
+    from pympdp.dp._viz_mixin import _VizMixin
+except ModuleNotFoundError as exc:  # pragma: no cover - developer convenience
+    if exc.name not in {
+        "pympdp",
+        "pympdp.logger",
+        "pympdp.utility",
+        "pympdp.dubins",
+        "pympdp.dp",
+        "pympdp.dp.cell",
+        "pympdp.dp._viz_mixin",
+    }:
+        raise
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from pympdp.logger import logger
+    from pympdp.utility import circles
+    from pympdp.dubins import dubins_shortest_path
+    from pympdp.dp.cell import Cell
+    from pympdp.dp._viz_mixin import _VizMixin
 
 
 class DP(_VizMixin):
