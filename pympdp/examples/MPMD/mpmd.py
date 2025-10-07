@@ -1,16 +1,31 @@
 from __future__ import annotations
 
 import math
+import sys
 import time
+from pathlib import Path
+
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
-from ...dp import DP
-from ...dubins import dubins_shortest_path
-from .mpmd_data import EXAMPLE_RAW_DATA
+if __package__:
+    from ..dp import DP
+    from ..dubins import dubins_shortest_path
+    from .mpmd_data import EXAMPLE_RAW_DATA
+else:  # pragma: no cover - script entry convenience
+    pkg_root = Path(__file__).resolve().parents[1]
+    dp_dir = Path(__file__).resolve().parent
+    for path in (pkg_root, dp_dir):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    from dp import DP
+    from dubins import dubins_shortest_path
+    from mpmd_data import EXAMPLE_RAW_DATA
+
 
 DEFAULT_DISCRETIZATIONS: Sequence[int] = (4, 16, 90, 360)
 DEFAULT_REFINEMENTS: Sequence[int] = (1, 2, 4, 8, 16)
+
 
 _SPEC_TABLE: Tuple[Tuple[str, str, float, float], ...] = (
     ("kaya1", "Kaya Example 1", 3.0, 3.4155788580751487),

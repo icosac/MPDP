@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     # Only for type checkers to know what `self` is
     from .dp import DP as _DP
