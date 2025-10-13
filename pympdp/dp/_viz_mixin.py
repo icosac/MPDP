@@ -74,12 +74,12 @@ class _VizMixin:
             if positions:
                 return positions
 
-            if not self.dp_matrix or not self.dp_matrix[-1]:
+            if not self.dp_matrix or not self.dp_matrix[0]:
                 return []
 
-            final_row = self.dp_matrix[-1]
-            finite_cells = [cell for cell in final_row if np.isfinite(cell.l())]
-            candidate = min(finite_cells or final_row, key=lambda cell: cell.l())
+            first_row = self.dp_matrix[0]
+            finite_cells = [cell for cell in first_row if np.isfinite(cell.l())]
+            candidate = min(finite_cells or first_row, key=lambda cell: cell.l())
 
             visited = set()
             chain = []
@@ -89,14 +89,12 @@ class _VizMixin:
                 pos = cell_positions.get(id(current))
                 if pos is not None:
                     chain.append(pos)
-                current = current.prev()
-
-            chain.reverse()
+                current = current.next()
             return chain
 
         best_path_positions = resolve_best_path()
         best_path_ids = {f"cell-{row}-{col}" for row, col in best_path_positions}
-        default_target_id = f"cell-{best_path_positions[-1][0]}-{best_path_positions[-1][1]}" if best_path_positions else ""
+        default_target_id = f"cell-{best_path_positions[0][0]}-{best_path_positions[0][1]}" if best_path_positions else ""
         default_target_attr = html.escape(default_target_id)
 
         def build_optimal_path_payload():
@@ -223,12 +221,12 @@ class _VizMixin:
                 angle_deg_label = "" if angle_deg_val is None else f"{angle_deg_val:.1f}°"
                 length_label = "L —" if length_val is None else f"L {length_val:.3f}"
 
-                prev_id = ""
-                prev_cell = cell.prev()
-                if prev_cell is not None:
-                    pos = cell_positions.get(id(prev_cell))
+                next_id = ""
+                next_cell = cell.next()
+                if next_cell is not None:
+                    pos = cell_positions.get(id(next_cell))
                     if pos is not None:
-                        prev_id = f"cell-{pos[0]}-{pos[1]}"
+                        next_id = f"cell-{pos[0]}-{pos[1]}"
 
                 attrs = {
                     "id": cell_id,
@@ -240,7 +238,7 @@ class _VizMixin:
                     "data-angle": "" if angle_val is None else f"{angle_val:.6f}",
                     "data-angle-deg": "" if angle_deg_val is None else f"{angle_deg_val:.6f}",
                     "data-length": "" if length_val is None else f"{length_val:.6f}",
-                    "data-prev-id": prev_id,
+                    "data-next-id": next_id,
                 }
                 attr_html = " ".join(f'{key}="{html.escape(str(value))}"' for key, value in attrs.items())
 
@@ -350,7 +348,7 @@ class _VizMixin:
                 border-color: rgba(34, 139, 230, 0.35);
                 color: #0b1e34;
             }}
-            button.cell.hover-prev {{
+            button.cell.hover-next {{
                 border-color: rgba(11, 114, 133, 0.6);
                 box-shadow: 0 10px 20px rgba(11, 114, 133, 0.25);
             }}
@@ -461,7 +459,7 @@ class _VizMixin:
     </head>
     <body data-default-target=\"{default_target_attr}\">
         <h1>Dynamic Programming Matrix</h1>
-        <p class=\"meta\">Click a node to highlight the stored optimal chain. Hover to preview the predecessor.</p>
+        <p class=\"meta\">Click a node to highlight the stored optimal chain. Hover to preview the successor.</p>
         <div class=\"controls\">
             <label for=\"cell-scale\">Cell size</label>
             <input type=\"range\" id=\"cell-scale\" min=\"0.6\" max=\"1.6\" step=\"0.1\" value=\"1\">
@@ -486,16 +484,16 @@ class _VizMixin:
                 const defaultTargetId = document.body.dataset.defaultTarget;
                 const scaleControl = document.getElementById('cell-scale');
                 const scaleValueLabel = document.getElementById('cell-scale-value');
-                let hoverPrevCell = null;
+                let hoverNextCell = null;
                 let hoverSourceCell = null;
                 let arrowSourceCell = null;
                 let arrowTargetCell = null;
                 let backArrowEl = null;
 
                 function clearHover() {{
-                    if (hoverPrevCell) {{
-                        hoverPrevCell.classList.remove('hover-prev');
-                        hoverPrevCell = null;
+                    if (hoverNextCell) {{
+                        hoverNextCell.classList.remove('hover-next');
+                        hoverNextCell = null;
                     }}
                     if (hoverSourceCell) {{
                         hoverSourceCell.classList.remove('hover-source');
@@ -511,9 +509,11 @@ class _VizMixin:
                     while (current && !seen.has(current.id)) {{
                         chain.push(current);
                         seen.add(current.id);
-                        const prevId = current.dataset.prevId;
-                        if (!prevId) break;
-                        current = document.getElementById(prevId);
+                        const nextId = current.dataset.nextId;
+                        if (!nextId) break;
+                        const nextCell = document.getElementById(nextId);
+                        if (!nextCell) break;
+                        current = nextCell;
                     }}
                     return chain;
                 }}
@@ -601,9 +601,9 @@ class _VizMixin:
                         return;
                     }}
 
-                    const ordered = chain.slice().reverse();
+                    const ordered = chain.slice();
                     const rows = ordered.map((cell, index) => {{
-                        const label = index === ordered.length - 1 ? 'Selected' : 'Step ' + (index + 1);
+                        const label = index === 0 ? 'Selected' : 'Step ' + (index + 1);
                         const row = cell.dataset.row ?? '—';
                         const col = cell.dataset.col ?? '—';
                         const px = formatNumber(cell.dataset.pointX, 2);
@@ -706,13 +706,13 @@ class _VizMixin:
                         clearHover();
                         target.classList.add('hover-source');
                         hoverSourceCell = target;
-                        const prevId = target.dataset.prevId;
-                        if (prevId) {{
-                            const prevCell = document.getElementById(prevId);
-                            if (prevCell) {{
-                                prevCell.classList.add('hover-prev');
-                                hoverPrevCell = prevCell;
-                                showBackArrow(target, prevCell);
+                        const nextId = target.dataset.nextId;
+                        if (nextId) {{
+                            const nextCell = document.getElementById(nextId);
+                            if (nextCell) {{
+                                nextCell.classList.add('hover-next');
+                                hoverNextCell = nextCell;
+                                showBackArrow(target, nextCell);
                             }} else {{
                                 removeBackArrow();
                             }}

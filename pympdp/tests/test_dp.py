@@ -47,7 +47,7 @@ def test_reset_matrix():
         for j in range(discretizations):
             assert np.isnan(dp_instance.dp_matrix[i][j].th())
             assert dp_instance.dp_matrix[i][j].l() == 0
-            assert dp_instance.dp_matrix[i][j].prev() is None
+            assert dp_instance.dp_matrix[i][j].next() is None
 
 
 def test_set_sampling_angles1():
@@ -94,6 +94,5 @@ def test_set_sampling_angles1():
 #         if i==2:
 #             comp_angles = [cell.th() for cell in dp_instance.dp_matrix[i]]
 #             assert comp_angles == [-1.5707963267948966, 0.0, 1.5707963267948966, 3.141592653589793, -0.7853981633974483]
-
 
 

@@ -153,7 +153,7 @@ class DP(_VizMixin):
         self.solve_dp_inner()
 
         # Extract optimal angles and best length
-        opt_len = min(cell.l() for cell in self.dp_matrix[-1] if np.isfinite(cell.l()))
+        opt_len = min(cell.l() for cell in self.dp_matrix[0] if np.isfinite(cell.l()))
         opt_angles = self.best_angles(self.points)
         logger.debug(f"Initial optimal angles: {opt_angles}")
         logger.debug(f"Initial best length found: {opt_len}")
@@ -167,7 +167,7 @@ class DP(_VizMixin):
             
             self.solve_dp_inner()
 
-            tmp_len = min(cell.l() for cell in self.dp_matrix[-1] if np.isfinite(cell.l()))
+            tmp_len = min(cell.l() for cell in self.dp_matrix[0] if np.isfinite(cell.l()))
             opt_angles = self.best_angles(self.points)
 
             logger.debug(f"Optimal angles for refinement {r+1}: {opt_angles}")
@@ -186,44 +186,53 @@ class DP(_VizMixin):
 
 
     def solve_dp_inner(self):
-        for idx in range(0, len(self.points)-1):
-            for j, cell_j in enumerate(self.dp_matrix[idx + 1]):
-                cell_j._length = np.inf
-                cell_j._next = None
+        n_points = len(self.points)
+        for idx in range(n_points - 2, -1, -1):
+            for cell_i in self.dp_matrix[idx]:
+                cell_i._length = np.inf
+                cell_i._next = None
 
-                for i, cell_i in enumerate(self.dp_matrix[idx]):
-                    # Compute Dubins path from (idx-1, cell_i) to (idx, cell_j)
+            for i, cell_i in enumerate(self.dp_matrix[idx]):
+                for j, cell_j in enumerate(self.dp_matrix[idx + 1]):
                     _, _, lengths = dubins_shortest_path(
-                        self.points[idx][0],     self.points[idx][1],     cell_i.th(),
+                        self.points[idx][0], self.points[idx][1], cell_i.th(),
                         self.points[idx + 1][0], self.points[idx + 1][1], cell_j.th(),
                         self.k_max
                     )
 
-                    if not lengths or any(np.isnan(lengths)):
+                    if not lengths or any(np.isnan(lengths)) or not np.isfinite(cell_j.l()):
                         continue
-                    
-                    curr_length = sum(lengths) + (cell_i.l() if idx > 0 and not np.isinf(cell_i.l()) else 0)
 
-                    if curr_length < cell_j.l():
-                        cell_j._length = curr_length
-                        cell_j._next = self.dp_matrix[idx][i]
+                    curr_length = sum(lengths) + cell_j.l()
 
-                # logger.debug(f"Best from point {idx + 1} angle {j} is to point {idx} angle {i} with length {cell_j.l()}")
+                    if curr_length < cell_i.l():
+                        cell_i._length = curr_length
+                        cell_i._next = cell_j
+
+                # logger.debug(f"Best from point {idx} angle {i} is to point {idx + 1} angle {j} with length {cell_i.l()}")
         logger.debug("Finished DP")
 
 
     def best_angles(self, points):
-        # Backtrack to find the best angles
+        if not self.dp_matrix or not self.dp_matrix[0]:
+            return []
+
+        first_row = self.dp_matrix[0]
+        finite_cells = [cell for cell in first_row if np.isfinite(cell.l())]
+        current = min(finite_cells or first_row, key=lambda cell: cell.l())
+
         best_angles = []
-        for i in range(len(points)-1, -1, -1):
-            if not self.dp_matrix[i]:
-                continue
-            best_cell = min(self.dp_matrix[i], key=lambda cell: cell.l())
-            best_angles.append(best_cell.th())
-            # Backtrack through the best previous cells
-            while best_cell.prev():
-                best_cell = best_cell.prev()
-        return best_angles[::-1]
+        visited_ids = set()
+
+        while current is not None and len(best_angles) < len(points):
+            if id(current) in visited_ids:
+                logger.warning("Cycle detected while extracting the optimal chain; aborting traversal")
+                break
+            visited_ids.add(id(current))
+            best_angles.append(current.th())
+            current = current.next()
+
+        return best_angles
     
 
     def print_dp_matrix(self):
@@ -237,22 +246,22 @@ class DP(_VizMixin):
             for cell in row:
                 angle_str = f"{cell.th():.2f}" if cell.th() is not None else "None"
                 length_str = f"{cell.l():.2e}" if cell.l() is not None else "None"
-                id_prev = None
-                if i > 0 and cell.prev() is not None:
-                    for j, prev_cell in enumerate(self.dp_matrix[i - 1]):
-                        if cell.prev() is not None and np.isclose(cell.prev().th(), prev_cell.th()):
-                            id_prev = f"{j:4d}"
+                id_next = None
+                if i < len(self.dp_matrix) - 1 and cell.next() is not None:
+                    for j, next_cell in enumerate(self.dp_matrix[i + 1]):
+                        if cell.next() is not None and np.isclose(cell.next().th(), next_cell.th()):
+                            id_next = f"{j:4d}"
                             break
 
-                angles_str.append(f"{angle_str}, {length_str}, {id_prev}")
+                angles_str.append(f"{angle_str}, {length_str}, {id_next}")
             
             # Fill in empty cells if the row has fewer angles than max_n_ths
             while len(angles_str) < max_n_ths:
                 angles_str.append("None, None, None")
             table.add_row([f"#{i} {point_str}"] + angles_str)
 
-            # prev_angle = cell.prev().th() if cell.prev() else None
-            # table.add_row([i, f"{cell.th():.4f}" if cell.th() is not None else "None", f"{cell.l():.4f}" if cell.l() is not None else "None", f"{prev_angle:.4f}" if prev_angle is not None else "None"])
+            # next_angle = cell.next().th() if cell.next() else None
+            # table.add_row([i, f"{cell.th():.4f}" if cell.th() is not None else "None", f"{cell.l():.4f}" if cell.l() is not None else "None", f"{next_angle:.4f}" if next_angle is not None else "None"])
         print(table)
 
 
@@ -265,12 +274,31 @@ if __name__ == "__main__":
     if args.debug:
         logger.set_debug()
 
-    points = [(0, 0), (1, 1), (2, 1), (3, 0)]
-    def_thetas = [-np.pi, 0.0, 0.0, np.pi]
+    # points = [(0, 0), (1, 1), (2, 1), (3, 0)]
+    # def_thetas = [-np.pi, 0.0, 0.0, np.pi]
 
-    # points = [(0, 0), (1, 1), (2, 0)]
+    points = [
+        [0.010000025149524602, 0.0005770249507223292],
+        [0.8289428479444483, -0.5732980947335886], 
+        [1.3932863331700118, -1.3988381789714552], 
+        [2.281286073185757, -1.8586821326470127], 
+        [3.1792115718072362, -2.298829606711523], 
+        [3.7196043491453383, -3.1402424935874094], 
+        [4.3410319309946, -4.038320625487824], 
+        [5.244159851813759, -3.608949039752501], 
+        [6.23389945140574, -3.7518319463561465], 
+        [6.687767640356647, -2.860763112281907], 
+        [7.141635829307553, -1.9696942782076672], 
+        [7.59550401825846, -1.0786254441334275], 
+        [8.00309570257371, -0.021513553227158866], 
+        [8.129899081617857, 0.9704143186783474], 
+        [8.689678934469265, 1.0695426597270195]
+    ]
 
-    dp_instance = DP(points, fixed_angles=[True, False, False, True], k_max=3, discretizations=90, refinements=1, def_thetas=def_thetas)
+    def_thetas = [-1.3413855108602083e-05] + [0.0] * (len(points)-2) + [0.5235987755982991]
+    fixed_angles = [True] + [False] * (len(points)-2) + [True]
+
+    dp_instance = DP(points, fixed_angles=fixed_angles, k_max=3, discretizations=30, refinements=2, def_thetas=def_thetas)
     now = time.time()
     dp_instance.solve_dp()
     logger.info(f"Solved in {time.time()-now:.4f} seconds")

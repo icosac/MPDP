@@ -180,8 +180,8 @@ def _solve_example(spec: ExampleSpec, discretization: int, refinement: int) -> E
 
 
 def _extract_solution(dp_instance: DP, expected_length: int) -> Tuple[List[float], float]:
-    final_row = dp_instance.dp_matrix[-1]
-    finite_cells = [cell for cell in final_row if math.isfinite(cell.l())]
+    first_row = dp_instance.dp_matrix[0]
+    finite_cells = [cell for cell in first_row if math.isfinite(cell.l())]
     if not finite_cells:
         raise ValueError("No finite solution found in DP matrix")
     best_cell = min(finite_cells, key=lambda cell: cell.l())
@@ -189,14 +189,13 @@ def _extract_solution(dp_instance: DP, expected_length: int) -> Tuple[List[float
     current = best_cell
     while current is not None:
         chain.append(current)
-        current = current.prev()
-    chain.reverse()
+        current = current.next()
     if len(chain) != expected_length:
         raise ValueError(
             f"Expected {expected_length} states in optimal chain, got {len(chain)}"
         )
     angles = [float(cell.th()) for cell in chain]
-    length = float(chain[-1].l())
+    length = float(chain[0].l())
     return angles, length
 
 
