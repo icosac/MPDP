@@ -12,6 +12,7 @@ try:
     from pympdp.dubins import dubins_shortest_path
     from pympdp.dp.cell import Cell
     from pympdp.dp._viz_mixin import _VizMixin
+    from pympdp.profiler import profile_callable
 except ModuleNotFoundError as exc:  # pragma: no cover - developer convenience
     if exc.name not in {
         "pympdp",
@@ -31,6 +32,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - developer convenience
     from pympdp.dubins import dubins_shortest_path
     from pympdp.dp.cell import Cell
     from pympdp.dp._viz_mixin import _VizMixin
+    from pympdp.profiler import profile_callable
 
 
 class DP(_VizMixin):
@@ -197,7 +199,7 @@ class DP(_VizMixin):
                     _, _, lengths = dubins_shortest_path(
                         self.points[idx][0], self.points[idx][1], cell_i.th(),
                         self.points[idx + 1][0], self.points[idx + 1][1], cell_j.th(),
-                        self.k_max
+                        self.k_max,
                     )
 
                     if not lengths or any(np.isnan(lengths)) or not np.isfinite(cell_j.l()):
@@ -266,10 +268,15 @@ class DP(_VizMixin):
 
 
 import argparse
-if __name__ == "__main__":
-    args = argparse.ArgumentParser(description="Test DP class")
-    args.add_argument('--debug', action='store_true', help='Enable debug logging')
-    args = args.parse_args()
+def main():
+    parser = argparse.ArgumentParser(description="Test DP class")
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser.add_argument('--profile', action='store_true', help='Run solve_dp under cProfile and print top entries')
+    parser.add_argument('--profile-limit', type=int, default=30, help='Number of profile rows to display (default: 30)')
+    parser.add_argument('--profile-sort', default='cumulative', help='Sort key for profile table (default: cumulative)')
+    parser.add_argument('--profile-include-external', action='store_true', help='Include non-pympdp call sites in the profile output')
+    parser.add_argument('--profile-keep-dirs', action='store_true', help='Keep full directory paths in profile output')
+    args = parser.parse_args()
 
     if args.debug:
         logger.set_debug()
@@ -299,9 +306,22 @@ if __name__ == "__main__":
     fixed_angles = [True] + [False] * (len(points)-2) + [True]
 
     dp_instance = DP(points, fixed_angles=fixed_angles, k_max=3, discretizations=30, refinements=2, def_thetas=def_thetas)
-    now = time.time()
-    dp_instance.solve_dp()
-    logger.info(f"Solved in {time.time()-now:.4f} seconds")
+    start = time.time()
+    if args.profile:
+        angles, profile_table, _ = profile_callable(
+            dp_instance.solve_dp,
+            sort_by=args.profile_sort,
+            limit=args.profile_limit,
+            include_external=args.profile_include_external,
+            strip_dirs=not args.profile_keep_dirs,
+        )
+        elapsed = time.time() - start
+        logger.info(f"Solved in {elapsed:.4f} seconds (profiled)")
+        print(profile_table)
+    else:
+        angles = dp_instance.solve_dp()
+        elapsed = time.time() - start
+        logger.info(f"Solved in {elapsed:.4f} seconds")
     # dp_instance.print_dp_matrix()
     dp_instance.visualize_dp_matrix(show_optimal_path=True)
 
@@ -311,3 +331,7 @@ if __name__ == "__main__":
     # dub2, _, _ = dubins_shortest_path(1, 1, 0.0, 2, 0, np.pi, 2)
     # plotdubins(dub1)
     # plotdubins(dub2, color1='m', color2='c', color3='y', show=True)
+
+
+if __name__ == "__main__":
+    main()
