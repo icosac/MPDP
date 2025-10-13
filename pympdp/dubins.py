@@ -35,9 +35,6 @@ class DubinsCurve:
 
 
 def dubins_shortest_path(x0, y0, th0, xf, yf, thf, Kmax):
-    # if parallel:
-    #     print("Using parallel computation for Dubins path")
-
     # Compute params of standard scaled problem
     sc_th0, sc_thf, sc_Kmax, lambda_ = scaleToStandard(x0, y0, th0, xf, yf, thf, Kmax)
 
