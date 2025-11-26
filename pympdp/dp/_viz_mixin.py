@@ -41,7 +41,11 @@ class _VizMixin:
         if not self.dp_matrix:
             raise ValueError("DP matrix is empty – run the solver before visualizing")
 
-        output_path = Path(output_path) if output_path else Path.cwd() / "dp_matrix_visualization.html"
+        if output_path:
+            output_path = Path(output_path).expanduser()
+        else:
+            output_path = Path.cwd() / "dp_matrix_visualization.html"
+        output_path = output_path.resolve()
 
         cell_positions = {}
         for row_idx, row in enumerate(self.dp_matrix):

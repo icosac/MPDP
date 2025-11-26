@@ -11,7 +11,7 @@
 int main(int argc, char** argv){
 	// main3PMDBruteForce();
 	// main3PMDBruteForceWithPlot();
-	main3PDPConfigurations();
+	// main3PDPConfigurations();
 	// main3PDPCircle();
 	// retesting_man_19("/Users/enrico/Projects/mpdp/examples/3PMD/prediction/datasets/small.csv");
 
@@ -25,5 +25,9 @@ int main(int argc, char** argv){
 	// generateDataset3PDPRectMulti(argc, argv);
 
 	// generateDataset3PDPCircleTest(argc, argv);
+
+	// counter_example();
+	throw_away();
+
 	return 0;
 }

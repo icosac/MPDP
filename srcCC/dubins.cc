@@ -328,32 +328,32 @@ Dubins::comp_man (D_TYPE type)
 	switch (type)
 	{
 		case D_TYPE::LRL: {
-			//      std::cout << "Choosing LRL" << std::endl;
+			// std::cout << "Choosing LRL" << std::endl;
 			this->comp_LRL (man_input_data, man_output_data);
 			break;
 		}
 		case D_TYPE::RLR: {
-			//      std::cout << "Choosing RLR" << std::endl;
+			// std::cout << "Choosing RLR" << std::endl;
 			this->comp_RLR (man_input_data, man_output_data);
 			break;
 		}
 		case D_TYPE::LSL: {
-			//      std::cout << "Choosing LSL" << std::endl;
+			// std::cout << "Choosing LSL" << std::endl;
 			this->comp_LSL (man_input_data, man_output_data);
 			break;
 		}
 		case D_TYPE::LSR: {
-			//      std::cout << "Choosing LSR" << std::endl;
+			// std::cout << "Choosing LSR" << std::endl;
 			this->comp_LSR (man_input_data, man_output_data);
 			break;
 		}
 		case D_TYPE::RSL: {
-			//      std::cout << "Choosing RSL" << std::endl;
+			// std::cout << "Choosing RSL" << std::endl;
 			this->comp_RSL (man_input_data, man_output_data);
 			break;
 		}
 		case D_TYPE::RSR: {
-			//      std::cout << "Choosing RSR" << std::endl;
+			// std::cout << "Choosing RSR" << std::endl;
 			this->comp_RSR (man_input_data, man_output_data);
 			break;
 		}
@@ -549,6 +549,38 @@ std::string Dubins::to_string_piece (int id) {
 	if (id == 3){
 		ss << "ci[3]: " << c2 << "\tcf[3]: " << c3 << "\tk[3]: " << this->k3() << "\ts[3]: " << this->s3();
 		return ss.str();
+	}
+}
+
+
+std::pair<Configuration2, Configuration2>
+Dubins::get_intermediate_configurations() 
+{
+	Configuration2 ci = *(this->ci());
+	Configuration2 first_intermediate = circleLine(this->s1(), this->k1(), ci);
+	Configuration2 second_intermediate = circleLine(this->s2(), this->k2(), first_intermediate);
+	return std::make_pair(first_intermediate, second_intermediate);
+}
+
+
+Configuration2 
+Dubins::next_configuration (Configuration2 current, LEN_T dist, K_T curvature)
+{
+	if (curvature == 0) {
+		// Straight line
+		real_type new_x = current.x() + dist * cos(current.th());
+		real_type new_y = current.y() + dist * sin(current.th());
+		return Configuration2(new_x, new_y, current.th());
+	} else {
+		// Circular arc
+		real_type radius = 1.0 / curvature;
+		real_type cx = current.x() - radius * sin(current.th());
+		real_type cy = current.y() + radius * cos(current.th());
+		real_type dth = curvature * dist;
+		real_type new_th = current.th() + dth;
+		real_type new_x = cx + radius * sin(new_th);
+		real_type new_y = cy - radius * cos(new_th);
+		return Configuration2(new_x, new_y, new_th);
 	}
 }
 

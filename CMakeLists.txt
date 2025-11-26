@@ -34,6 +34,8 @@ if(COMPILE_TESTS)
   include(cmake/build_tests.cmake)
 endif()
 
+add_subdirectory(polynomials)
+
 
 # include(ExternalLibs/RSPredict/CMakeLists.txt)
 # include(ExternalLibs/SVMQuadraticPredict/CMakeLists.txt)

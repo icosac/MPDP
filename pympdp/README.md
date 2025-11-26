@@ -93,9 +93,16 @@ dp_instance.visualize_dp_matrix(show_optimal_path=True)
 ```
 Which will open a web page with an interactive visualization.
 
+If you run the faster C++ solver you can still reuse this visualization. Dump the matrix by
+calling `DP::exportVisualizationData("dp_snapshot.json")` in C++, then run:
+```bash
+python3 -m pympdp.dp.visualize_json dp_snapshot.json
+```
+The command reads the JSON file and produces the same HTML dashboard without rerunning the
+Python solver.
+
 Alternative, you can run the following command for a static visualization in the terminal:
 ```python
 dp_instance.print_dp_matrix()
 ```
-
 

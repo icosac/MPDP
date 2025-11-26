@@ -1,9 +1,33 @@
 #include "model.hpp"
 
-OnnxModel::OnnxModel(const std::string& model_path) : env(ORT_LOGGING_LEVEL_WARNING, "onnx-model") {
+OnnxModel::OnnxModel(const std::string& model_path, bool use_gpu)
+    : env(ORT_LOGGING_LEVEL_WARNING, "onnx-model") {
     // Set graph optimization level
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-    
+
+#ifdef USE_CUDA
+    if (use_gpu) {
+        try {
+            OrtCUDAProviderOptions cuda_options{};
+            cuda_options.device_id = 0;
+            cuda_options.arena_extend_strategy = 0;
+            cuda_options.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchExhaustive;
+            cuda_options.do_copy_in_default_stream = 1;
+            session_options.AppendExecutionProvider_CUDA(cuda_options);
+            std::cout << "CUDA Execution Provider enabled on device " << cuda_options.device_id << std::endl;
+        } catch (const Ort::Exception& e) {
+            std::cerr << "Failed to enable CUDA Execution Provider: " << e.what() 
+                      << ". Falling back to CPU Execution Provider." << std::endl;
+        }
+    } else {
+        std::cout << "GPU flag not set, using CPU Execution Provider." << std::endl;
+    }
+#else
+    if (use_gpu) {
+        std::cerr << "GPU flag requested but binary built without CUDA support (USE_CUDA not defined). Using CPU Execution Provider." << std::endl;
+    }
+#endif
+
     // Create session
     session = Ort::Session(env, model_path.c_str(), session_options);
 

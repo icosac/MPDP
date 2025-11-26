@@ -1,3 +1,5 @@
+#include <polynomials.hh>
+
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -13,7 +15,7 @@
 #error "Eigen library is required to solve the coefficient system."
 #endif
 
-Eigen::MatrixXd find_coefficients_man_10 (
+Eigen::MatrixXd find_coefficients_10 (
     double xi, double yi, double thi,
     double xm, double ym,
     double xf, double yf, double thf,
@@ -144,112 +146,18 @@ Eigen::MatrixXd find_coefficients_man_10 (
     return coefficients;
 }
 
-int main() {
-    double xi = 1;
-    double yi = 0;
-    double r = 1/1.1;
-    double thi = 2.0/3.0*M_PI;
-    double thf = -5.0/9.0*M_PI;
-    double xm = cos(5.0/9.0*M_PI);
-    double ym = sin(5.0/9.0*M_PI);
-    double xf = cos(2.0/3.0*M_PI);
-    double yf = sin(2.0/3.0*M_PI);
 
-    auto start = std::chrono::high_resolution_clock::now();
-
-    Eigen::MatrixXd coefficients = find_coefficients_man_10(xi, yi, thi, xf, yf, thf, xm, ym, r);
-
-    double coeff0 = coefficients(0);
-    double coeff1 = coefficients(1);
-    double coeff2 = coefficients(2);
-    double coeff3 = coefficients(3);
-    double coeff4 = coefficients(4);
-    double coeff5 = coefficients(5);
-    double coeff6 = coefficients(6);
-    double coeff7 = coefficients(7);
-    double coeff8 = coefficients(8);
-
-    // double coeff0 = t5 + t9 - t13 + t16 + t20 + t24 + t27 + t29 - t33 - t36 + t38 - t40;
-    // double coeff1 = t43 + t47 + t51 - t55 - t58 - t60 + t64 + t67 - t69 + t73 + t76 + t78 + t81 - t85 - t88 + t91 - t94;
-    // double coeff2 = t121 + t144;
-    // double coeff3 = t43 - t47 + t147 + t51 + t55 + t148 + t60 - t64 + t149 + t69 + t152 - t76 + t78 - t155 + t81 + t85 - t156 - t158 - t91 - t94;
-    // double coeff4 = -2 * t5 + 8 * t95 - 4 * t8 - 36 * t15 + 16 * t103 - 80 * t19 - 32 * t26 + 128 * t116 - 2 * t29 + 180 * t35 + 30 * t39 + 8 * t127 - 16 * t133 + 128 * t137 - 120 * t142;
-    // double coeff5 = -t43 - t47 + t147 - t51 + t55 - t148 + t60 - t64 - t149 + t69 + t152 - t76 - t78 - t155 - t81 + t85 + t156 - t158 - t91 + t94;
-    // double coeff6 = t174 + t175;
-    // double coeff7 = -t43 + t47 - t51 - t55 + t58 - t60 + t64 - t67 - t69 - t73 + t76 - t78 - t81 - t85 + t88 + t91 + t94;
-    // double coeff8 = t5 + t9 + t13 + t16 + t20 - t24 + t27 + t29 + t33 - t36 - t38 - t40;
-
-    // Eigen::Matrix<double, 9, 1> coefficients;
-    // coefficients << coeff0,
-    //                 coeff1,
-    //                 coeff2,
-    //                 coeff3,
-    //                 coeff4,
-    //                 coeff5,
-    //                 coeff6,
-    //                 coeff7,
-    //                 coeff8;
-
-    double coeff[8] = {coeff0, coeff1, coeff2, coeff3, coeff4, coeff5, coeff6, coeff7};
-
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Computing coefficients took: " << elapsed.count() << " seconds" << std::endl;
-    start = std::chrono::high_resolution_clock::now();
-
-    if (std::abs(coeff8) < 1e-12) {
-        std::cerr << "Leading coefficient is too small, cannot build companion matrix." << std::endl;
-        return 1;
-    }
-
-    Eigen::Matrix<double, 8, 8> companion = Eigen::Matrix<double, 8, 8>::Zero();
-    for (int i = 1; i < 8; ++i) {
-        companion(i, i - 1) = 1.0;
-    }
-    for (int i = 0; i < 8; ++i) {
-        companion(0, i) = -coefficients(7 - i) / coeff8;
-        // companion(0, i) = -coeff[7 - i] / coeff8;
-    }
-
-    Eigen::EigenSolver<Eigen::Matrix<double, 8, 8>> eigen_solver(companion);
-    Eigen::VectorXcd roots = eigen_solver.eigenvalues();
-
-    end = std::chrono::high_resolution_clock::now();
-    elapsed = end - start;
-    std::cout << "Computation Time: " << elapsed.count() << " seconds" << std::endl;
-    
-    std::cout << "Coeff 0: " << coeff0 << std::endl;
-    std::cout << "Coeff 1: " << coeff1 << std::endl;
-    std::cout << "Coeff 2: " << coeff2 << std::endl;
-    std::cout << "Coeff 3: " << coeff3 << std::endl;
-    std::cout << "Coeff 4: " << coeff4 << std::endl;
-    std::cout << "Coeff 5: " << coeff5 << std::endl;
-    std::cout << "Coeff 6: " << coeff6 << std::endl;
-    std::cout << "Coeff 7: " << coeff7 << std::endl;
-    std::cout << "Coeff 8: " << coeff8 << std::endl;
-
-    std::cout << std::endl << "Roots of the polynomial:" << std::endl;
-    std::vector<double> real_roots;
-    const double imag_tolerance = 1e-8;
-
-    for (int i = 0; i < roots.size(); ++i) {
-        const auto& root = roots(i);
-        std::cout << "Root " << i << ": " << root << std::endl;
-        if (std::abs(root.imag()) < imag_tolerance) {
-            real_roots.push_back(root.real());
-        }
-    }
-
-    if (!real_roots.empty()) {
-        std::cout << std::endl << "Real roots (|Im| < " << imag_tolerance << "):" << std::endl;
-        for (const double real_root : real_roots) {
-            std::cout << real_root << " " << 2.0*atan(real_root) << std::endl;
-        }
-    } else {
-        std::cout << std::endl << "No roots with negligible imaginary part found." << std::endl;
-    }
-
-    // -2.565758111, -0.9374882144, 0.6208885655, 3.083874499
-
-    return 0;
+std::vector<double> solve_man_10(
+    double xi, double yi, double thi,
+    double xm, double ym,
+    double xf, double yf, double thf,
+    double r, double imaginary_tolerance
+) {
+    return solve_man<9>(
+        find_coefficients_10,
+        xi, yi, thi,
+        xm, ym,
+        xf, yf, thf,
+        r, imaginary_tolerance
+    );
 }

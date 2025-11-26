@@ -27,6 +27,7 @@ if(COMPILE_CXX_EXEC)
     file(GLOB MPDPExec "exec/main.cc")  # Use ${SRC_CXX} for the correct path
 
     message(STATUS "Compiling C++ executable ${APP_EXEC_CXX} with source: ${MPDPExec}")
+    message(STATUS "C++ flags: " ${CMAKE_CXX_FLAGS})
 
     # Define the executable
     add_executable(${APP_EXEC_CXX} exec/main.cc)

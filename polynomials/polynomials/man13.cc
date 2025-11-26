@@ -1,3 +1,5 @@
+#include <polynomials.hh>
+
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -14,13 +16,17 @@
 #endif
 
 
-Eigen::MatrixXd find_coefficients_man_11_p4 (
-    double dxf,
-    double dxi,
-    double dyf,
-    double dyi,
+Eigen::MatrixXd find_coefficients_man_13_p4 (
+    double xi, double yi, double thi,
+    double xm, double ym,
+    double xf, double yf, double thf,
     double r
 ){
+    double dxf = xf-r*sin(thf)-xm; 
+    double dxi = -r*sin(thi)-xi+xm; 
+    double dyf = r*cos(thf)+yf-ym; 
+    double dyi = r*cos(thi)-yi+ym;
+
     double t2 = dyi * dyi;
     double t3 = dxf * dxf;
     double t4 = t2 * t3;
@@ -70,13 +76,17 @@ Eigen::MatrixXd find_coefficients_man_11_p4 (
 }
 
 
-Eigen::MatrixXd find_coefficients_man_11_p8 (
-    double dxf,
-    double dxi,
-    double dyf,
-    double dyi,
+Eigen::MatrixXd find_coefficients_man_13_p8 (
+    double xi, double yi, double thi,
+    double xm, double ym,
+    double xf, double yf, double thf,
     double r
 ){    
+    double dxf = xf-r*sin(thf)-xm; 
+    double dxi = -r*sin(thi)-xi+xm; 
+    double dyf = r*cos(thf)+yf-ym; 
+    double dyi = r*cos(thi)-yi+ym;
+
     double t2 = r * r;
     double t3 = t2 * t2;
     double t4 = 4 * t3;
@@ -135,18 +145,33 @@ Eigen::MatrixXd find_coefficients_man_11_p8 (
 }
 
 
-Eigen::MatrixXd find_coefficients_man_11 (
+std::vector<double> solve_man_13(
     double xi, double yi, double thi,
     double xm, double ym,
     double xf, double yf, double thf,
-    double r
+    double r, double imaginary_tolerance
 ){
-    double dxf = xf-r*sin(thf)-xm; 
-    double dxi = -r*sin(thi)-xi+xm; 
-    double dyf = r*cos(thf)+yf-ym; 
-    double dyi = r*cos(thi)-yi+ym;
 
-    auto coefficients_p4 = find_coefficients_man_11_p4(dxf, dxi, dyf, dyi, r);
-    auto coefficients_p8 = find_coefficients_man_11_p8(dxf, dxi, dyf, dyi, r);
-    return coefficients_p8;
+    auto th_13_4 = solve_man<5>(
+        find_coefficients_man_13_p4,
+        xi, yi, thi, 
+        xm, ym, 
+        xf, yf, thf,
+        r, 1e-6
+    );
+
+    auto th_13_8 = solve_man<9>(
+        find_coefficients_man_13_p8,
+        xi, yi, thi, 
+        xm, ym, 
+        xf, yf, thf,
+        r, 1e-6
+    );
+
+    std::vector<double> result;
+    result.reserve(th_13_4.size() + th_13_8.size());
+    result.insert(result.end(), th_13_4.begin(), th_13_4.end());
+    result.insert(result.end(), th_13_8.begin(), th_13_8.end());
+
+    return result;
 }

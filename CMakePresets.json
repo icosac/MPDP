@@ -13,7 +13,7 @@
       "description": "Default build meant for Linux or Unix-like systems for debugging",
       "binaryDir": "${sourceDir}/cmake-cc-debug/",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "--std=c++17 -Wall -Wno-reorder -DMPDP_DRAW -O0 -g"
+        "CMAKE_CXX_FLAGS": "--std=c++20 -Wall -Wno-reorder -DMPDP_DRAW -O0 -g"
       }
     },
 
@@ -36,7 +36,7 @@
       "binaryDir": "${sourceDir}/cmake-cc-GTEST/",
       "cacheVariables": {
         "TEST" : "GTEST",
-        "CMAKE_CXX_FLAGS": "-O3 --std=c++17"
+        "CMAKE_CXX_FLAGS": "-O3 --std=c++20"
       }
     },
 

@@ -1,3 +1,5 @@
+#include <polynomials.hh>
+
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -13,14 +15,27 @@
 #error "Eigen library is required to solve the coefficient system."
 #endif
 
+#if __has_include(<unsupported/Eigen/Polynomials>) || __has_include("unsupported/Eigen/Polynomials")
+#  if __has_include(<unsupported/Eigen/Polynomials>)
+#    include <unsupported/Eigen/Polynomials>
+#  else
+#    include "unsupported/Eigen/Polynomials"
+#  endif
+#else
+#  error "Eigen's unsupported Polynomial module is required."
+#endif
+
 
 Eigen::MatrixXd find_coefficients_man_12_p4 (
-    double dxf,
-    double dxi,
-    double dyf,
-    double dyi,
+    double xi, double yi, double thi,
+    double xm, double ym,
+    double xf, double yf, double thf,
     double r
 ){
+    double dxi = xm-xi+r*sin(thi);
+    double dyi = ym-yi-r*cos(thi);
+    double dxf = xf+r*sin(thf)-xm;
+    double dyf = yf-r*cos(thf)-ym;
 
     double t2 = dxf * dxf;
     double t3 = dyi * dyi;
@@ -72,12 +87,17 @@ Eigen::MatrixXd find_coefficients_man_12_p4 (
 
 
 Eigen::MatrixXd find_coefficients_man_12_p8 (
-    double dxf,
-    double dxi,
-    double dyf,
-    double dyi,
+    double xi, double yi, double thi,
+    double xm, double ym,
+    double xf, double yf, double thf,
     double r
 ){
+
+    double dxi = xm-xi+r*sin(thi);
+    double dyi = ym-yi-r*cos(thi);
+    double dxf = xf+r*sin(thf)-xm;
+    double dyf = yf-r*cos(thf)-ym;
+
     double t2 = dxf * dxf;
     double t3 = dyi * dyi;
     double t4 = t3 * t2;
@@ -185,18 +205,32 @@ Eigen::MatrixXd find_coefficients_man_12_p8 (
 }
 
 
-Eigen::MatrixXd find_coefficients_man_12 (
+std::vector<double> solve_man_12(
     double xi, double yi, double thi,
     double xm, double ym,
     double xf, double yf, double thf,
-    double r
+    double r, double imaginary_tolerance
 ){
-    double dxi = xm-xi+r*sin(thi);
-    double dyi = ym-yi-r*cos(thi);
-    double dxf = xf+r*sin(thf)-xm;
-    double dyf = yf-r*cos(thf)-ym;
-    Eigen::MatrixXd p4 = find_coefficients_man_12_p4(dxf, dxi, dyf, dyi, r);
-    Eigen::MatrixXd p3 = find_coefficients_man_12_p8(dxf, dxi, dyf, dyi, r);
 
-    return p3;
+    auto th_12_4 = solve_man<5>(
+        find_coefficients_man_12_p4,
+        xi, yi, thi, 
+        xm, ym, 
+        xf, yf, thf,
+        r, imaginary_tolerance
+    );
+
+    auto th_12_8 = solve_man<9>(
+        find_coefficients_man_12_p8,
+        xi, yi, thi, 
+        xm, ym, 
+        xf, yf, thf,
+        r, imaginary_tolerance
+    );
+
+    std::vector<double> result;
+    result.insert(result.end(), th_12_4.begin(), th_12_4.end());
+    result.insert(result.end(), th_12_8.begin(), th_12_8.end());
+
+    return result;
 }

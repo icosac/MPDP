@@ -72,4 +72,31 @@ find_best_circle(
 	int refinements
 );
 
+std::pair<Dubins, Dubins>
+find_solution_three_points(
+	Configuration2& pi,
+	Configuration2& pm,
+	Configuration2& pf,
+	K_T kmax,
+	std::string maneuver
+);
+
+std::pair<Dubins, Dubins>
+find_solution_three_points(
+	Configuration2& pi,
+	Configuration2& pm,
+	Configuration2& pf,
+	K_T kmax,
+	size_t man_id
+);
+
+void 
+counter_example();
+
+void
+counter_example_figs();
+
+void
+throw_away();
+
 #endif //INC_3PMD_HH

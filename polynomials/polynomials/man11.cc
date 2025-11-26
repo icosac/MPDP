@@ -1,3 +1,5 @@
+#include <polynomials.hh>
+
 #include <iostream>
 #include <cmath>
 #include <chrono>
@@ -13,7 +15,7 @@
 #error "Eigen library is required to solve the coefficient system."
 #endif
 
-Eigen::MatrixXd find_coefficients_man_11 (
+Eigen::MatrixXd find_coefficients_11 (
     double xi, double yi, double thi,
     double xm, double ym,
     double xf, double yf, double thf,
@@ -53,4 +55,20 @@ Eigen::MatrixXd find_coefficients_man_11 (
                     -t22 * t34;
 
     return coefficients;
+}
+
+
+std::vector<double> solve_man_11(
+    double xi, double yi, double thi,
+    double xm, double ym,
+    double xf, double yf, double thf,
+    double r, double imaginary_tolerance
+) {
+    return solve_man<7>(
+        find_coefficients_11,
+        xi, yi, thi,
+        xm, ym,
+        xf, yf, thf,
+        r, imaginary_tolerance
+    );
 }
