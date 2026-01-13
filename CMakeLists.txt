@@ -3,12 +3,10 @@ include(GoogleTest)
 
 project(MPDP LANGUAGES CXX)
 
-# Write a compile_commands.json file with information about the compiler calls
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(MPDP_DRAW OFF)
-
-set(THIS_IS_A_TEST ON)
 
 include(cmake/options.cmake)
 
