@@ -120,6 +120,10 @@ def evaluate_model(model, test_loader, criterion, device, num_classes, plot_path
         for i, label in enumerate(all_targets):
             if label in all_topk_preds[i][:k]:
                 correct += 1
+            else:
+                # Print misclassified samples for debugging
+                # print(f"Sample {i} misclassified. True label: {label}, Top-{k} predictions: {all_topk_preds[i][:k]}")
+                pass
         test_acc = correct / len(all_targets)
         print(f'Test Top-{k} Accuracy: {test_acc:.4f}')
 

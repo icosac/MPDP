@@ -144,7 +144,105 @@ void test_single(std::string model_path, ModelType model_type){
     }
 }
 
-void test_dataset(const std::string & model_path, const std::string & testset_path, int n_samples, bool skip_first_line = true){
+
+void test_dataset_classification(const std::string & model_path, const std::string & testset_path, int n_samples, bool skip_first_line = true){
+    std::ifstream testset_file(testset_path);
+    if (!testset_file.is_open()) {
+        std::cerr << "Failed to open testset file: " << testset_path << std::endl;
+        return;
+    }
+    std::cout << "Loading ONNX model: " << model_path << std::endl;
+    // Load the model
+    OnnxModel model(model_path);
+    std::cout << "Model loaded successfully!" << std::endl;
+    std::cout << "Running inference on testset..." << std::endl;
+    
+    // Skip first line
+    if (skip_first_line) {
+        std::string line;
+        std::getline(testset_file, line);
+    }
+
+    size_t n_total = 0;
+    double avg_time = 0, min_time = 1e9, max_time = 0;
+    int n_correct = 0;
+
+    // Read testset data
+    float kmax, c, xm, ym, th_i, th_f, th_m, len;
+    int id;
+    while (testset_file >> kmax >> c >> xm >> ym >> th_i >> th_f >> th_m >> id >> len){
+        // Prepare input data
+        id--;
+        std::vector<float> input_data = {kmax, c, xm, ym, (float)std::sin(th_i), (float)std::cos(th_i), (float)std::sin(th_f), (float)std::cos(th_f)};
+
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        // Single-task (classification) model
+        std::vector<float> output = model.run(input_data);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+        // Apply softmax to get probabilities
+        std::vector<float> probabilities = softmax(output);
+        
+        size_t top_k = 5;
+        // Find top-k classes
+        std::vector<int> topk_indices(top_k);
+        std::vector<float> topk_values(top_k);
+        std::partial_sort_copy(
+            probabilities.begin(), probabilities.end(),
+            topk_values.begin(), topk_values.end(),
+            std::greater<float>()
+        );
+
+        for (size_t i = 0; i < top_k; ++i) {
+            topk_indices[i] = std::distance(probabilities.begin(),
+                                              std::find(probabilities.begin(), probabilities.end(),
+                                                         topk_values[i]));
+        }
+
+        if (std::find(topk_indices.begin(), topk_indices.end(), id) != topk_indices.end()) {
+            n_correct++;
+        }
+        else {
+            std::cout << "c: " << c << " kmax " << kmax << " xm " << xm << " ym " << ym << " th_i " << th_i << " th_f " << th_f << " th_m " << th_m << " true: " << id << " pred: ";
+            for (size_t i = 0; i < top_k; ++i) {
+                std::cout << topk_indices[i] << " (" << std::fixed << std::setprecision(4) << topk_values[i] << ") ";
+            }
+            std::cout << std::endl;
+        }
+
+        double time = duration.count();
+        avg_time += time;
+        min_time = std::min(min_time, time);
+        max_time = std::max(max_time, time);
+        n_total++;
+
+        if (n_total % static_cast<int>(1e3) == 0) {
+            std::cout << "\rProcessed " << std::fixed << std::setprecision(2) << static_cast<float>(n_total)*100.0/17954548.0 << "%" << " ";
+            std::cout << "Finishing in " << (avg_time / (float)n_total) * (17954548.0 - n_total) / 1e6 << " seconds" << " ";
+            std::cout << "Average time: " << avg_time / (float)n_total << " microseconds";
+            std::flush(std::cout);
+        }
+
+        // if (n_total >= 10) break;
+
+        // std::cout << "Inference completed in " << duration.count()/1000.0 << " milliseconds " << local_error << std::endl;
+
+        // std::cout << "Predicted class: " << predicted_class << " with confidence: "
+        //             << std::fixed << std::setprecision(4) << confidence << std::endl;
+    }
+    std::cout << std::endl << "###########################\n" << std::endl;
+    std::cout << "Accuracy: " << std::fixed << std::setprecision(2) << (float)n_correct / (float)n_total * 100.0f << "%" << std::endl;
+    std::cout << "Average time: " << avg_time / (float)n_total << " microseconds" << std::endl;
+    std::cout << "Minimum time: " << min_time << " microseconds" << std::endl;
+    std::cout << "Maximum time: " << max_time << " microseconds" << std::endl;
+    std::cout << "Total samples: " << n_total << std::endl;
+    std::cout << std::endl << "###########################" << std::endl;
+}
+
+
+void test_dataset_regression(const std::string & model_path, const std::string & testset_path, int n_samples, bool skip_first_line = true){
     std::ifstream testset_file(testset_path);
     if (!testset_file.is_open()) {
         std::cerr << "Failed to open testset file: " << testset_path << std::endl;
@@ -193,11 +291,13 @@ void test_dataset(const std::string & model_path, const std::string & testset_pa
         n_total++;
 
         if (n_total % static_cast<int>(1e3) == 0) {
-            std::cout << "\rProcessed " << std::fixed << std::setprecision(2) << static_cast<float>(n_total)*100.0/178942.0 << "%" << " ";
-            std::cout << "Finishing in " << (avg_time / (float)n_total) * (178942.0 - n_total) / 1e6 << " seconds" << " ";
+            std::cout << "\rProcessed " << std::fixed << std::setprecision(2) << static_cast<float>(n_total)*100.0/17954548.0 << "%" << " ";
+            std::cout << "Finishing in " << (avg_time / (float)n_total) * (17954548.0 - n_total) / 1e6 << " seconds" << " ";
             std::cout << "Average time: " << avg_time / (float)n_total << " microseconds";
             std::flush(std::cout);
         }
+
+        if (n_total >= 10) break;
 
         // std::cout << "Inference completed in " << duration.count()/1000.0 << " milliseconds " << local_error << std::endl;
 
@@ -251,7 +351,11 @@ int main(int argc, char* argv[]) {
 
             if (testset_path != "") {
                 for (int n_samples = 1; n_samples < 2; n_samples++) {
-                    test_dataset(model_path, testset_path, n_samples);
+                    if (model_type == REGRESSION)
+                        test_dataset_regression(model_path, testset_path, n_samples);
+                    else
+                        test_dataset_classification(model_path, testset_path, n_samples);
+
                 }
             } else {
                 test_single(model_path, model_type);
