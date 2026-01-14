@@ -61,15 +61,15 @@ class RS : public Curve {
 	int _Nman = 0;
 	int _Nseg = 0;
 
-	K_T _kmax = 0.0;	///< The maximum curvature and the curvature for each part of the
-										///< Reeds-Sheep path.
-	std::vector<double> K						 = {0, 0, 0, 0, 0};
-	std::vector<double> L						 = {0, 0, 0, 0, 0};
-	std::vector<double> D						 = {0, 0, 0, 0, 0};
-	std::vector<double> X						 = {0, 0, 0, 0, 0, 0};
-	std::vector<double> Y						 = {0, 0, 0, 0, 0, 0};
-	std::vector<double> TH					 = {0, 0, 0, 0, 0, 0};
-	std::vector<std::string> ManType = {"", "", "", "", ""};
+	K_T _kmax = 0.0;	///< The maximum curvature
+	
+	std::vector<double> 	 K		  = {0, 0, 0, 0, 0};
+	std::vector<double> 	 L		  = {0, 0, 0, 0, 0};
+	std::vector<double> 	 D		  = {0, 0, 0, 0, 0};
+	std::vector<double> 	 X		  = {0, 0, 0, 0, 0, 0};
+	std::vector<double> 	 Y		  = {0, 0, 0, 0, 0, 0};
+	std::vector<double> 	 TH		  = {0, 0, 0, 0, 0, 0};
+	std::vector<std::string> ManType  = {"", "", "", "", ""};
 
 	Configuration2
 	circleLine (double s, double dir, double kur, double kmax, Configuration2 c, int seg);
@@ -140,7 +140,7 @@ class RS : public Curve {
 	void
 	buildRS (int man = -1);
 	double
-	reeds_sheppa (std::vector<double>* debug = nullptr);
+	reeds_shepp (std::vector<double>* debug = nullptr);
 	double
 	reeds_shepp (int Nman = -1, std::vector<double>* debug = nullptr);
 

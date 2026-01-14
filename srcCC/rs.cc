@@ -3,7 +3,7 @@
  * @author Enrico Saccon <enricosaccon96@gmail.com>
  * @license This project is released under the GNU Public License 3.0.
  * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
- * @brief This file contains the source code for some of the functions to compute the PP
+ * @brief This file contains the source code for some of the functions to compute the P2P
  * RS.
  */
 
@@ -20,7 +20,7 @@ const double EPS1 = 1.0e-14;
 const double EPS3 = 1.0e-14;
 const double EPS4 = 1.0e-14;
 
-const double MPI		 = 3.1415926535897932385;
+const double MPI	 = 3.1415926535897932385;
 const double MPIMUL2 = 6.2831853071795864770;
 const double MPIDIV2 = 1.5707963267948966192;
 
