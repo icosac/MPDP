@@ -1,16 +1,40 @@
 from __future__ import annotations
 
 import math
+import sys
 import time
+from pathlib import Path
+
 from dataclasses import dataclass
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
-from ...dp import DP
-from ...dubins import dubins_shortest_path
-from .mpmd_data import EXAMPLE_RAW_DATA
+try:
+    from pympdp.dp import DP
+    from pympdp.dubins import dubins_shortest_path
+    from pympdp.examples.MPMD.mpmd_data import EXAMPLE_RAW_DATA
+    from pympdp.logger import logger
+except ModuleNotFoundError as exc:  # pragma: no cover - developer convenience
+    if exc.name not in {
+        "pympdp",
+        "pympdp.dp",
+        "pympdp.dubins",
+        "pympdp.examples",
+        "pympdp.examples.MPMD",
+        "pympdp.examples.MPMD.mpmd_data",
+    }:
+        raise
+    repo_root = Path(__file__).resolve().parents[3]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from pympdp.dp import DP
+    from pympdp.dubins import dubins_shortest_path
+    from pympdp.examples.MPMD.mpmd_data import EXAMPLE_RAW_DATA
+    from pympdp.logger import logger
 
-DEFAULT_DISCRETIZATIONS: Sequence[int] = (4, 16, 90, 360)
-DEFAULT_REFINEMENTS: Sequence[int] = (1, 2, 4, 8, 16)
+
+DEFAULT_DISCRETIZATIONS: Sequence[int] = (4,) #(4, 16, 90, 360)
+DEFAULT_REFINEMENTS: Sequence[int] = (1,) #(1, 2, 4, 8, 16)
+
 
 _SPEC_TABLE: Tuple[Tuple[str, str, float, float], ...] = (
     ("kaya1", "Kaya Example 1", 3.0, 3.4155788580751487),
@@ -156,8 +180,8 @@ def _solve_example(spec: ExampleSpec, discretization: int, refinement: int) -> E
 
 
 def _extract_solution(dp_instance: DP, expected_length: int) -> Tuple[List[float], float]:
-    final_row = dp_instance.dp_matrix[-1]
-    finite_cells = [cell for cell in final_row if math.isfinite(cell.l())]
+    first_row = dp_instance.dp_matrix[0]
+    finite_cells = [cell for cell in first_row if math.isfinite(cell.l())]
     if not finite_cells:
         raise ValueError("No finite solution found in DP matrix")
     best_cell = min(finite_cells, key=lambda cell: cell.l())
@@ -165,14 +189,13 @@ def _extract_solution(dp_instance: DP, expected_length: int) -> Tuple[List[float
     current = best_cell
     while current is not None:
         chain.append(current)
-        current = current.prev()
-    chain.reverse()
+        current = current.next()
     if len(chain) != expected_length:
         raise ValueError(
             f"Expected {expected_length} states in optimal chain, got {len(chain)}"
         )
     angles = [float(cell.th()) for cell in chain]
-    length = float(chain[-1].l())
+    length = float(chain[0].l())
     return angles, length
 
 
@@ -218,4 +241,5 @@ def print_table(
 
 
 if __name__ == "__main__":
+    logger.set_critical()
     print_table(allexamples())

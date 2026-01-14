@@ -1,7 +1,7 @@
 # Compile C++ library and executable
 
 set(LIB_CXX "MPDPCC")
-set(SRC_CXX "${CMAKE_SOURCE_DIR}/srcCC")
+set(SRC_CXX "${PROJECT_SOURCE_DIR}/srcCC")
 file(GLOB MPDPSrc "${SRC_CXX}/*.cc")
 
 message(STATUS "Compiling C++ library with source files: ${MPDPSrc}")
@@ -11,7 +11,7 @@ add_library(${LIB_CXX} STATIC ${MPDPSrc})
 
 target_include_directories(${LIB_CXX} PUBLIC
         $<BUILD_INTERFACE:${SRC_CXX}/include>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
@@ -27,6 +27,7 @@ if(COMPILE_CXX_EXEC)
     file(GLOB MPDPExec "exec/main.cc")  # Use ${SRC_CXX} for the correct path
 
     message(STATUS "Compiling C++ executable ${APP_EXEC_CXX} with source: ${MPDPExec}")
+    message(STATUS "C++ flags: " ${CMAKE_CXX_FLAGS})
 
     # Define the executable
     add_executable(${APP_EXEC_CXX} exec/main.cc)
@@ -70,7 +71,7 @@ install(TARGETS ${LIB_CXX}
 install(DIRECTORY ${SRC_CXX}/include
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 

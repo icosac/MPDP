@@ -12,10 +12,15 @@
 #ifndef CUDA_ON
 
 // System includes
-#include <iostream>
 #include <cmath>
-#include <vector>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <limits>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 // #include <omp.h>
 
 // Library includes
@@ -26,24 +31,24 @@
 #include <rs.hh>
 
 #ifdef DEBUG
-#define printMatrix(type)                                                \
-	if (type == 0) { std::cout << "Angle table: " << std::endl; }          \
-	else if (type == 1) { std::cout << "Length table: " << std::endl; }    \
-	for (int i = 0; i < MATRIX.size(); i++)                                \
-	{                                                                      \
-		for (int j = 0; j < MATRIX[i].size(); j++)                           \
-		{                                                                    \
-			if (type == 0)                                                     \
-			{                                                                  \
+#define printMatrix(type)                                                        \
+	if (type == 0) { std::cout << "Angle table: " << std::endl; }                \
+	else if (type == 1) { std::cout << "Length table: " << std::endl; }          \
+	for (int i = 0; i < MATRIX.size(); i++)                                      \
+	{                                                                            \
+		for (int j = 0; j < MATRIX[i].size(); j++)                               \
+		{                                                                        \
+			if (type == 0)                                                       \
+			{                                                                    \
 				std::cout << std::setprecision (4) << MATRIX[i][j].th() << "\t"; \
-			}                                                                  \
-			else if (type == 1)                                                \
-			{                                                                  \
+			}                                                                    \
+			else if (type == 1)                                                  \
+			{                                                                    \
 				std::cout << std::setprecision (4) << MATRIX[i][j].l() << "\t";  \
-			}                                                                  \
-		}                                                                    \
-		std::cout << std::endl;                                              \
-	}                                                                      \
+			}                                                                    \
+		}                                                                        \
+		std::cout << std::endl;                                                  \
+	}                                                                            \
 	std::cout << std::endl << std::endl;
 #else
 #define printMatrix(type)
@@ -221,6 +226,13 @@ private:
 
 	/// The matrix used for the dynamic programming algorithm.
 	std::vector<std::vector<Cell>> matrix;
+	std::vector<Configuration2> last_points_;
+	std::vector<Angle> last_best_angles_;
+	bool has_solution_ = false;
+	K_T last_k_max_ = 0.0;
+
+	std::vector<std::pair<size_t, size_t>>
+	bestPathIndices() const;
 
 	/*!
 	 * This function sets the possible angles to consider for each point in the matrix. It
@@ -392,10 +404,11 @@ public:
 		{
 			COUT (ref)
 			hrange = hrange / discr * 1.5;
+			// hrange = M_PI / (ref + 3);
 			setSamplingAngles (compPoints, fixedAngles, hrange, discr / 2);
 			printV (bestA)
 
-					ret = solveDPInner<CurveT> (compPoints, params);
+			ret = solveDPInner<CurveT> (compPoints, params);
 			bestA		= ret.second;
 		}
 
@@ -404,8 +417,17 @@ public:
 			for (uint i = 0; i < points.size(); i++) { points[i].th (bestA[i]); }
 		}
 
+		this->last_points_ = compPoints;
+		this->last_best_angles_ = bestA;
+		this->has_solution_ = true;
+		this->last_k_max_ = Kmax;
+
 		return ret;
 	}
+	
+	/*! Export the matrix of the latest solution to JSON for visualization. */
+	void
+	exportVisualizationData (const std::string& json_path) const;
 };
 
 #endif

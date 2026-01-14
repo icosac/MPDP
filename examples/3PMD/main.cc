@@ -25,5 +25,9 @@ int main(int argc, char** argv){
 	// generateDataset3PDPRectMulti(argc, argv);
 
 	// generateDataset3PDPCircleTest(argc, argv);
+
+	// counter_example();
+	throw_away();
+
 	return 0;
 }

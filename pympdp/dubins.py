@@ -1,10 +1,11 @@
 import math
+import os
 import matplotlib
 try:
-    matplotlib.use('TkAgg')
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt  # type: ignore
 except Exception:  # pragma: no cover - fallback for headless environments
-    matplotlib.use('Agg')
+    matplotlib.use('TkAgg')
     import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 np.set_printoptions(threshold=np.inf, precision=5, linewidth=10000, suppress=True)
@@ -52,6 +53,7 @@ def dubins_shortest_path(x0, y0, th0, xf, yf, thf, Kmax):
     pidx = -1
     L = math.inf
     sc_s1 = sc_s2 = sc_s3 = 0.0
+
     for i, primitive in enumerate(primitives):
         ok, sc_s1_c, sc_s2_c, sc_s3_c = primitive(sc_th0, sc_thf, sc_Kmax)
         Lcur = sc_s1_c + sc_s2_c + sc_s3_c
@@ -85,7 +87,7 @@ def dubins_shortest_path(x0, y0, th0, xf, yf, thf, Kmax):
                      ksigns[pidx][2] * sc_Kmax,
                      sc_th0, sc_thf)
 
-    k = [ks * sc_Kmax for ks in ksigns[pidx]]
+    k = [ks * sc_Kmax for ks in ksigns[pidx]] if pidx >= 0 else [0.0, 0.0, 0.0]
     lengths = [curve.a1.L, curve.a2.L, curve.a3.L] if curve else [0, 0, 0]
 
     return curve, k, lengths

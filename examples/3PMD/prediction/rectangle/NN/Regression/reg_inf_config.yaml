@@ -11,7 +11,7 @@ HIDDEN_SIZE: 2048
 
 DO_TRAINING: false
 TRIG_FUNCS: true  
-USE_ONLY_CPU: false
+USE_ONLY_CPU: true
 EXPORT_TO_ONNX: false
 
 DATASET: /Users/enrico/Projects/mpdp/new_rect.csv

@@ -11,7 +11,7 @@
 #include <timeperf.hh>
 #include <tests.hh>
 
-#include <iostream>
+#include<iostream>
 #include<fstream>
 #include<cmath>
 #include<random>
@@ -21,336 +21,74 @@
 #include<algorithm>
 #include<random>
 
-// #include<RSPredict.h>
-// #include<SVMQuadraticPredict.h>
-// #include<NNWideCompactPredict.h>
-
-int checkAnotherMan(RS myRS){
-  int oldMan = myRS.getNman();
-  int newMan = -1;
-  LEN_T oldLen = myRS.l();
-  LEN_T newLen = 0.0;
-
-  for(int i=1; i<49; ++i){
-    if (i!=2 && i!=4){
-      RS newRS = RS(*myRS.ci(), *myRS.cf(), {myRS.getKmax(), (double)i});
-      newRS.solve();
-      if (std::abs(newRS.l()-oldLen) < 1e-8){
-        newMan = i;
-        newLen = myRS.l();
-      }
-    }
-  }
-
-//  if (newMan != 1 && newMan != 3) {
-    std::cout << std::setprecision(12);
-    std::cout << "Found alternative: "
-              << newMan << " " << newLen << " to: "
-              << oldMan << " " << oldLen << " diff: "
-              << std::abs(newLen - oldLen) << std::endl;
-//  }
-
-  return newMan;
-}
-
-// struct PerfData{
-//   double avgTime = 0.0;
-//   double maxTime = 0.0;
-//   double minTime = 100000000.0;
-// };
-
-// int predictRS(short modelType){
-//   if (modelType == 1){
-//     std::cout << "Calling predictRS with NNWide model" << std::endl;
-//   }
-//   else if(modelType == 2) {
-//     std::cout << "Calling predictRS with SVMQuadratic model" << std::endl;
-//   }
-//   else{
-//     std::cout << "Invalid model type" << std::endl;
-//     return 1;
-//   }
-
-//   double idx[22];
-//   double dv[3];
-//   int tmp[2];
-
-//   int nTests = 100;
-//   int nRepet = 100;
-
-//   double predTime = 0.0;
-//   double fullTime = 0.0;
-//   double direTime = 0.0;
-
-//   std::uniform_real_distribution<double> randTh(0, m_2pi);
-//   std::uniform_real_distribution<double> randKmax(0, 10.0);
-//   std::default_random_engine re(13);
-
-//   // Getting a random double value
-
-//   for (int iTest = 0; iTest < nTests; iTest++) {
-//     dv[0] = randTh(re);
-//     dv[1] = randTh(re);
-//     dv[2] = randKmax(re);
-
-//     for (int iRep = 0; iRep < nRepet; iRep++) {
-//       TimePerf time;
-//       time.start();
-//       RS myRS = RS(Configuration2(0.0, 0.0, dv[0]), Configuration2(1.0, 0.0, dv[1]), {dv[2]});
-//       myRS.solve();
-//       auto delta = time.getTime();
-//       fullTime += delta;
-
-//       time.start();
-//       RSPredict(modelType, dv, idx, tmp);
-//       delta = time.getTime();
-//       predTime += delta;
-
-//       time.start();
-//       RS myRS2 = RS(Configuration2(0, 0, dv[0]), Configuration2(1, 0, dv[1]), {dv[2], (double) myRS.getNman()});
-//       myRS2.solve();
-//       delta = time.getTime();
-//       direTime += delta;
-//     }
-//   }
-
-//   std::cout << "AVG brute-force: " << fullTime/(nTests*nRepet) << std::endl;
-//   std::cout << "AVG prediction: " << predTime/(nTests*nRepet) << std::endl;
-//   std::cout << "AVG one-shot: " << direTime/(nTests*nRepet) << std::endl;
-
-//   return 0;
-// }
-
-// std::vector<int> labels = {
-//     1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
-// };
-
-// int SVMQuadraticRS(){
-//   std::cout << "Calling SVMQuadraticRS" << std::endl;
-//   double idx[22];
-//   double dv[3];
-
-//   int nTests = 100;
-//   int nRepet = 100;
-
-//   std::uniform_real_distribution<double> randTh(0, m_2pi);
-//   std::uniform_real_distribution<double> randKmax(0, 10.0);
-//   std::default_random_engine re(13);
-
-//   PerfData predData; // Prediction data
-//   PerfData bfData;   // Brute-force data
-//   PerfData oneData;  // One-shot data
-
-//   for (int iTest = 0; iTest < nTests; iTest++) {
-//     dv[0] = randTh(re);
-//     dv[1] = randTh(re);
-//     dv[2] = randKmax(re);
-
-//     for (int iRep = 0; iRep < nRepet; iRep++) {
-//       TimePerf time;
-//       RS myRS = RS(Configuration2(0.0, 0.0, dv[0]), Configuration2(1.0, 0.0, dv[1]), {dv[2]});
-//       time.start();
-//       myRS.solve();
-//       auto delta = time.getTime();
-//       bfData.avgTime += delta;
-//       bfData.maxTime = std::max(bfData.maxTime, delta);
-//       bfData.minTime = std::min(bfData.minTime, delta);
-
-//       time.start();
-//       SVMQuadraticPredict(dv, idx);
-//       delta = time.getTime();
-//       predData.avgTime += delta;
-//       predData.maxTime = std::max(predData.maxTime, delta);
-//       predData.minTime = std::min(predData.minTime, delta);
-
-//       RS myRS2 = RS(Configuration2(0, 0, dv[0]), Configuration2(1, 0, dv[1]), {dv[2], idx[0]});
-//       time.start();
-//       myRS2.solve();
-//       delta = time.getTime();
-
-// //      if (myRS.l() != myRS2.l()){// throw exception saying that the two lengths are different and printing the two lengths
-// //        std::cout << "Lengths are different: " << myRS.l() << " " << myRS2.l() << std::endl;
-// //        throw std::runtime_error("Lengths are different");
-// //      }
-
-//       oneData.avgTime += delta;
-//       oneData.maxTime = std::max(oneData.maxTime, delta);
-//       oneData.minTime = std::min(oneData.minTime, delta);
-//     }
-//   }
-
-//   std::cout << "AVG brute-force: " << bfData.avgTime/(nTests*nRepet)  << " MIN: " << bfData.minTime << " MAX: " <<  bfData.maxTime << std::endl;
-//   std::cout << "AVG prediction: " << predData.avgTime/(nTests*nRepet) << " MIN: " << predData.minTime << " MAX: " <<  predData.maxTime << std::endl;
-//   std::cout << "AVG one-shot: " << oneData.avgTime/(nTests*nRepet)    << " MIN: " << oneData.minTime << " MAX: " <<  oneData.maxTime << std::endl;
-
-//   return 0;
-// }
-
-// int NNWideRS(){
-//   std::cout << "Calling NNWideRS" << std::endl;
-//   double idx[22];
-//   double dv[3];
-//   int tmp[2];
-
-//   int nTests = 100;
-//   int nRepet = 100;
-
-//   std::uniform_real_distribution<double> randTh(0, m_2pi);
-//   std::uniform_real_distribution<double> randKmax(0, 10.0);
-//   std::default_random_engine re(13);
-
-//   PerfData predData; // Prediction data
-//   PerfData bfData;   // Brute-force data
-//   PerfData oneData;  // One-shot data
-
-//   for (int iTest = 0; iTest < nTests; iTest++) {
-//     dv[0] = randTh(re);
-//     dv[1] = randTh(re);
-//     dv[2] = randKmax(re);
-
-//     for (int iRep = 0; iRep < nRepet; iRep++) {
-//       TimePerf time;
-//       time.start();
-//       double bestL = 1e100;
-//       int bestMan = 0;
-//       for (int i = 1; i < 49; i++) {
-//         if(i == 2 || i == 4) { continue; }
-//         RS myRS = RS(Configuration2(0.0, 0.0, dv[0]), Configuration2(1.0, 0.0, dv[1]), {dv[2], (double)(i)});
-//         myRS.solve();
-//         if (myRS.l() < bestL) {
-//           bestL = myRS.l();
-//           bestMan = i;
-//         }
-//       }
-//       auto delta = time.getTime();
-//       bfData.avgTime += delta;
-//       bfData.maxTime = std::max(bfData.maxTime, delta);
-//       bfData.minTime = std::min(bfData.minTime, delta);
-
-//       time.start();
-//       NNWideCompactPredict(dv, idx, tmp);
-//       delta = time.getTime();
-//       predData.avgTime += delta;
-//       predData.maxTime = std::max(predData.maxTime, delta);
-//       predData.minTime = std::min(predData.minTime, delta);
-
-//       RS myRS2 = RS(Configuration2(0, 0, dv[0]), Configuration2(1, 0, dv[1]), {dv[2], idx[0]});
-//       time.start();
-//       myRS2.solve();
-//       delta = time.getTime();
-//       oneData.avgTime += delta;
-//       oneData.maxTime = std::max(oneData.maxTime, delta);
-//       oneData.minTime = std::min(oneData.minTime, delta);
-
-// //      if (myRS.l() != myRS2.l()){// throw exception saying that the two lengths are different and printing the two lengths
-// //        std::cout << dv[0] << " " << dv[1] << " " << dv[2] << std::endl;
-// //        std::cout << myRS.getNman() << " " << idx[0] << " " << myRS.getManTypeStr() << " " << myRS.getSegmentsData()[0].l << " " << myRS.getSegmentsData()[1].l << " " << myRS.getSegmentsData()[2].l << " " << myRS.getSegmentsData()[3].l << " " << std::endl;
-// //        std::cout << "Lengths are different: " << myRS.l() << " " << myRS2.l() << std::endl;
-// //        throw std::runtime_error("Lengths are different");
-// //      }
-//     }
-//   }
-
-//   std::cout << "AVG brute-force: " << bfData.avgTime/(nTests*nRepet)  << " MIN: " << bfData.minTime << " MAX: " <<  bfData.maxTime << std::endl;
-//   std::cout << "AVG prediction: " << predData.avgTime/(nTests*nRepet) << " MIN: " << predData.minTime << " MAX: " <<  predData.maxTime << std::endl;
-//   std::cout << "AVG one-shot: " << oneData.avgTime/(nTests*nRepet)    << " MIN: " << oneData.minTime << " MAX: " <<  oneData.maxTime << std::endl;
-
-//   return 0;
-// }
-
-
-void drawRS(){
-//  RS curve = RS(Configuration2(0, 0, m_pi_2), Configuration2(1, 1, 0), {1});
-//  curve.solve();
-//  std::ofstream file("RS.asy");
-  // Dubins curve = Dubins(Configuration2(1, 1, -m_pi), Configuration2(0, 0, -m_pi_2), {1});
-  // std::ofstream file("Dubins3PSquares.asy");
-
-  // std::cout << "Length: " << curve.l() << std::endl;
-
-  // initAsyFile(file);
-  // file << "path p;" << std::endl;
-  // curve.draw(file);
-  // file.close();
-
-//   system("asy -f pdf RS.asy && xdg-open RS.pdf");
-}
-
-int testDubins(){
-  std::ifstream file2("/home/enrico/Projects/mpdp/tmp.txt");
-  if (!file2.is_open()) {
-    std::cout << "Error opening file" << std::endl;
-    return 1;
-  }
-  std::string line;
-  double sx, sy, sth, ex, ey, eth, k, l, t;
-  double totDiff = 0.0, maxPosDiff = 0.0, maxNegDiff = 0.0;
-  int i = 0;
-  while (file2 >> sx >> sy >> sth >> ex >> ey >> eth >> k >> l >> t) {
-    Configuration2 start(sx, sy, sth);
-    Configuration2 end(ex, ey, eth);
-
-    std::vector<double> tmp = {k};
-
-    TimePerf tp; tp.start();
-    Dubins d(start, end, k);
-//    Dubins d = DP::solveP2P<Dubins>(start, end, tmp);
-    auto time1=tp.getTime();
-
-    totDiff += time1 - t;
-    maxPosDiff = std::max(maxPosDiff, time1 - t);
-    maxNegDiff = std::min(maxNegDiff, time1 - t);
-
-    // If the two lengths differs for more than 1e-10 print an error with the same precision
-    if (std::abs(d.l() - l) > 1e-9) {
-      std::cout << "Error at line " << i << " with values: " << std::setprecision(12) << d.l() << " " << l << std::endl;
-    }
-    i++;
-  }
-  std::cout << "Total difference: " << totDiff << std::endl;
-  std::cout << "Average difference: " << totDiff / i << std::endl; // should be "0
-  std::cout << "Max positive difference: " << maxPosDiff << std::endl;
-  std::cout << "Max negative difference: " << maxNegDiff << std::endl;
-
-  return 0;
-}
-
-
 
 int main(int argc, char** argv){
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Dubins stuff
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// testDubins();
-	// genDSDubinsP2P(true);
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // 0.70 kmax 1.90 xm 0.00 ym 0.10 th_i 0.79 th_f -0.79 th_m 6.06 true: 12 pred: 17 (0.7393) 11 (0.0938) 10 (0.0742) 16 (0.0684) 15 (0.0118)
+  std::vector<Configuration2> points = {
+    Configuration2(-0.7, 0.0, 0.79), 
+    Configuration2(0.0,  0.1, ANGLE::FREE), 
+    Configuration2(0.7,  0.0, -0.79)
+  };
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// MPDP Examples
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// allexamples();
-	// tentaclesFigDubins();
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  std::vector<bool> fixed_angles (points.size(), false);
+  fixed_angles[0] = true;
+  fixed_angles[fixed_angles.size()-1] = true;
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// 3 points Dubins stuff
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// main3PMDBruteForce();
-  // main3PDP();
-  // generateDataset3PDPCircle(argc, argv);
-  // generateDataset3PDPRect(argc, argv);
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  float kmax = 1.90;
 
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// RS stuff
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//  generateDatasetRS();
-	//  NNWideRS();
-	//  SVMQuadraticRS();
-	// drawRS();
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  std::vector<double> params = {kmax};
+
+  DP dp;
+  auto res = dp.solveDP<Dubins>(points, fixed_angles, params, 90, 4, true);
+  std::cout << "Length: " << res.first << std::endl;
+  std::cout << "Angles: ";
+  for(auto a : res.second) std::cout << a << " ";
+  std::cout << std::endl;
+
+  dp.exportVisualizationData("dp_snapshot.json");
+
+  auto file = std::ofstream("dubins_path.asy");
+  for (size_t i=0; i<points.size() - 1; i++){
+    Dubins dub (points[i], points[i+1], params);
+    dub.draw(file, "dubins_path_" + std::to_string(i), 8, 8, false, false, i==0);
+    std::cout << "Dubins " << i << " type: " << dub.dtype() << " " << (int)(dub.dtype()) << " " << dub.D_TYPE_STR[(int)(dub.dtype())] << std::endl;
+    std::cout << "Dubins " << i << " length: " << dub.l() << std::endl;
+    std::cout << "Dubins " << i << " s1: " << dub.L(1) << ", s2: " << dub.L(2) << ", s3: " << dub.L(3) << std::endl;
+    std::cout << "Dubins " << i << " k1: " << dub.k(1) << ", k2: " << dub.k(2) << ", k3: " << dub.k(3) << std::endl;
+    auto [first_intermediate, second_intermediate] = dub.get_intermediate_configurations();
+    std::cout << "Dubins " << i << " first intermediate: " << first_intermediate << std::endl;
+    std::cout << "Dubins " << i << " second intermediate: " << second_intermediate << std::endl;
+  }
+  file.close();
+
+
+  // auto file2 = std::ofstream("dubins_marco.asy");
+  // Dubins dub_marco1 (points[0], Configuration2(points[1].x(), points[1].y(), 1.0503), {kmax});
+  // Dubins dub_marco2 (Configuration2(points[1].x(), points[1].y(), 1.0503), points[2], {kmax});
+  // dub_marco1.draw(file2, "dubins_marco_1", 8, 8, false, false, true);
+  // std::cout << "Dubins Marco 1 length: " << dub_marco1.l() << std::endl;
+  // std::cout << "Dubins Marco 1 type: " << dub_marco1.dtype() << " " << (int)(dub_marco1.dtype()) << " " << dub_marco1.D_TYPE_STR[(int)(dub_marco1.dtype())] << std::endl;
+  // std::cout << "Dubins Marco 1 s1: " << dub_marco1.L(1) << ", s2: " << dub_marco1.L(2) << ", s3: " << dub_marco1.L(3) << std::endl;
+  // std::cout << "Dubins Marco 1 k1: " << dub_marco1.k(1) << ", k2: " << dub_marco1.k(2) << ", k3: " << dub_marco1.k(3) << std::endl;
+  // Configuration2 dubins1_first_intermediate = dub_marco1.next_configuration(*(dub_marco1.ci()), dub_marco1.L(1), dub_marco1.k(1));
+  // Configuration2 dubins1_second_intermediate = dub_marco1.next_configuration(dubins1_first_intermediate, dub_marco1.L(2), dub_marco1.k(2));
+  // std::cout << "Dubins Marco 1 first intermediate: " << dubins1_first_intermediate << std::endl;
+  // std::cout << "Dubins Marco 1 second intermediate: " << dubins1_second_intermediate << std::endl;
+
+  // dub_marco2.draw(file2, "dubins_marco_2", 8, 8, false, false, false);
+  // std::cout << "Dubins Marco 2 length: " << dub_marco2.l() << std::endl;
+  // std::cout << "Dubins Marco 2 type: " << dub_marco2.dtype() << " " << (int)(dub_marco2.dtype()) << " " << dub_marco2.D_TYPE_STR[(int)(dub_marco2.dtype())] << std::endl;
+  // std::cout << "Dubins Marco 2 s1: " << dub_marco2.L(1) << ", s2: " << dub_marco2.L(2) << ", s3: " << dub_marco2.L(3) << std::endl;
+  // std::cout << "Dubins Marco 2 k1: " << dub_marco2.k(1) << ", k2: " << dub_marco2.k(2) << ", k3: " << dub_marco2.k(3) << std::endl;
+  // auto [dubins2_first_intermediate, dubins2_second_intermediate] = dub_marco2.get_intermediate_configurations();
+  // std::cout << "Dubins Marco 2 first intermediate: " << dubins2_first_intermediate << std::endl;
+  // std::cout << "Dubins Marco 2 second intermediate: " << dubins2_second_intermediate << std::endl;
+  // file2.close();
+
+  // std::cout << "Dubins Marco combined length: " << dub_marco1.l() + dub_marco2.l() << std::endl;
+  // std::cout << "Dubins Marco 1 type: " << dub_marco1.dtype() << " " << (int)(dub_marco1.dtype()) << " " << dub_marco1.D_TYPE_STR[(int)(dub_marco1.dtype())] << std::endl;
+  // std::cout << "Dubins Marco 2 type: " << dub_marco2.dtype() << " " << (int)(dub_marco2.dtype()) << " " << dub_marco2.D_TYPE_STR[(int)(dub_marco2.dtype())] << std::endl;
 
   return 0;
 }
-
 

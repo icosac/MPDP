@@ -187,7 +187,9 @@ class Dubins : public Curve {
 			: Curve (ci, cf, CURVE_TYPE::DUBINS, params), _type (D_TYPE::INVALID),
 				_kmax (params[0])
 	{
-		this->comp_man (type);
+		if (!this->comp_man (type)){
+			throw std::runtime_error("Cannot compute Dubins with given man "+D_TYPE_STR[type]);
+		}
 	}
 
 	K_T
@@ -414,6 +416,11 @@ class Dubins : public Curve {
 		return this->dtype();
 	}
 
+	std::pair<Configuration2, Configuration2>
+	get_intermediate_configurations();
+
+	Configuration2 next_configuration (Configuration2 current, LEN_T dist, K_T curvature);
+
 	// LRL RLR LSL LSR RSL RSR
 	bool
 	comp_LRL (const struct Man_input_data& data_in, struct Man_output_data& data_out) const;
@@ -483,7 +490,7 @@ class Dubins : public Curve {
 	void
 	draw (
 			std::ofstream& file,
-			std::string label = "",
+			std::string label 		= "",
 			size_t width			= 8,
 			size_t height			= 8,
 			bool solve				= false,

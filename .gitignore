@@ -505,3 +505,9 @@ build_new/
 dp_matrix_visualization.html
 
 *.egg-info
+
+Book3.xlsx
+find_test.cc
+find_tests.py
+out_man/
+test.cc

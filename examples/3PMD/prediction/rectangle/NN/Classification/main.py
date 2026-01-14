@@ -140,6 +140,8 @@ class ModelInference:
             top_probs, top_indices = torch.topk(probs, topk, dim=1)
 
         print(f"Highest prob: {top_probs.cpu().numpy()[0][0].astype(float):.24f}")
+        print(f"Top-{topk} indices: {[x+1 for x in top_indices.cpu().numpy()[0]]}")
+        print(f"Top-{topk} probabilities: {top_probs.cpu().numpy()[0].astype(float)}")
 
         model_outputs = top_indices.cpu().numpy()
         

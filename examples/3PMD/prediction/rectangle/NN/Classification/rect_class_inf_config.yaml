@@ -11,7 +11,7 @@ HIDDEN_SIZE: 4096
 
 DO_TRAINING: false
 TRIG_FUNCS: true  
-USE_ONLY_CPU: false
+USE_ONLY_CPU: true
 EXPORT_TO_ONNX: false
 
 DATASET: /home/enrico/Projects/mpdp/rect_testset_diff.csv

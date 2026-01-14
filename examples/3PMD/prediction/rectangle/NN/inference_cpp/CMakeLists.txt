@@ -5,15 +5,24 @@ include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 14)
 
-# Define the URL for pre-built ONNX Runtime libraries
+option(MY_INFERENCE_USE_CUDA "Download the CUDA-enabled ONNX Runtime and enable CUDA execution provider" ON)
 
+# Define the URL for pre-built ONNX Runtime libraries
 if (UNIX AND NOT APPLE)
-  message(STATUS "Donwloading onnxruntime-linux-x64")
-  set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz")
+  if (MY_INFERENCE_USE_CUDA)
+    message(STATUS "Downloading onnxruntime-linux-x64-gpu")
+    set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-gpu-1.21.0.tgz")
+  else()
+    message(STATUS "Downloading onnxruntime-linux-x64")
+    set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-1.21.0.tgz")
+  endif()
 else()
   message(STATUS "Downloading onnxruntime-osx-arm64")
   set(ONNXRUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-osx-arm64-1.21.0.tgz")
 endif()
+
+# Add -O3 optimization flag
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 # Download and extract the pre-built ONNX Runtime
 FetchContent_Declare(
@@ -56,5 +65,8 @@ target_link_directories(my_inference_app PRIVATE ${onnxruntime_SOURCE_DIR}/lib)
 # Link against ONNX Runtime
 target_link_libraries(my_inference_app PRIVATE onnxruntime)
 
-
-
+if (MY_INFERENCE_USE_CUDA AND UNIX AND NOT APPLE)
+  target_compile_definitions(my_inference_app PRIVATE USE_CUDA)
+elseif(MY_INFERENCE_USE_CUDA)
+  message(WARNING "CUDA execution provider requested, but this platform does not provide a GPU build. Falling back to CPU.")
+endif()

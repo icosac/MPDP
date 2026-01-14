@@ -315,6 +315,7 @@ void compute3Pman(std::string ThreePman){
   }
 }
 
+
 double main3PDP(Configuration2& pi, Configuration2& pm, Configuration2& pf, K_T kmax){
   // Configuration2 pi(-1.0  , 0.0  ,  m_pi/2.0 );
   // Configuration2 pm( 0.25 , 0.75 ,  0.0      );
@@ -451,6 +452,7 @@ void main3PDPCircle(){
   }
 }
 
+
 void retesting_man_19(std::string filename){
   std::ifstream file(filename);
 
@@ -487,6 +489,7 @@ void retesting_man_19(std::string filename){
 
   std::cout << wrong << "/" << total << std::endl;
 }
+
 
 std::vector<double>
 find_best_circle(
@@ -547,6 +550,7 @@ find_best_circle(
 	}
 	return {static_cast<double>(id_man_comb), len};
 }
+
 
 /**
  * @brief Generates a dataset of 3PDP problems with the circle constraint.
@@ -1017,6 +1021,7 @@ void generateDataset3PDPCircleWithAllLabels(int argc, char** argv){
   // file.close();
 }
 
+
 /**
  * 1) con curvatura che prende valori a metà di quelli che abbiamo usato, cioè se abbiamo
  * usato 0.2 0.4 0.6 ecc fammi un set con 0.3 0.5 0.7 ecc. e angoli possibilmente anche
@@ -1055,7 +1060,6 @@ generateDataset3PDPCircleTest (int argc, char** argv){
 	}
 	delete[] new_argv;
 }
-
 
 
 /** @brief Generates a dataset of 3PDP problems with the rectangle constraint.
@@ -1261,8 +1265,6 @@ void generateDataset3PDPRect(int argc, char** argv){
 
   file.close();
 }
-
-
 
 
 std::vector<std::string>
@@ -1534,4 +1536,403 @@ void generateDataset3PDPRectMulti(int argc, char** argv){
   }
 
   file.close();
- }
+}
+
+
+std::pair<Dubins, Dubins>
+find_solution_three_points(
+	Configuration2& pi,
+	Configuration2& pm,
+	Configuration2& pf,
+	K_T kmax,
+	size_t man_id
+){
+  std::string man_name = "";
+  // Loop through the keys and values of P3DP_DICT
+  for (const auto& [word, data] : P3DP_DICT) {
+    if (std::get<0>(data) == man_id) {
+      man_name = word;
+      break;
+    }
+  }
+
+ return find_solution_three_points(pi, pm, pf, kmax, man_name);
+}
+
+
+std::pair<Dubins, Dubins>
+find_solution_three_points(
+	Configuration2& pi,
+	Configuration2& pm,
+	Configuration2& pf,
+	K_T kmax,
+	std::string man_name
+){
+  const auto& tuple_dubins = P3DP_DICT.at(man_name);
+  auto type_dub1 = std::get<1>(tuple_dubins);
+  auto type_dub2 = std::get<2>(tuple_dubins);
+
+  Dubins dub1 = Dubins(pi, pm, {kmax}, type_dub1);
+  Dubins dub2 = Dubins(pm, pf, {kmax}, type_dub2);
+
+  return std::make_pair(dub1, dub2);
+}
+
+
+void 
+counter_example(){
+  std::vector<double> angles_12 = {
+    -2.392059524, 
+    -2.379739022, 
+    -1.079280411, 
+    -.6130457590, 
+    -.1403404687, 
+    0.7799661304, 
+    0.7818733554, 
+    0.8984055330, 
+    2.013056392, 
+    3.008958996
+  };
+  std::vector<double> angles_13 = {
+    -2.0626053743909508580, 
+    -1.1286044099615002911, 
+    -1.1281763937003410236, 
+    -1.1276323430048564949, 
+    -1.1272025593571692551, 
+    -.57942155262094631496, 
+    .31554416685017231824, 
+    2.6664375822731886104, 
+    2.8438736566875856190, 
+    2.8752603456374461160
+  };
+  std::vector<double> angles_14 = {
+    -3.0501248906301214042, 
+    -2.3895971070964192464, 
+    -.73438590360746765640, 
+    0.17602929821448649549e-1, 
+    0.22486753419340526978, 
+    0.73748930741653266792, 
+    2.6484661760485238862, 
+    2.9679139750958618052
+  };
+
+  Configuration2 ci = Configuration2(-1.0, 0.0,  5.0/12.0*m_pi);
+  Configuration2 cm = Configuration2( 0.1, 0.1,  0.0);
+  Configuration2 cf = Configuration2( 1.0, 0.0, -4.0/12.0*m_pi);
+
+  double best_len = 1e8;
+  double best_id = 0;
+  int best_man = 12;
+  std::cout << "MAN 12" << std::endl;
+  for(size_t i = 0; i<angles_12.size(); i++){
+    cm.th(angles_12[i]);
+    auto dubs = find_solution_three_points(ci, cm, cf, 1.7, "LSRRSR");
+    auto dub1 = dubs.first;
+    auto dub2 = dubs.second;
+
+    double len = dub1.l() + dub2.l();
+    std::cout << "[" << i << "]" << angles_12[i] << ": " << len << std::endl;
+    if (best_len > len){
+      best_len = len;
+      best_id = i;
+    }
+  }
+  std::cout << std::endl << "[" << best_id << "]" << angles_12[best_id] << ": " << best_len << std::endl << std::endl;
+
+  best_len = 1e8;
+  best_id = 0;
+  std::cout << "MAN 13" << std::endl;
+  for(size_t i = 0; i<angles_13.size(); i++){
+    cm.th(angles_13[i]);
+    auto dubs = find_solution_three_points(ci, cm, cf, 1.7, "RSRRSL");
+    auto dub1 = dubs.first;
+    auto dub2 = dubs.second;
+
+    double len = dub1.l() + dub2.l();
+    std::cout << "[" << i << "]" << angles_13[i] << ": " << len << std::endl;
+    if (best_len > len){
+      best_len = len;
+      best_id = i;
+      best_man = 13;
+    }
+  }
+  std::cout << std::endl << "[" << best_id << "]" << angles_13[best_id] << ": " << best_len << std::endl << std::endl;
+
+  best_len = 1e8;
+  best_id = 0;
+  std::cout << "MAN 14" << std::endl;
+  for(size_t i = 0; i<angles_14.size(); i++){
+    cm.th(angles_14[i]);
+    auto dubs = find_solution_three_points(ci, cm, cf, 1.7, "LSRRSL");
+    auto dub1 = dubs.first;
+    auto dub2 = dubs.second;
+
+    double len = dub1.l() + dub2.l();
+    std::cout << "[" << i << "]" << angles_14[i] << ": " << len << std::endl;
+    if (best_len > len){
+      best_len = len;
+      best_id = i;
+      best_man = 14;
+    }
+  }
+  std::cout << std::endl << "[" << best_id << "]" << angles_14[best_id] << ": " << best_len << std::endl << std::endl;
+
+  if (best_man == 12){
+    std::cout << "[12, " << best_id << "]" << angles_12[best_id] << ": " << best_len << std::endl;
+  }
+  else if (best_man == 13){
+    std::cout << "[13, " << best_id << "]" << angles_13[best_id] << ": " << best_len << std::endl;
+  }
+  else if (best_man == 14){
+    std::cout << "[14, " << best_id << "]" << angles_14[best_id] << ": " << best_len << std::endl;
+  }
+}
+
+
+
+std::pair<double, double> 
+counter_example(
+  Configuration2 ci, 
+  Configuration2 cm, 
+  Configuration2 cf, 
+  double kmax,
+  std::vector<double> angles,
+  int man_id
+){
+  double best_th = 0.0;
+  double best_len = 1e8;
+  
+  for (size_t i = 0; i<angles.size(); i++){
+    cm.th(angles[i]);
+
+    auto dubs = find_solution_three_points(ci, cm, cf, kmax, man_id);
+    
+    double len = dubs.first.l() + dubs.second.l();
+    if (len < best_len){
+      best_len = len;
+      best_th = angles[i];
+    }
+  }
+
+  return std::make_pair(best_th, best_len);
+}
+
+
+double average(const std::vector<double>& data) {
+  double sum = 0.0;
+  for (const auto& val : data) {
+    sum += val;
+  }
+  return sum / static_cast<double>(data.size());
+}
+
+double min(const std::vector<double>& data) {
+  return data[std::min_element(data.begin(), data.end()) - data.begin()];
+}
+
+double max(const std::vector<double>& data) {
+  return data[std::max_element(data.begin(), data.end()) - data.begin()];
+}
+
+double sd(const std::vector<double>& data) {
+  double avg = average(data);
+  double sum_sq_diff = 0.0;
+  for (const auto& val : data) {
+    sum_sq_diff += (val - avg) * (val - avg);
+  }
+  return std::sqrt(sum_sq_diff / static_cast<double>(data.size()));
+}
+
+
+void throw_away() {
+  std::ifstream in_file("/Users/enrico/Projects/mpdp/inference_pred.csv");
+  if (!in_file.is_open()) {
+    std::cout << "Error opening file" << std::endl;
+    return;
+  }
+
+  int test_ref = 5;
+  size_t discr = 90;
+
+  std::vector<double> time_opt, time_360_0, time_preds;
+  std::vector<std::vector<double>> time_refinements(test_ref);
+
+  std::vector<double> err_360_0;
+  std::vector<std::vector<double>> err_refinements(test_ref);
+
+  float kmax, c, xm, ym, theta_i, theta_f, th_m, time_pred;
+  int i = 0;
+  while (in_file >> kmax >> c >> xm >> ym >> theta_i >> theta_f >> th_m >> time_pred) {
+    if (i<100000) {
+      i++;
+      continue;
+    }
+    time_preds.push_back(time_pred);
+    Configuration2 ci = Configuration2(-c, 0, theta_i);
+    Configuration2 cm = Configuration2(xm, ym, 0.0);
+    Configuration2 cf = Configuration2( c, 0, theta_f);
+
+    // Find optimal solution with 360, 4
+    std::vector<Configuration2> points = {ci, cm, cf};
+    std::vector<bool> fixed_angles = {true, false, true};
+    std::vector<double> params = {kmax};
+    auto time_dp = std::chrono::high_resolution_clock::now();
+    std::pair<double, std::vector<double>> sol = {};
+    sol = DP().solveDP(points, fixed_angles, params,  360, 4, false);
+    double len_opt = sol.first;
+    double opt_th_m = sol.second[1];
+    // std::cout << std::setprecision(8) << len_opt << " " << th_m << " " << std::abs(th_m - sol.second[1]);
+    auto dt = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_dp).count();
+    // std::cout << " in: " << dt << " us" << std::endl;
+    time_opt.push_back(dt);
+
+    // Find solution for 360, 0
+    time_dp = std::chrono::high_resolution_clock::now();
+    sol = DP().solveDP(points, fixed_angles, params,  360, 0, false);
+    // std::cout << std::setprecision(8) << sol.first << " " << std::abs(len_opt - sol.first);
+    dt = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_dp).count();
+    // std::cout << " in: " << dt << " us" << std::endl;
+    time_360_0.push_back(dt);
+    err_360_0.push_back(std::abs(len_opt - sol.first));
+
+    // Set guess and iterate over 4 refinements with 90 discretizations
+    points[1].th(th_m);
+    for (int ref = 0; ref < test_ref; ref++) {
+      time_dp = std::chrono::high_resolution_clock::now();
+      sol = DP().solveDP(points, fixed_angles, params,  discr, ref, false);
+      dt = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_dp).count();
+      // std::cout << " in: " << dt << " us total: " << dt + time_pred << std::endl;
+      time_refinements[ref].push_back(dt);
+      err_refinements[ref].push_back(std::abs(sol.first - len_opt));
+      // if (std::abs(sol.first - len_opt) > 1) {
+      //   std::cout << "ref " << ref << ": " << std::setprecision(8) << sol.first << " " << std::abs(sol.first - len_opt) << std::endl;
+      //   std::cout << th_m << " " << opt_th_m << " " << std::abs(th_m - opt_th_m) << std::endl;
+      //   std::cout << kmax << " " << c << " " << xm << " " << ym << " " << theta_i << " " << theta_f << " " << th_m << std::endl << std::endl;
+      //   break;
+      // }
+    }
+    // std::cout << "////////////////" << std::endl;
+
+    if (i == 110000) {
+      break;
+    }
+    i++;
+    std::cout << "Processed " << i << " entries\r";
+  }
+
+  std::cout << "Times:" << std::endl;
+  std::cout << "  Optimal: AVG" << std::setprecision(3) << std::setw(11) << average(time_opt) << " us" << " min: " << min(time_opt) << " max: " << max(time_opt) << " sd: " << sd(time_opt) << std::endl;
+  std::cout << "  360,0:   AVG" << std::setprecision(3) << std::setw(11) << average(time_360_0) << " us" << " min: " << min(time_360_0) << " max: " << max(time_360_0) << " sd: " << sd(time_360_0) << std::endl;
+  for (int ref = 0; ref < test_ref; ref++) {
+    std::cout << std::setw(5) << discr << "," << ref << ":   AVG" << std::setprecision(3) << std::setw(11) << average(time_refinements[ref]) << " us" << " min: " << min(time_refinements[ref]) << " max: " << max(time_refinements[ref]) << " sd: " << sd(time_refinements[ref]) << std::endl;
+  }
+  std::cout << "   Pred:   AVG" << std::setprecision(3) << std::setw(11) << average(time_preds) << " us" << " min: " << min(time_preds) << " max: " << max(time_preds) << " sd: " << sd(time_preds) << std::endl;
+
+  std::cout << "Errors:" << std::endl;
+  std::cout << "  360,0:   AVG" << std::setprecision(8) << std::setw(15) << average(err_360_0) << " min: " << min(err_360_0) << " max: " << max(err_360_0) << " sd: " << sd(err_360_0) << std::endl;
+  for (int ref = 0; ref < test_ref; ref++) {
+    std::cout << std::setw(5) << discr << "," << ref << ":   AVG" << std::setprecision(8) << std::setw(15) << average(err_refinements[ref]) << " min: " << min(err_refinements[ref]) << " max: " << max(err_refinements[ref]) << " sd: " << sd(err_refinements[ref]) << std::endl;
+  }
+
+  std::ofstream out_file("dubins_opt_reg1.asy");
+  if (!out_file.is_open()) {
+    std::cout << "Error opening output file" << std::endl;
+    return;
+  }
+  // 0.2 0 0.1 1 1.5707999 3.1415999 1.3978
+  kmax = 0.2;
+  Configuration2 ci = Configuration2(0.0, 0.0, 1.5707999);
+  Configuration2 cm = Configuration2(0.1, 1.0, 1.3962634);
+  Configuration2 cf = Configuration2(0.0, 0.0, 1.3978);
+  Dubins dub1(ci, cm, kmax);
+  Dubins dub2(cm, cf, kmax);
+  dub1.draw(out_file, "OD1", 8, 8, false, false, true);
+  dub2.draw(out_file, "OD2");
+
+  cm.th(1.3978);
+  dub1 = Dubins(ci, cm, kmax);
+  dub2 = Dubins(cm, cf, kmax);
+  dub1.draw(out_file, "GD1");
+  dub2.draw(out_file, "GD2");
+  out_file.close();
+
+  out_file.close();
+
+
+}
+
+void counter_example_figs(){
+
+  Configuration2 ci = Configuration2(-1.0, 0.0,  5.0/12.0*m_pi);
+  Configuration2 cm = Configuration2( 0.1, 0.1,  0.0);
+  Configuration2 cf = Configuration2( 1.0, 0.0, -4.0/12.0*m_pi);
+
+  double kmax = 1.7;
+
+  // LSR-RSR
+  auto dub1_type = Dubins::D_TYPE::LSR;
+  auto dub2_type = Dubins::D_TYPE::RSR;
+
+  cm.th(-2.3797);
+  Dubins dub1 = Dubins(ci, cm, {kmax}, dub1_type);
+  Dubins dub2 = Dubins(cm, cf, {kmax}, dub2_type);
+
+  std::cout << "LSR-RSR: " << cm.th() << " " << dub1.l() + dub2.l() << std::endl;
+
+  std::ofstream out_draw("counter_eg_LSR-RSR.asy");
+  dub1.draw(out_draw, "LSR", 8, 8, false, false, true);
+  dub2.draw(out_draw, "RSR");
+  out_draw.close();
+
+  // RSR-RSL
+  dub1_type = Dubins::D_TYPE::RSR;
+  dub2_type = Dubins::D_TYPE::RSL;
+
+  cm.th(2.6664);
+  dub1 = Dubins(ci, cm, {kmax}, dub1_type);
+  dub2 = Dubins(cm, cf, {kmax}, dub2_type);
+
+  std::cout << "RSR-RSL: " << cm.th() << " " << dub1.l() + dub2.l() << std::endl;
+
+  out_draw.open("counter_eg_RSR-RSL.asy");
+  dub1.draw(out_draw, "RSR", 8, 8, false, false, true);
+  dub2.draw(out_draw, "RSL");
+  out_draw.close();
+
+  // LSR-RSL
+  dub1_type = Dubins::D_TYPE::LSR;
+  dub2_type = Dubins::D_TYPE::RSL;
+
+  cm.th(0.0176029);
+  dub1 = Dubins(ci, cm, {kmax}, dub1_type);
+  dub2 = Dubins(cm, cf, {kmax}, dub2_type);
+
+  std::cout << "LSR-RSL: " << cm.th() << " " << dub1.l() + dub2.l() << std::endl;
+
+  out_draw.open("counter_eg_LSR-RSL.asy");
+  dub1.draw(out_draw, "LSR", 8, 8, false, false, true);
+  dub2.draw(out_draw, "RSL");
+  out_draw.close();
+
+  // RSR-RSR
+  dub1_type = Dubins::D_TYPE::RSR;
+  dub2_type = Dubins::D_TYPE::RSR;
+
+  cm.th(5.1566);
+  dub1 = Dubins(ci, cm, {kmax}, dub1_type);
+  dub2 = Dubins(cm, cf, {kmax}, dub2_type);
+
+  std::cout << "RSR-RSR: " << cm.th() << " " << dub1.l() + dub2.l() << std::endl;
+
+  out_draw.open("counter_eg_RSR-RSR.asy");
+  dub1.draw(out_draw, "RSR", 8, 8, false, false, true);
+  dub2.draw(out_draw, "RSR");
+  out_draw.close();
+
+  system("asy -f pdf /Users/enrico/Projects/mpdp/out_LSR-RSR.asy");
+  system("asy -f pdf /Users/enrico/Projects/mpdp/out_RSR-RSL.asy");
+  system("asy -f pdf /Users/enrico/Projects/mpdp/out_LSR-RSL.asy");
+  system("asy -f pdf /Users/enrico/Projects/mpdp/out_RSR-RSR.asy");
+
+  out_draw.close();
+}

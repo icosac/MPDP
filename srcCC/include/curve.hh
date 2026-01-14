@@ -60,7 +60,7 @@ class Curve {
 	 * @return A pointer to the initial `Configuration2`.
 	 */
 	Configuration2*
-	ci()
+	ci() 
 	{
 		return &(this->_ci);
 	}

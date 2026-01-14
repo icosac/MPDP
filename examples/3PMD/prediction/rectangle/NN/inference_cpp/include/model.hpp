@@ -8,6 +8,9 @@
 #include <algorithm>
 #include <cmath>
 #include <onnxruntime_cxx_api.h>
+#ifdef USE_CUDA
+#include <onnxruntime_c_api.h>
+#endif
 
 
 class OnnxModel {
@@ -22,7 +25,7 @@ class OnnxModel {
         bool is_multitask_model = false;
     
     public:
-        OnnxModel(const std::string& model_path);
+        OnnxModel(const std::string& model_path, bool use_gpu);
         ~OnnxModel();
     
         // Run inference with float input data for classification (single-task) model
