@@ -1,0 +1,6 @@
+# Convenience values for inference.py.
+
+MODEL: /home/enrico/Projects/mpdp/examples/P2PRSTriangularSymmetries/NN/Classification/models/model_classification.pt
+INPUT: 0.0087509544668126,0.0087509544668126,0.1
+TOPK: 3
+USE_ONLY_CPU: true

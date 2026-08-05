@@ -1,0 +1,30 @@
+# Configuration for examples/P2PRSTriangularSymmetries/NN/Classification/main.py
+
+RANDOM_SEED: 42
+
+BATCH_SIZE: 128
+EPOCHS: 100
+PATIENCE: 10
+WEIGHT_DEC: 1e-5
+LEARN_RATE: 1e-4
+HIDDEN_SIZE: 512
+
+TRIG_FUNCS: true
+USE_ONLY_CPU: false
+EXPORT_TO_ONNX: true
+
+TRAIN_DATASET: /home/enrico.saccon/mpdp/examples/P2PRSTriangularSymmetries/datasets/DS_RS_triangular_training.csv
+VALIDATION_DATASET: /home/enrico.saccon/mpdp/examples/P2PRSTriangularSymmetries/datasets/DS_RS_triangular_validation.csv
+
+OUTPUT_MODEL_PATH: /home/enrico.saccon/mpdp/examples/P2PRSTriangularSymmetries/NN/Classification/models
+OUTPUT_MODEL_NAME: /home/enrico.saccon/mpdp/examples/P2PRSTriangularSymmetries/NN/Classification/models/model_classification_512.pt
+ONNX_NAME: /home/enrico.saccon/mpdp/examples/P2PRSTriangularSymmetries/NN/Classification/models/model_classification_512.onnx
+PLOT_PATH: /home/enrico.saccon/mpdp/examples/P2PRSTriangularSymmetries/NN/Classification/plots
+
+LAYERS:
+  - Linear(in_size, hid_size)
+  - ReLU()
+  - Dropout(0.1)
+  - Linear(hid_size, hid_size)
+  - ReLU()
+  - Linear(hid_size, out_size)
