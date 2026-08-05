@@ -23,43 +23,58 @@
 
 
 int main(int argc, char** argv){
-  // 0.70 kmax 1.90 xm 0.00 ym 0.10 th_i 0.79 th_f -0.79 th_m 6.06 true: 12 pred: 17 (0.7393) 11 (0.0938) 10 (0.0742) 16 (0.0684) 15 (0.0118)
-  std::vector<Configuration2> points = {
-    Configuration2(-0.7, 0.0, 0.79), 
-    Configuration2(0.0,  0.1, ANGLE::FREE), 
-    Configuration2(0.7,  0.0, -0.79)
-  };
+  TimePerf tp;
+  tp.start();
 
-  std::vector<bool> fixed_angles (points.size(), false);
-  fixed_angles[0] = true;
-  fixed_angles[fixed_angles.size()-1] = true;
-
-  float kmax = 1.90;
-
-  std::vector<double> params = {kmax};
-
-  DP dp;
-  auto res = dp.solveDP<Dubins>(points, fixed_angles, params, 90, 4, true);
-  std::cout << "Length: " << res.first << std::endl;
-  std::cout << "Angles: ";
-  for(auto a : res.second) std::cout << a << " ";
-  std::cout << std::endl;
-
-  dp.exportVisualizationData("dp_snapshot.json");
-
-  auto file = std::ofstream("dubins_path.asy");
-  for (size_t i=0; i<points.size() - 1; i++){
-    Dubins dub (points[i], points[i+1], params);
-    dub.draw(file, "dubins_path_" + std::to_string(i), 8, 8, false, false, i==0);
-    std::cout << "Dubins " << i << " type: " << dub.dtype() << " " << (int)(dub.dtype()) << " " << dub.D_TYPE_STR[(int)(dub.dtype())] << std::endl;
-    std::cout << "Dubins " << i << " length: " << dub.l() << std::endl;
-    std::cout << "Dubins " << i << " s1: " << dub.L(1) << ", s2: " << dub.L(2) << ", s3: " << dub.L(3) << std::endl;
-    std::cout << "Dubins " << i << " k1: " << dub.k(1) << ", k2: " << dub.k(2) << ", k3: " << dub.k(3) << std::endl;
-    auto [first_intermediate, second_intermediate] = dub.get_intermediate_configurations();
-    std::cout << "Dubins " << i << " first intermediate: " << first_intermediate << std::endl;
-    std::cout << "Dubins " << i << " second intermediate: " << second_intermediate << std::endl;
+  for (int i = 0; i < 1000; i++){
+    for (int j = 1; j < 49; j++){
+      RS rs (Configuration2(-1.0,  1.0, M_PI / 4.0),
+            Configuration2( 1.0, -0.5, M_PI / 3.0),
+            {0.5, static_cast<double>(j)});
+      rs.solve();
+    }
   }
-  file.close();
+
+  double elapsed = tp.getTime<std::micro>() / 1000.0;
+  std::cout << "Elapsed time: " << elapsed << " us\n";
+
+  // 0.70 kmax 1.90 xm 0.00 ym 0.10 th_i 0.79 th_f -0.79 th_m 6.06 true: 12 pred: 17 (0.7393) 11 (0.0938) 10 (0.0742) 16 (0.0684) 15 (0.0118)
+  // std::vector<Configuration2> points = {
+  //   Configuration2(-0.7, 0.0, 0.79), 
+  //   Configuration2(0.0,  0.1, ANGLE::FREE), 
+  //   Configuration2(0.7,  0.0, -0.79)
+  // };
+
+  // std::vector<bool> fixed_angles (points.size(), false);
+  // fixed_angles[0] = true;
+  // fixed_angles[fixed_angles.size()-1] = true;
+
+  // float kmax = 1.90;
+
+  // std::vector<double> params = {kmax};
+
+  // DP dp;
+  // auto res = dp.solveDP<Dubins>(points, fixed_angles, params, 90, 4, true);
+  // std::cout << "Length: " << res.first << std::endl;
+  // std::cout << "Angles: ";
+  // for(auto a : res.second) std::cout << a << " ";
+  // std::cout << std::endl;
+
+  // dp.exportVisualizationData("dp_snapshot.json");
+
+  // auto file = std::ofstream("dubins_path.asy");
+  // for (size_t i=0; i<points.size() - 1; i++){
+  //   Dubins dub (points[i], points[i+1], params);
+  //   dub.draw(file, "dubins_path_" + std::to_string(i), 8, 8, false, false, i==0);
+  //   std::cout << "Dubins " << i << " type: " << dub.dtype() << " " << (int)(dub.dtype()) << " " << dub.D_TYPE_STR[(int)(dub.dtype())] << std::endl;
+  //   std::cout << "Dubins " << i << " length: " << dub.l() << std::endl;
+  //   std::cout << "Dubins " << i << " s1: " << dub.L(1) << ", s2: " << dub.L(2) << ", s3: " << dub.L(3) << std::endl;
+  //   std::cout << "Dubins " << i << " k1: " << dub.k(1) << ", k2: " << dub.k(2) << ", k3: " << dub.k(3) << std::endl;
+  //   auto [first_intermediate, second_intermediate] = dub.get_intermediate_configurations();
+  //   std::cout << "Dubins " << i << " first intermediate: " << first_intermediate << std::endl;
+  //   std::cout << "Dubins " << i << " second intermediate: " << second_intermediate << std::endl;
+  // }
+  // file.close();
 
 
   // auto file2 = std::ofstream("dubins_marco.asy");

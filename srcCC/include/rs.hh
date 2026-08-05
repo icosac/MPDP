@@ -282,16 +282,21 @@ class RS : public Curve {
 		return out;
 	}
 
-#ifdef MPDP_DRAW
+// #ifdef MPDP_DRAW
 	void
 	draw (
 			std::ofstream& file,
 			size_t width	= 8,
-			size_t height = 8,
+			size_t height   = 8,
 			bool solve		= false,
 			bool close		= false,
-			bool init			= false);
-#endif
+			bool init		= false,
+			bool axes		= false,
+			std::pair<std::string, std::string> arrows_pen = {"black+1bp", "purple+1bp"},
+			std::pair<std::string, std::string> points_pen = {"red", "darkgreen"}, // First value for initial/final points, second value for middle points
+			std::vector<std::string> segments_pen = {"royalblue"}
+	);
+// #endif
 };
 
 #endif	// MPMD_RS_HH

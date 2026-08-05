@@ -95,6 +95,7 @@ RS::buildRS (int man)
 	{
 		// C | C | C
 		case 1:
+		case 4:
 			// LpRnLp
 			this->_Nseg = 3;
 			dir					= {F, B, F};			// fwd-back-fwd
@@ -114,6 +115,7 @@ RS::buildRS (int man)
 			//      ll = { _L1, _L2, _L3 };
 			//      break;
 
+		case 2:
 		case 3:
 			// RpLnRp
 			this->_Nseg = 3;
@@ -1651,6 +1653,8 @@ RS::reeds_shepp (int Nman, std::vector<double>* debug)
 	this->_L3		= v * RADCURV;
 	this->_Nman = num;
 	this->_L		= length;
+
+
 	return length;
 }
 
@@ -1661,7 +1665,7 @@ RS::getSegmentsData()
 	for (size_t i = 0; i < this->getNseg(); i++)
 	{
 		ret[i] = RSSegment (
-				this->X[i], this->Y[i], this->TH[i], this->TH[i + 1], this->K[i], this->L[i],
+				this->X[i], this->Y[i], this->TH[i], this->TH[i + 1], this->L[i], this->K[i],
 				(int)this->D[i]);
 	}
 	return ret;
@@ -1673,29 +1677,177 @@ RS::split_wise()
 	return {};
 }
 
-#ifdef MPDP_DRAW
+static void
+drawAngleArrow (
+		std::ofstream& file,
+		const Configuration2& c,
+		double length,
+		const std::string& pen)
+{
+	const double x1 = c.x() + length * std::cos (c.th());
+	const double y1 = c.y() + length * std::sin (c.th());
+	file << "draw((" << c.x() << "," << c.y() << ")--(" << x1 << "," << y1 << "), "
+			 << pen << ", Arrow);" << std::endl;
+}
+
+[[nodiscard]]
+static
+Configuration2
+circleLine_helper(double s, double dir, double kur, double kmax, Configuration2 c)
+{
+	double sigmaDir, sign;
+	if (dir > 0)
+	{
+		sigmaDir = 0;
+		sign	 = 1;
+	}
+	else
+	{
+		sigmaDir = 1;
+		sign	 = -1;
+	}
+	double xEnd, yEnd, thetaEnd;
+	xEnd     = c.x() + f (s, sign * kur * kmax, mod2pi (c.th() + sigmaDir * MPI));
+	yEnd	 = c.y() + g (s, sign * kur * kmax, mod2pi (c.th() + sigmaDir * MPI));
+	thetaEnd = mod2pi (c.th() + sign * kur * kmax * s);
+	return Configuration2(xEnd, yEnd, thetaEnd, kur * kmax);
+}
+
+// #ifdef MPDP_DRAW
 void
 RS::draw (
-		std::ofstream& file, size_t width, size_t height, bool solve, bool close, bool init)
-{
+		std::ofstream& file,
+		size_t width,
+		size_t height,
+		bool solve,
+		bool close,
+		bool init,
+		bool axes,
+		std::pair<std::string, std::string> arrows_pen,
+		std::pair<std::string, std::string> points_pen, 
+		std::vector<std::string> segments_pen
+){
 	if (solve) { this->solve(); }
 
 	if (init) { initAsyFile (file); }
 
+	Configuration2 c0 (this->ci()->x(), this->ci()->y(), this->ci()->th());
+	double xmin = this->ci()->x();
+	double xmax = this->ci()->x();
+	double ymin = this->ci()->y();
+	double ymax = this->ci()->y();
+	for (size_t i = 0; i <= this->getNseg(); i++)
+	{
+		xmin = std::min (xmin, this->X[i]);
+		xmax = std::max (xmax, this->X[i]);
+		ymin = std::min (ymin, this->Y[i]);
+		ymax = std::max (ymax, this->Y[i]);
+	}
+	xmin = std::min (xmin, this->cf()->x());
+	xmax = std::max (xmax, this->cf()->x());
+	ymin = std::min (ymin, this->cf()->y());
+	ymax = std::max (ymax, this->cf()->y());
+	const double arrowLength = std::max (0.15, 0.12 * std::hypot (xmax - xmin, ymax - ymin));
+
 	for (size_t i = 0; i < this->getNseg(); i++)
 	{
-		Configuration2 c = Configuration2 (this->X[i], this->Y[i], this->TH[i]);
-		file << "p = clothoidPoints((" << c.x() << "," << c.y() << "), " << c.th() << ","
-				 << this->K[i] << ", 0, " << this->L[i] << ");" << std::endl;
-		file << "draw(p,royalblue);" << std::endl;
-		file << "dot((" << c.x() << "," << c.y() << "), red);" << std::endl;
+		const double dir = this->D[i];
+		const double drawK = this->K[i];
+		const double drawL = this->L[i];
+
+		const double x0 = std::abs(c0.x()) < 1e-12? 0.0 : c0.x();
+		const double y0 = std::abs(c0.y()) < 1e-12? 0.0 : c0.y();
+		const double theta0 = std::abs(c0.th()) < 1e-12? 0.0 : c0.th();
+		const double k0 = std::abs(drawK) < 1e-12? 0.0 : drawK;
+		const double l0 = std::abs(drawL) < 1e-12? 0.0 : drawL;
+
+		file << "p = clothoidPoints((" << x0 << "," << y0 << "), " << theta0 << ","
+				 << k0 << ", 0, " << l0 << ");" << std::endl;
+		file << "draw(p," << segments_pen[0] << ");" << std::endl;
+		file << "dot((" << x0 << "," << y0 << "), " << (i == 0 ? points_pen.first : points_pen.second) << ");" << std::endl;
+
+		double kur = this->K[i] > 0 ? 1 : -1;
+		kur = std::abs(this->K[i]) < 1e-12? 0.0 : kur;
+
+		c0 = circleLine_helper(std::abs(drawL), dir, kur, std::abs(k0), c0);
 	}
 	// Final point
-	file << "p = dot((" << this->cf()->x() << "," << this->cf()->y() << "), red);"
-			 << std::endl;
+	drawAngleArrow (file, *this->ci(), arrowLength, arrows_pen.first);
+	file << "dot((" << this->cf()->x() << "," << this->cf()->y() << "), " << points_pen.first << ");" << std::endl;
+	drawAngleArrow (file, *this->cf(), arrowLength, arrows_pen.second);
+
+	if (axes)
+	{
+		file << "xaxis(\"$x$\", BottomTop(), Ticks(Label(\"$%.2f$\")));" << std::endl;
+		file << "yaxis(\"$y$\", LeftRight(), Ticks(Label(\"$%.2f$\")));" << std::endl;
+	}
 
 	if (close) { file.close(); }
 }
-#endif	// MPDP_DRAW
+// #endif	// MPDP_DRAW
 
 #endif	// CUDA_ON
+
+
+
+
+
+// Warning: Optimal maneuver not found in top-4 predictions. Expected: 27, Optimal length: 2.31905, Best predicted length: 2.31911
+// thi: 0.884363, thf: -0.697575, kmax: 0.740491
+// Top-4 predictions (maneuver, logit): (6, 10.1079) (3, 9.19569) (31, 9.03442) (10, 7.57637) 
+// Optimal maneuver: 27, Optimal length: 2.31905
+// Best predicted length: 2.31911 with maneuver 6
+// All class probabilities (maneuver, probability, descending): (6, 5.3619294356518121e-01) (3, 2.1535634862777936e-01) (31, 1.8328250732422996e-01) (10, 4.2648081138540947e-02) (27, 1.8755843284294332e-02) (14, 3.7642757053288306e-03) (39, 3.5141501191166978e-10) (47, 1.8660359066963506e-12) (32, 1.3163931344810862e-12) (35, 4.5916714090304227e-14) (23, 1.8433295139750520e-15) (20, 1.4207454671329626e-16) (11, 1.4762957453124174e-17) (43, 9.0321375007597795e-20) (15, 1.6110840332767411e-22) (1, 1.9811119141286992e-33) (21, 1.6954529747793814e-33) (40, 2.1095869520311942e-44) (16, 4.4316906214644634e-47) (33, 1.2320765279369168e-57) (12, 1.1908462820562216e-61) (48, 1.6652289529724813e-80) (44, 4.6343843798379190e-102) 
+
+// Warning: Optimal maneuver not found in top-4 predictions. Expected: 23, Optimal length: 3.5327, Best predicted length: 3.53299
+// thi: 2.08025, thf: 1.06108, kmax: 0.926986
+// Top-4 predictions (maneuver, logit): (20, 14.4419) (40, 13.8888) (21, 13.6641) (6, 13.3097) 
+// Optimal maneuver: 23, Optimal length: 3.5327
+// Best predicted length: 3.53299 with maneuver 21
+// All class probabilities (maneuver, probability, descending): (20, 4.0503010357640551e-01) (40, 2.3295883447864194e-01) (21, 1.8607083891045367e-01) (6, 1.3054739717178004e-01) (23, 4.5392744111073614e-02) (33, 4.8330713645591912e-08) (35, 2.9144561209584800e-08) (3, 4.0659546634363764e-09) (44, 1.6502811249313744e-10) (27, 3.8428044501071808e-11) (47, 5.5049961551523132e-12) (32, 1.4544018384861334e-12) (1, 5.7111670774278195e-17) (11, 2.9350493328271763e-21) (39, 5.8425494640601974e-27) (43, 1.9317192444108328e-32) (15, 4.7035867882246467e-33) (48, 1.8022686632630279e-35) (14, 2.0990115359255723e-42) (31, 5.6758975053713648e-50) (16, 1.1330568318182306e-51) (12, 3.2340544055154197e-57) (10, 3.0716746655285624e-87) 
+
+// Warning: Optimal maneuver not found in top-4 predictions. Expected: 31, Optimal length: 2.85252, Best predicted length: 2.85252
+// thi: 3.12478, thf: -0.00322971, kmax: 1.33908
+// Top-4 predictions (maneuver, logit): (27, -4.38877) (43, -5.38799) (48, -5.75033) (44, -6.8964) 
+// Optimal maneuver: 31, Optimal length: 2.85252
+// Best predicted length: 2.85252 with maneuver 48
+// All class probabilities (maneuver, probability, descending): (27, 5.2354576776202943e-01) (43, 1.9275304380188080e-01) (48, 1.3416473355580852e-01) (44, 4.2648483676134108e-02) (31, 3.7415520895385315e-02) (6, 3.1417957782083943e-02) (40, 1.2575958841334592e-02) (39, 1.2410599638793238e-02) (32, 1.0403855739534024e-02) (47, 2.2296096410607301e-03) (1, 4.1230456817357151e-04) (3, 2.2146354213597680e-05) (11, 1.7022084841881735e-08) (14, 7.2136106662348854e-10) (20, 1.2135949982814340e-13) (35, 3.4131755981763137e-16) (33, 2.0150857788549851e-16) (23, 1.5818158302110591e-16) (15, 1.0820057766601036e-16) (21, 1.6704075989013887e-21) (10, 1.3933881811904772e-24) (16, 1.0585933590789597e-35) (12, 1.6788322850744358e-60) 
+
+// Warning: Optimal maneuver not found in top-4 predictions. Expected: 48, Optimal length: 3.05283, Best predicted length: 3.05996
+// thi: 1.57809, thf: -1.56737, kmax: 1.08065
+// Top-4 predictions (maneuver, logit): (3, -8.99394) (1, -10.4754) (31, -11.714) (47, -13.6928) 
+// Optimal maneuver: 48, Optimal length: 3.05283
+// Best predicted length: 3.05996 with maneuver 31
+// All class probabilities (maneuver, probability, descending): (3, 7.6002253298981193e-01) (1, 1.7276517225221674e-01) (31, 5.0063133151920590e-02) (47, 6.9202154605260318e-03) (32, 4.2578422174165478e-03) (48, 3.1043563353754123e-03) (10, 1.6363660943711231e-03) (11, 7.1110164040218929e-04) (12, 4.6050523154518618e-04) (39, 4.1187620526450723e-05) (15, 1.6148296636015453e-05) (43, 1.2726535414656979e-06) (35, 9.3631075548228437e-08) (21, 3.0482675480524684e-08) (6, 2.5449901698195846e-08) (33, 1.5105684090975357e-08) (14, 1.3861060458301268e-09) (20, 2.3993243349938460e-13) (23, 2.3158189498395564e-14) (27, 2.6423972377440189e-15) (40, 1.2746202756207469e-15) (16, 4.0802611184607036e-16) (44, 1.3528012208550621e-36) 
+
+// Warning: Optimal maneuver not found in top-4 predictions. Expected: 14, Optimal length: 2.27049, Best predicted length: 9.88002
+// thi: 0.909844, thf: -0.604671, kmax: 0.825669
+// Top-4 predictions (maneuver, logit): (10, 10.6682) (31, 10.177) (27, 9.78652) (6, 9.63331) 
+// Optimal maneuver: 14, Optimal length: 2.27049
+// Best predicted length: 9.88002 with maneuver 27
+// All class probabilities (maneuver, probability, descending): (10, 3.8559422111579317e-01) (31, 2.3594066653695986e-01) (27, 1.5967574124155606e-01) (6, 1.3699350939104610e-01) (14, 8.1500274170944839e-02) (3, 2.9558752229446217e-04) (39, 1.9276515050154631e-11) (47, 1.1756686412290057e-12) (32, 9.4930296535904507e-13) (35, 3.8723023638850585e-15) (23, 7.3148398335300008e-17) (11, 1.2476368836317330e-17) (20, 1.0886768621652694e-18) (43, 6.2920802205908075e-20) (15, 2.8352579500042700e-23) (21, 2.5215433617824167e-34) (1, 3.6623320698286147e-36) (40, 6.4541235104224583e-45) (16, 2.6246848392625383e-47) (33, 1.6555418497136959e-58) (12, 1.3454607105021156e-62) (48, 3.9934655360299138e-81) (44, 1.2605003182865163e-100) 
+
+// Warning: Optimal maneuver not found in top-4 predictions. Expected: 27, Optimal length: 2.27131, Best predicted length: 2.27132
+// thi: 0.831105, thf: -0.746854, kmax: 0.719206
+// Top-4 predictions (maneuver, logit): (10, 9.78096) (3, 9.69231) (6, 9.18104) (31, 7.52883) 
+// Optimal maneuver: 27, Optimal length: 2.27131
+// Best predicted length: 2.27132 with maneuver 6
+// All class probabilities (maneuver, probability, descending): (10, 3.8756084307540678e-01) (3, 3.5468049816348912e-01) (6, 2.1271343883233590e-01) (31, 4.0761521166371738e-02) (14, 2.7529039603049884e-03) (27, 1.5307941047010532e-03) (39, 6.9475674414717758e-10) (47, 1.4540201952094990e-12) (32, 1.0282580983730188e-12) (35, 1.4782640678996131e-13) (23, 3.4122289034286873e-15) (20, 1.5666147817470403e-16) (11, 2.0991499627812628e-17) (43, 3.0453071855597101e-19) (15, 2.1531020770790116e-21) (1, 8.4870891111570852e-34) (21, 3.1200824730707383e-34) (40, 2.3498987457422572e-45) (16, 6.8426364451522154e-47) (33, 6.3154184293087292e-58) (12, 1.8317084472514705e-61) (48, 2.1224712757452167e-82) (44, 2.3893013554769062e-104) 
+
+
+
+
+
+// Warning: Optimal maneuver not found in top-5 predictions. Expected: 48, Optimal length: 3.05283, Best predicted length: 3.05996
+// thi: 1.57809, thf: -1.56737, kmax: 1.08065
+// Top-5 predictions (maneuver, logit): (3, -8.99394) (1, -10.4754) (31, -11.714) (47, -13.6928) (32, -14.1785) 
+// Optimal maneuver: 48, Optimal length: 3.05283
+// Best predicted length: 3.05996 with maneuver 31
+// All class probabilities (maneuver, probability, descending): (3, 7.6002253298981193e-01) (1, 1.7276517225221674e-01) (31, 5.0063133151920590e-02) (47, 6.9202154605260318e-03) (32, 4.2578422174165478e-03) (48, 3.1043563353754123e-03) (10, 1.6363660943711231e-03) (11, 7.1110164040218929e-04) (12, 4.6050523154518618e-04) (39, 4.1187620526450723e-05) (15, 1.6148296636015453e-05) (43, 1.2726535414656979e-06) (35, 9.3631075548228437e-08) (21, 3.0482675480524684e-08) (6, 2.5449901698195846e-08) (33, 1.5105684090975357e-08) (14, 1.3861060458301268e-09) (20, 2.3993243349938460e-13) (23, 2.3158189498395564e-14) (27, 2.6423972377440189e-15) (40, 1.2746202756207469e-15) (16, 4.0802611184607036e-16) (44, 1.3528012208550621e-36) 
+
+// Warning: Optimal maneuver not found in top-5 predictions. Expected: 27, Optimal length: 2.27131, Best predicted length: 2.27132
+// thi: 0.831105, thf: -0.746854, kmax: 0.719206
+// Top-5 predictions (maneuver, logit): (10, 9.78096) (3, 9.69231) (6, 9.18104) (31, 7.52883) (14, 4.83375) 
+// Optimal maneuver: 27, Optimal length: 2.27131
+// Best predicted length: 2.27132 with maneuver 6
+// All class probabilities (maneuver, probability, descending): (10, 3.8756084307540678e-01) (3, 3.5468049816348912e-01) (6, 2.1271343883233590e-01) (31, 4.0761521166371738e-02) (14, 2.7529039603049884e-03) (27, 1.5307941047010532e-03) (39, 6.9475674414717758e-10) (47, 1.4540201952094990e-12) (32, 1.0282580983730188e-12) (35, 1.4782640678996131e-13) (23, 3.4122289034286873e-15) (20, 1.5666147817470403e-16) (11, 2.0991499627812628e-17) (43, 3.0453071855597101e-19) (15, 2.1531020770790116e-21) (1, 8.4870891111570852e-34) (21, 3.1200824730707383e-34) (40, 2.3498987457422572e-45) (16, 6.8426364451522154e-47) (33, 6.3154184293087292e-58) (12, 1.8317084472514705e-61) (48, 2.1224712757452167e-82) (44, 2.3893013554769062e-104) 

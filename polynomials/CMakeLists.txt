@@ -44,7 +44,7 @@ add_library(polynomials_lib STATIC
     polynomials/man14.cc
     polynomials/man_unimplemented.cc
 )
-target_include_directories(polynomials_lib PRIVATE ${CMAKE_SOURCE_DIR}/polynomials)
+target_include_directories(polynomials_lib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(polynomials_lib PRIVATE Eigen3::Eigen)
 target_link_libraries(polynomials_lib PRIVATE ${MPDPCC_LIB_TARGET})
 
