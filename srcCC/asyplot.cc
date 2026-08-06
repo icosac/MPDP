@@ -2,7 +2,9 @@
 
 
 
-  AsyPlot::AsyPlot( string _filename )
+  namespace mpdp {
+
+AsyPlot::AsyPlot( string _filename )
   : filename(_filename)
   {
 	if (!openFile()) throw std::runtime_error("Failed to open file " + filename);
@@ -177,4 +179,4 @@
     return !file.is_open();
   }
 
-
+}	 // namespace mpdp

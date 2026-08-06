@@ -26,6 +26,16 @@
 // Library includes
 #include <asyplot.hh>
 
+namespace mpdp {
+
+// IOUtils works with whichever Configuration2 the including translation unit
+// selected above, so alias it in rather than duplicating the interface.
+#ifndef CUDA_ON
+using cpu::Configuration2;
+#else
+using gpu::Configuration2;
+#endif
+
 std::vector<std::string>
 splitString (std::string str)
 {
@@ -271,5 +281,7 @@ getMPMDInfo (
 	else { std::cout << "Total length: " << Len << std::endl; }
 	for (Dubins d : dubinss) { std::cout << d << std::endl; }
 }
+
+}	 // namespace mpdp
 
 #endif	// IOUTILS_HH

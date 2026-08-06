@@ -11,6 +11,9 @@
 #include <dp.hh>
 #include <stdexcept>
 
+namespace mpdp {
+namespace cpu {
+
 void
 circles (
 		double x1,
@@ -330,4 +333,7 @@ DP::exportVisualizationData (const std::string& json_path) const
 	out << "  ]\n";
 	out << "}\n";
 }
+}	 // namespace cpu
+}	 // namespace mpdp
+
 #endif

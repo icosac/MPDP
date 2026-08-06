@@ -20,6 +20,8 @@
 #include<string>
 #endif
 
+namespace mpdp {
+
 class Run{
 public:
   std::string name, test_name, file_name, guessInitialAngles;
@@ -55,3 +57,4 @@ public:
   }
 };
 
+}	 // namespace mpdp

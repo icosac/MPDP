@@ -5,12 +5,14 @@
  * @brief Dependency-free problem/result I/O shared by every solver driver.
  *
  * This header is deliberately free of any MPDP dependency: it only uses the
- * standard library. That matters because the CPU driver is compiled against
- * `srcCC` and the GPU drivers against `srcCU`, and those two trees declare
- * clashing `Dubins`/`Curve`/`Configuration2` symbols. Keeping the drivers in
- * separate executables that exchange plain text is what lets all three run
- * *exactly* the same problem set without ever linking the two libraries into
- * the same binary.
+ * standard library, so the CPU driver (compiled against `srcCC`) and the GPU
+ * driver (compiled against `srcCU`) can exchange problems and results as plain
+ * text and be guaranteed to see byte-identical inputs.
+ *
+ * The two libraries could now be linked into one binary - they live in
+ * `mpdp::cpu` and `mpdp::gpu` - but keeping the drivers as separate processes
+ * is still worth it: it keeps CUDA context creation out of the CPU timings,
+ * and a crash in one solver leaves the other's results intact.
  */
 
 #ifndef MPDP_UPDATE_TEST_BENCH_IO_HH

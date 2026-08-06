@@ -8,6 +8,9 @@
 
 #include <math_utils.hh>
 
+namespace mpdp {
+namespace cpu {
+
 const real_type epsi				= std::numeric_limits<real_type>::epsilon();
 const real_type m_pi				= 3.14159265358979323846264338328;
 const real_type m_pi_2			= 1.57079632679489661923132169164;
@@ -72,3 +75,6 @@ circleLine (double s, double kur, Configuration2 c)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+}	 // namespace cpu
+}	 // namespace mpdp

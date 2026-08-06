@@ -20,6 +20,9 @@
 // #include <clothoids/clothoidAsyPlot.hh>
 #endif
 
+namespace mpdp {
+namespace cpu {
+
 enum class CURVE_TYPE { INVALID, DUBINS, DUBINS_ARC, RS };	///< Possible types of CURVE
 
 class Curve {
@@ -132,5 +135,8 @@ class Curve {
 //  virtual void draw() = 0;                              ///< Draws the curve.
 #endif
 };
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// CURVE_HH

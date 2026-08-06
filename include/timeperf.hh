@@ -6,6 +6,8 @@
 
 #include <chrono>
 
+namespace mpdp {
+
 class TimePerf
 {
 public:
@@ -28,3 +30,5 @@ private:
 };
 
  
+
+}	 // namespace mpdp

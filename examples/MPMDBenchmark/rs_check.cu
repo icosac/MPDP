@@ -27,6 +27,9 @@
 #include <rs.hh>          // CPU
 #include <rs.cuh>         // GPU (header-only, no Configuration2)
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 int main (int argc, char** argv)
 {
   const int N = (argc > 1) ? std::atoi (argv[1]) : 200000;

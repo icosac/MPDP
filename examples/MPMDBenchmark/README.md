@@ -325,13 +325,42 @@ instantiates `solveDP` with another curve today), fatal for any other curve.
 | `summarize.py` | merges the result files into `summary_<profile>.md` |
 | `run_benchmark.sh` | builds and runs everything |
 
-The drivers are separate executables on purpose: `srcCC` and `srcCU` both define
-`Dubins`, `Curve` and `Configuration2` with identical mangled names, so linking
-both libraries into one binary is a duplicate-symbol trap. Separate processes
-also keep CUDA context creation out of the CPU timings.
+The drivers are separate executables on purpose. Originally they had to be:
+`srcCC` and `srcCU` both defined `Dubins`, `Curve` and `Configuration2` in the
+global namespace, so linking both libraries into one binary was a
+duplicate-symbol trap. That is fixed - the two trees now live in `mpdp::cpu` and
+`mpdp::gpu` and do link together - but separate processes are still the right
+shape here: CUDA context creation stays out of the CPU timings, and a crash in
+one solver leaves the other's results intact.
 
 Note that the repository's `.gitignore` excludes `*.csv`, so the generated data
 files under `results/` are not tracked; the `summary_*.md` reports are.
+
+## Namespaces
+
+Everything is under `mpdp`:
+
+| namespace | holds |
+|---|---|
+| `mpdp` | the shared typedefs (`real_type`, `Angle`, `LEN_T`, `K_T`, `ANGLE`), `TimePerf`, `AsyPlot`, the IO helpers |
+| `mpdp::cpu` | all of `srcCC`: `Configuration2`, `Curve`, `Dubins`, `RS`, `DP`, the math utilities |
+| `mpdp::gpu` | all of `srcCU`: `Configuration2`, `Dubins<T>`, `ReedsShepp<T>`, `Scalar<T>`, `solveDP` |
+
+Because `mpdp::gpu` is nested inside `mpdp`, the GPU code still refers to
+`real_type`, `Angle` and friends unqualified.
+
+The examples, tests and executables open the namespaces they need with
+`using namespace mpdp; using namespace mpdp::cpu;` (or `mpdp::gpu`) at the top,
+so the demo code itself is unchanged.
+
+This is an API break for anything consuming the exported `MPDPCC` target:
+`Dubins` becomes `mpdp::cpu::Dubins`, and so on.
+
+One duplicate remains: `srcCU/asyplot.cu` is a verbatim copy of
+`srcCC/asyplot.cc`, so both libraries define `mpdp::AsyPlot`. It only bites a
+program that links both libraries *and* uses `AsyPlot` - nothing does today.
+Deleting `srcCU/asyplot.cu` and letting the CUDA side borrow the drawing code
+from `MPDPCC` would close it.
 
 ## srcCU layout
 

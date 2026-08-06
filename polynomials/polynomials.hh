@@ -18,6 +18,9 @@
 #error "Eigen library is required to solve the coefficient system."
 #endif
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 
 const std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3DP_DICT = {
  {"RLRRLR", {1, Dubins::D_TYPE::RLR, Dubins::D_TYPE::RLR}},

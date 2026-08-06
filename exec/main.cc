@@ -21,6 +21,9 @@
 #include<algorithm>
 #include<random>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 
 int main(int argc, char** argv){
   TimePerf tp;

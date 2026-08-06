@@ -6,6 +6,9 @@
 
 #include <random>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 int test_from_file(const std::string&, bool set_th0 = false, bool set_thf = false, std::string fig_filename = "Dubins.asy");
 int allexamples ();
 int generateDataset();

@@ -12,6 +12,9 @@
 /**
  * @brief Function to scale to a standard settings the values.
  */
+namespace mpdp {
+namespace cpu {
+
 void
 Dubins::scaleToStandard (
 		Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax)
@@ -639,5 +642,8 @@ Dubins::draw (
 #else // NO MPDP_DRAW
 #warning "MPDP_DRAW not defined."
 #endif	// MPDP_DRAW
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// CUDA_ON

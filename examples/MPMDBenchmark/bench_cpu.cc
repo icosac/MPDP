@@ -19,6 +19,9 @@
 #include <dp.hh>
 #include <dubins.hh>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 namespace {
 
 /*!

@@ -25,6 +25,9 @@
 	if (debug != nullptr) { debug->push_back (var); }
 #endif
 
+namespace mpdp {
+namespace cpu {
+
 struct RSSegment {
 	double x, y;
 	double thi, thf;
@@ -298,5 +301,8 @@ class RS : public Curve {
 	);
 // #endif
 };
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// MPMD_RS_HH

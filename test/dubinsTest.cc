@@ -167,6 +167,9 @@ BOOST_AUTO_TEST_SUITE_END()
 #elif defined(GTEST)
 #include <gtest/gtest.h>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 #define TEST_COUT std::cout << "[          ] [ INFO ]"
 
 TEST(DubinsTest, DubinsP2P){//TODO Find bug for which ctest shows this test passed, but ./build/DubinsTest does not pass.

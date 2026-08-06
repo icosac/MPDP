@@ -22,6 +22,9 @@
 #include <rs.cuh>
 #include <timeperf.hh>
 
+using namespace mpdp;
+using namespace mpdp::gpu;
+
 namespace {
 
 //! Kaya's fourth example (see examples/MPMD/MPMD.hh), whose optimum is known.

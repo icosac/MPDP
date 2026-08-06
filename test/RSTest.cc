@@ -57,6 +57,9 @@ BOOST_AUTO_TEST_SUITE_END()
 #elif defined(GTEST)
 #include <gtest/gtest.h>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 TEST(RSTest, RSP2P){//TODO Find bug for which ctest shows this test passed, but ./build/RSTest does not pass.
   READ_FROM_FILE_RS()
     RS rs(ci, cf, {kmax});

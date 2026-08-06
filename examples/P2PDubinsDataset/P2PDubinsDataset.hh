@@ -8,6 +8,9 @@
 #include <dubins.hh>
 #include <timeperf.hh>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 /**
  * @brief Function to generate a random dataset of Dubins for testing.
  * @param fix_initial_pos Whether the initial position should be fixed to (0,0,0) or not

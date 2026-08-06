@@ -56,6 +56,9 @@
 
 #define MATRIX this->matrix
 
+namespace mpdp {
+namespace cpu {
+
 /*!
  * This function returns (up to) two circles through two points, given the radius. Credit
  * to Marco Frego & Paolo Bevilacqua.
@@ -430,6 +433,9 @@ public:
 	void
 	exportVisualizationData (const std::string& json_path) const;
 };
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif
 #endif	// DP_HH

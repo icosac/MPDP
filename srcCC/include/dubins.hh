@@ -20,6 +20,9 @@
 #include <limits>
 #include <fstream>
 
+namespace mpdp {
+namespace cpu {
+
 class Dubins : public Curve {
  public:
 	// From LaValle's book the order is LRL RLR LSL LSR RSL RSR
@@ -500,5 +503,8 @@ class Dubins : public Curve {
 #warning "MPDP_DRAW not defined. Drawing functions are disabled."
 #endif	// MPDP_DRAW
 };
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// DUBINS_HH

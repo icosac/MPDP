@@ -11,6 +11,9 @@
 
 #include <rs.hh>
 
+namespace mpdp {
+namespace cpu {
+
 #define RADCURVMUL2 (2 * RADCURV)
 #define RADCURVMUL4 (4 * RADCURV)
 #define SQRADCURV (RADCURV * RADCURV)
@@ -1785,6 +1788,9 @@ RS::draw (
 	if (close) { file.close(); }
 }
 // #endif	// MPDP_DRAW
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// CUDA_ON
 

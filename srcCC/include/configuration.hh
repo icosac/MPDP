@@ -19,6 +19,9 @@
 // Library includes
 #include <typedefs.hh>
 
+namespace mpdp {
+namespace cpu {
+
 class Configuration2 {
  private:
 	real_type _x, _y;	 ///< Coordinates
@@ -177,5 +180,8 @@ class Configuration2 {
 		return out;
 	}
 };
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// CONFIGURATION_HH

@@ -19,10 +19,9 @@ endforeach(DEMO)
 # MPMDBenchmark - CPU vs GPU comparison
 ##########################################################################################
 # This demo does not fit the loop above, which builds one executable from every .cc in a
-# directory. It needs three, because srcCC and srcCU both define a global Configuration2:
-# linking the C++ and the CUDA library into the same binary is an ODR violation. The
-# drivers therefore stay separate processes and exchange a problem file, which also keeps
-# CUDA context creation out of the CPU timings.
+# directory. It needs several: the problem generator, the CPU driver and the GPU driver
+# stay separate processes exchanging a problem file, which keeps CUDA context creation out
+# of the CPU timings and guarantees both solvers see byte-identical inputs.
 
 set(BENCH_DIR "${CMAKE_SOURCE_DIR}/examples/MPMDBenchmark")
 

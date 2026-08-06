@@ -29,6 +29,8 @@
 using std::ofstream;
 using std::string;
 
+namespace mpdp {
+
 class AsyPlot {
  public:
 	AsyPlot (string filename);
@@ -118,5 +120,7 @@ class AsyPlot {
 	void
 	compileFile();
 };
+
+}	 // namespace mpdp
 
 #endif

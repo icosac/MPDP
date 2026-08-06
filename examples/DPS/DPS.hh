@@ -3,6 +3,9 @@
 
 #include <dubins.hh>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 int plot_dps(const std::string& filename);
 
 

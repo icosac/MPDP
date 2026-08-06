@@ -20,6 +20,9 @@
 #include <dp.cuh>
 #include <dubins.cuh>
 
+using namespace mpdp;
+using namespace mpdp::gpu;
+
 namespace {
 
 /*!

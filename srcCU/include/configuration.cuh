@@ -8,6 +8,9 @@
 
 #include <typedefs.hh>
 
+namespace mpdp {
+namespace gpu {
+
 class Configuration2{
 private:
   real_type _x, _y; ///<Coordinates
@@ -118,5 +121,8 @@ public:
     return out;
   }
 };
+
+}	 // namespace gpu
+}	 // namespace mpdp
 
 #endif //CONFIGURATION_CUH

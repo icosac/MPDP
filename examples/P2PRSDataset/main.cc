@@ -8,6 +8,9 @@
 #include <rs.hh>
 #include <timeperf.hh>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 int generateDatasetRS(){
   std::string datasetName = "DS_RS.csv";
 

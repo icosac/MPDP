@@ -17,6 +17,9 @@
 #include <cmath>
 #include <limits>
 
+namespace mpdp {
+namespace cpu {
+
 extern real_type const epsi;				 ///< A small value to compare real numbers.
 extern real_type const m_pi;				 ///< The value of \f$\displaystyle\pi\f$.
 extern real_type const m_pi_2;			 ///< The value of \f$\displaystyle\frac{\pi}{2}\f$
@@ -69,5 +72,8 @@ g (double ell, double k, double th);
  */
 Configuration2
 circleLine (double s, double kur, Configuration2 c);
+
+}	 // namespace cpu
+}	 // namespace mpdp
 
 #endif	// MPDP_MATH_UTILS_HH

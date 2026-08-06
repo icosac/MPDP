@@ -20,6 +20,9 @@
 #include <random>
 #include <limits>
 
+using namespace mpdp;
+using namespace mpdp::cpu;
+
 const std::map<std::string, std::tuple<int, Dubins::D_TYPE, Dubins::D_TYPE>> P3DP_DICT = {
  {"RLRRLR", {1, Dubins::D_TYPE::RLR, Dubins::D_TYPE::RLR}},
  {"LRLLRL", {2, Dubins::D_TYPE::LRL, Dubins::D_TYPE::LRL}},

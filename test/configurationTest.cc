@@ -154,6 +154,9 @@ BOOST_AUTO_TEST_SUITE_END()
 
 #elif defined(GTEST)
 #include <gtest/gtest.h>
+
+using namespace mpdp;
+using namespace mpdp::cpu;
 TEST(Configuration2, constructorInt){
   Configuration2 c(1, 2, 3.14);
   EXPECT_EQ(1, c.x());

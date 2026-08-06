@@ -15,6 +15,8 @@
 #include <cstdlib>
 #include <cmath>
 
+namespace mpdp {
+
 inline void
 PrintScientific1D (real_type d)
 {
@@ -61,5 +63,7 @@ initAsyFile (std::ofstream& file)
 			 << "\n\n\n"
 			 << "path p;\n";
 }
+
+}	 // namespace mpdp
 
 #endif	// UTILITIES_HH
