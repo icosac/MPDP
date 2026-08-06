@@ -49,6 +49,20 @@ if(CUDA_ON)
                 CUDA_STANDARD_REQUIRED ON
         )
         list(APPEND MPMD_BENCHMARK_TARGETS MPMDBenchmarkGPU)
+
+        add_executable(MPMDBenchmarkRSCheck "${BENCH_DIR}/rs_check.cu")
+        target_include_directories(MPMDBenchmarkRSCheck PRIVATE
+                "${BENCH_DIR}"
+                "${SRC_CXX}/include"
+                "${SRC_CU}/include"
+                "${CMAKE_SOURCE_DIR}/include")
+        target_link_libraries(MPMDBenchmarkRSCheck PRIVATE ${LIB_CXX})
+        set_target_properties(MPMDBenchmarkRSCheck PROPERTIES
+                CUDA_ARCHITECTURES "${CUDA_ARCH}"
+                CUDA_STANDARD 17
+                CUDA_STANDARD_REQUIRED ON
+        )
+        list(APPEND MPMD_BENCHMARK_TARGETS MPMDBenchmarkRSCheck)
 else()
         message(STATUS "CUDA_ON is off: MPMDBenchmark builds the CPU baseline only")
 endif()

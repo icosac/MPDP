@@ -177,6 +177,61 @@ That costs O(N) and removes the only real fp32 drawback: the DP accumulates the
 running cost in float, so `Result.length` drifts (up to 1.8e-2 on N=200) even
 though the *path* it selects is within ~5e-7 relative of the CPU's.
 
+## Reeds-Shepp
+
+`srcCU/include/rs.cuh` ports `RS::reeds_shepp` from `srcCC/rs.cc`: twelve base
+words, each tried with four sign variants of the standardised problem, giving
+the classic 48 maneuvers. The dispatch order and maneuver numbering match the
+CPU exactly.
+
+Select it with `mpdp::gpu::CurveKind::REEDS_SHEPP`, or from the demo:
+
+```bash
+./build/MPDPCU_exec --curve rs --discr 180
+```
+
+`MPMDBenchmarkRSCheck` validates the port point to point against the CPU `RS`:
+
+| | result over 200000 random configurations |
+|---|---|
+| fp64 length vs CPU | **bit-identical** (worst relative difference 0.0) |
+| fp64 maneuver number vs CPU | identical on every sample |
+| maneuvers exercised | 46 of 48 |
+| fp32 length vs CPU | worst relative difference 2.1e-04 |
+| fp32 maneuver number vs CPU | differs on 0.09% of samples |
+
+Two things worth knowing:
+
+- **Only 46 maneuvers are reachable, on the CPU as well.** Maneuvers 2 and 4 are
+  switched off in `srcCC/rs.cc` by `if (var < length && false)` — the `&& false`
+  looks like a debugging leftover. The GPU keeps them disabled (the code is
+  present but commented, next to an explanation) so the two agree; re-enabling
+  them is a one-line change on each side. Worth a look, since it may mean the
+  CPU is missing some optimal C|C|C paths.
+- **Reeds-Shepp in fp32 is far less trustworthy than Dubins in fp32** (2.1e-04
+  against ~5e-07). The base words branch on tight tolerances — `EPS3 = 1e-14`,
+  and a `fabs(va) < 0.001` guard in `cc_c` — and single precision flips those
+  decisions. Use fp64 for Reeds-Shepp unless you have measured that it does not
+  matter for your case.
+
+On the GPU, Reeds-Shepp costs roughly 6x a Dubins solve on the same problem
+(48 maneuvers instead of 6): the Kaya 4 example at `discr = 180` takes 6.0 ms
+with Dubins and 38.0 ms with Reeds-Shepp, and returns a shorter path (6.596
+against 7.468) because it may reverse.
+
+### No multi-point CPU baseline for Reeds-Shepp
+
+The comparison above is point to point, because `DP::solveDP<RS>` does not
+compile on the CPU: `solveDPInner` builds curves as
+`CurveT(x0, y0, th0, x1, y1, th1, params)` and `RS` only offers the
+`(Configuration2, Configuration2, params)` constructor. Adding the seven
+argument constructor to `srcCC/include/rs.hh` would be enough to get a CPU
+baseline for the multi-point case; it has not been done here.
+
+The correctness argument in the meantime: the DP machinery is curve agnostic and
+is validated against the CPU with Dubins, and the Reeds-Shepp curve is validated
+bit-exactly point to point, so the composition of the two is sound.
+
 ## Angle sets, and the CPU bug this harness exposed
 
 The GPU reproduces the CPU's sampling algorithm: the uniform samples, the
@@ -264,6 +319,7 @@ instantiates `solveDP` with another curve today), fatal for any other curve.
 | `gen_problems.cc` | writes the shared problem set |
 | `bench_cpu.cc` | driver for `srcCC`'s `DP::solveDP` |
 | `bench_gpu.cu` | driver for `mpdp::gpu::solveDP` (`--precision fp32` / `fp64`) |
+| `rs_check.cu` | point-to-point validation of the GPU Reeds-Shepp port |
 | `bench_io.hh` | problem/result structs and CSV I/O, no MPDP dependency |
 | `bench_driver.hh` | shared main-loop, time cap, result writing |
 | `summarize.py` | merges the result files into `summary_<profile>.md` |
@@ -286,7 +342,7 @@ The GPU tree now mirrors `srcCC` file for file:
 |---|---|---|
 | `dp.cu` / `include/dp.cuh` | `dp.cc` / `dp.hh` | the DP kernels and `mpdp::gpu::solveDP` |
 | `include/dubins.cuh` | `dubins.hh` | `mpdp::gpu::Dubins<T>` |
-| `include/rs.cuh` | `rs.hh` | `mpdp::gpu::ReedsShepp<T>` — skeleton only |
+| `include/rs.cuh` | `rs.hh` | `mpdp::gpu::ReedsShepp<T>` |
 | `include/curve.cuh` | `curve.hh` | `CurveKind` and the interface a curve family implements |
 | `include/math_utils.cuh` | `math_utils.hh` | `Scalar<T>` and `mod2pi` |
 | `include/configuration.cuh` | `configuration.hh` | `Configuration2` |

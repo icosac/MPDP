@@ -30,6 +30,8 @@ struct Scalar<double> {
 	__host__ __device__ static __forceinline__ double sin (double x) { return ::sin (x); }
 	__host__ __device__ static __forceinline__ double cos (double x) { return ::cos (x); }
 	__host__ __device__ static __forceinline__ double acos (double x) { return ::acos (x); }
+	__host__ __device__ static __forceinline__ double asin (double x) { return ::asin (x); }
+	__host__ __device__ static __forceinline__ double atan (double x) { return ::atan (x); }
 	__host__ __device__ static __forceinline__ double sqrt (double x) { return ::sqrt (x); }
 	__host__ __device__ static __forceinline__ double abs (double x) { return ::fabs (x); }
 	__host__ __device__ static __forceinline__ double
@@ -69,6 +71,8 @@ struct Scalar<float> {
 	__host__ __device__ static __forceinline__ float sin (float x) { return ::sinf (x); }
 	__host__ __device__ static __forceinline__ float cos (float x) { return ::cosf (x); }
 	__host__ __device__ static __forceinline__ float acos (float x) { return ::acosf (x); }
+	__host__ __device__ static __forceinline__ float asin (float x) { return ::asinf (x); }
+	__host__ __device__ static __forceinline__ float atan (float x) { return ::atanf (x); }
 	__host__ __device__ static __forceinline__ float sqrt (float x) { return ::sqrtf (x); }
 	__host__ __device__ static __forceinline__ float abs (float x) { return ::fabsf (x); }
 	__host__ __device__ static __forceinline__ float

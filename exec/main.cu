@@ -19,6 +19,7 @@
 #include <configuration.cuh>
 #include <dp.cuh>
 #include <dubins.cuh>
+#include <rs.cuh>
 #include <timeperf.hh>
 
 namespace {
@@ -55,6 +56,7 @@ main (int argc, char** argv)
 	int nref = 4;
 	double kmax = 3.0;
 	std::string precision_name = "fp64";
+	std::string curve_name		 = "dubins";
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -64,6 +66,7 @@ main (int argc, char** argv)
 		else if (a == "--nref" && has_next) { nref = std::stoi (argv[++i]); }
 		else if (a == "--kmax" && has_next) { kmax = std::stod (argv[++i]); }
 		else if (a == "--precision" && has_next) { precision_name = argv[++i]; }
+		else if (a == "--curve" && has_next) { curve_name = argv[++i]; }
 		else if (a == "-h" || a == "--help") { usage (argv[0]); return 0; }
 		else
 		{
@@ -84,6 +87,14 @@ main (int argc, char** argv)
 		return 1;
 	}
 
+	if (curve_name == "dubins") { opts.curve = mpdp::gpu::CurveKind::DUBINS; }
+	else if (curve_name == "rs") { opts.curve = mpdp::gpu::CurveKind::REEDS_SHEPP; }
+	else
+	{
+		std::cerr << "Error: --curve must be dubins or rs\n";
+		return 1;
+	}
+
 	// Pay for the CUDA context before timing anything.
 	if (cudaFree (0) != cudaSuccess)
 	{
@@ -92,7 +103,7 @@ main (int argc, char** argv)
 	}
 	std::cout << "Device: " << mpdp::gpu::deviceName() << "\n"
 						<< "discr=" << discr << " nref=" << nref << " kmax=" << kmax
-						<< " precision=" << precision_name << "\n\n";
+						<< " precision=" << precision_name << " curve=" << curve_name << "\n\n";
 
 	std::vector<Configuration2> points = kExample;
 	std::vector<bool> fixedAngles (points.size(), false);
@@ -110,19 +121,32 @@ main (int argc, char** argv)
 		// The DP accumulates in the kernels' precision; recompute in double from
 		// the returned angles to get the length the path actually measures.
 		const double dparams[1] = {kmax};
+		const bool is_rs				= (opts.curve == mpdp::gpu::CurveKind::REEDS_SHEPP);
 		double exact						= 0.0;
 		for (std::size_t i = 0; i + 1 < points.size(); ++i)
 		{
-			exact += mpdp::gpu::Dubins<double>::length (
-					points[i].x(), points[i].y(), res.angles[i], points[i + 1].x(),
-					points[i + 1].y(), res.angles[i + 1], dparams);
+			const double x0 = points[i].x(), y0 = points[i].y(), a0 = res.angles[i];
+			const double x1 = points[i + 1].x(), y1 = points[i + 1].y(),
+									 a1 = res.angles[i + 1];
+			exact += is_rs ? mpdp::gpu::ReedsShepp<double>::length (x0, y0, a0, x1, y1, a1, dparams)
+										 : mpdp::gpu::Dubins<double>::length (x0, y0, a0, x1, y1, a1, dparams);
 		}
 
 		std::cout << std::setprecision (17);
 		std::cout << "length (DP)        : " << res.length << "\n"
-							<< "length (recomputed): " << exact << "\n"
-							<< "reference          : " << kExampleLength << "\n"
-							<< "error              : " << (exact - kExampleLength) << "\n\n";
+							<< "length (recomputed): " << exact << "\n";
+		if (!is_rs)
+		{
+			std::cout << "reference          : " << kExampleLength << "\n"
+								<< "error              : " << (exact - kExampleLength) << "\n";
+		}
+		else
+		{
+			// Reeds-Shepp may reverse, so it can never be longer than Dubins.
+			std::cout << "(no published reference for Reeds-Shepp on this example;"
+									 " it should come out no longer than the Dubins result)\n";
+		}
+		std::cout << "\n";
 		std::cout << std::setprecision (6);
 		std::cout << "angles             : ";
 		for (const auto a : res.angles) { std::cout << a << " "; }

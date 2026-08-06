@@ -18,8 +18,7 @@
  *  - Every stage of the backward sweep is one grid of threads over the full
  *    (previous angle x next angle) product followed by a reduction.
  *  - The kernels are templated on the scalar type and on the curve family, so
- *    the same source serves fp32/fp64 and, once `rs.cuh` is filled in,
- *    Reeds-Shepp.
+ *    the same source serves fp32/fp64 and both Dubins and Reeds-Shepp.
  */
 
 #ifndef MPDP_DP_CUH
@@ -76,7 +75,7 @@ struct Result {
  * @param opts Solver options.
  * @return The best length, the angles achieving it and timing information.
  * @throws std::runtime_error on a CUDA failure, an inconsistent input, or a
- *         curve family that is not implemented yet.
+ *         curve family whose solver is not implemented.
  */
 Result
 solveDP (
