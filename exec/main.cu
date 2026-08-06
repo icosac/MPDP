@@ -3,129 +3,139 @@
  * @author Enrico Saccon <enricosaccon96@gmail.com>
  * @license This project is released under the GNU Public License 3.0.
  * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
- * @brief Main file for the Dubins and Reed-Shepp paths computation using CUDA.
+ * @brief Small driver for the GPU multi-point Dubins solver.
+ *
+ * For the CPU/GPU comparison harness see `examples/MPMDBenchmark/`.
  */
 
+#include <cuda_runtime.h>
+
+#include <cstdlib>
+#include <iomanip>
 #include <iostream>
-#include <fstream>
 #include <string>
-#include <math.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <vector>
 
-#include <utils.cuh>
-#include <dubins.cuh>
+#include <configuration.cuh>
 #include <dp.cuh>
+#include <dubins.cuh>
 #include <timeperf.hh>
-#include <utilities.hh>
 
-#include <tests.hh>
+namespace {
 
-std::vector<Configuration2> example1 = {
-		Configuration2 (0, 0, -2.0 * M_PI / 8.0), Configuration2 (2, 2, ANGLE::FREE),
-		Configuration2 (6, -1, ANGLE::FREE), Configuration2 (8, 1, 2.0 * M_PI / 8.0)};
+//! Kaya's fourth example (see examples/MPMD/MPMD.hh), whose optimum is known.
+const std::vector<Configuration2> kExample = {
+		Configuration2 (0.5, 1.2, 5.0 * M_PI / 6.0), Configuration2 (0.0, 0.5, ANGLE::FREE),
+		Configuration2 (0.5, 0.5, ANGLE::FREE),			Configuration2 (1.0, 0.5, ANGLE::FREE),
+		Configuration2 (1.5, 0.5, ANGLE::FREE),			Configuration2 (2.0, 0.5, ANGLE::FREE),
+		Configuration2 (2.0, 0.0, ANGLE::FREE),			Configuration2 (1.5, 0.0, ANGLE::FREE),
+		Configuration2 (1.0, 0.0, ANGLE::FREE),			Configuration2 (0.5, 0.0, ANGLE::FREE),
+		Configuration2 (0.0, 0.0, ANGLE::FREE),			Configuration2 (0.0, -0.5, 0)};
 
-std::vector<std::string> testsNames = {"Kaya Example 1", "Kaya Example 2",
-																			 "Kaya Example 3", "Kaya Example 4",
-																			 "Omega",					 "Circuit"};
+//! Published length of the example above, for `kmax = 3`.
+constexpr LEN_T kExampleLength = 7.46756219733842652175326293218;
 
-std::vector<std::vector<Configuration2>> Tests = {kaya1, kaya2, kaya3, kaya4, omega, spa};
-
-std::vector<K_T> Ks								= {3.0, 3.0, 5.0, 3.0, 3.0, 3.0};
-std::vector<uint> discrs					= {4, 16, 90, 360};
-std::vector<uint> refins					= {1, 2, 4, 8, 16};
-std::vector<LEN_T> exampleLenghts = {
-		3.41557885807514871601142658619,
-		6.27803455030931356617429628386,
-		11.9162126542854860389297755319,
-		7.46756219733842652175326293218,
-		41.0725016438839318766440555919,
-		6988.66098639942993031581863761};	 // the last length is SPA
-
-std::string
-nameTest (std::string name, std::string add = "", std::string conc = " ")
+//! Prints usage.
+void
+usage (const char* argv0)
 {
-	if (add == "") { return name; }
-	else { return name + conc + add; }
+	std::cout << "Usage: " << argv0 << " [options]\n"
+		<< "  --discr <n>       Angle samples per point (default 90)\n"
+		<< "  --nref <n>        Refinement rounds (default 4)\n"
+		<< "  --kmax <v>        Maximum curvature (default 3)\n"
+		<< "  --precision <p>   fp32 | fp64 (default fp64)\n";
 }
 
-__global__ void
-dubinsL (Configuration2 c0, Configuration2 c1, real_type k, real_type* L)
-{
-	Dubins dubins (c0, c1, k);
-	L[0] += dubins.l();
-}
+}	 // namespace
 
 int
-main (int argc, char* argv[])
+main (int argc, char** argv)
 {
-	cudaFree (0);
+	int discr = 90;
+	int nref = 4;
+	double kmax = 3.0;
+	std::string precision_name = "fp64";
 
-	int devicesCount;
-	cudaGetDeviceCount (&devicesCount);
-	cudaDeviceProp deviceProperties;
-	cudaGetDeviceProperties (&deviceProperties, 0);
-
-	std::cout << "Running CUDA" << std::endl;
-
-	if (argc == 1)
+	for (int i = 1; i < argc; ++i)
 	{
-		for (int testID = 0; testID < 6; testID++)
+		const std::string a = argv[i];
+		const bool has_next	= (i + 1 < argc);
+		if (a == "--discr" && has_next) { discr = std::stoi (argv[++i]); }
+		else if (a == "--nref" && has_next) { nref = std::stoi (argv[++i]); }
+		else if (a == "--kmax" && has_next) { kmax = std::stod (argv[++i]); }
+		else if (a == "--precision" && has_next) { precision_name = argv[++i]; }
+		else if (a == "-h" || a == "--help") { usage (argv[0]); return 0; }
+		else
 		{
-			// if (testID!=3){continue;}
-			real_type dLen = exampleLenghts[testID];
-
-			std::vector<bool> fixedAngles;
-			for (uint i = 0; i < Tests[testID].size(); i++)
-			{
-				if (i == 0 || i == Tests[testID].size() - 1) { fixedAngles.push_back (true); }
-				else { fixedAngles.push_back (false); }
-			}
-			std::vector<real_type> curveParamV = {Ks[testID], 3};
-			real_type* curveParam							 = curveParamV.data();
-
-			for (auto DISCR : discrs)
-			{
-				if (DISCR != 360) { continue; }
-				for (auto r : refins)
-				{
-					// if (r!=16){continue;}
-					TimePerf tp, tp1;
-					std::vector<Configuration2> points = Tests[testID];
-
-					tp.start();
-					LEN_T Length =
-							DP::solveDP (points, fixedAngles, curveParamV, DISCR, r, true, 2).first;
-					auto time1 = tp.getTime();
-
-					LEN_T* Length1;
-					cudaMallocManaged (&Length1, sizeof (LEN_T));
-					for (unsigned int idjijij = points.size() - 1; idjijij > 0; idjijij--)
-					{
-						dubinsL<<<1, 1>>> (points[idjijij - 1], points[idjijij], Ks[testID], Length1);
-						cudaDeviceSynchronize();
-
-						Dubins c (points[idjijij - 1], points[idjijij], Ks[testID]);
-						Length += c.l();
-					}
-
-					printf ("%3d & %2d & ", DISCR, r);
-					PrintScientific2D ((Length - exampleLenghts[testID]) * 1000.0);
-					// printf(" & ");
-					// PrintScientific2D((Length1[0]-Length)*1000.0);
-					// printf(" & ");
-					// PrintScientific2D((Length1[0]-exampleLenghts[testID])*1000.0);
-					printf (" & ");
-					PrintScientific1D (time1);
-					// printf("&%.16f", Length);
-					// printf("&%.16f\\\\\n", Length1[0]);
-					printf ("\\\\\n");
-
-					cudaFree (Length1);
-				}
-			}
-			printf ("\n\n\n\n");
+			std::cerr << "Unknown argument: " << a << "\n";
+			usage (argv[0]);
+			return 1;
 		}
 	}
+
+	mpdp::gpu::Options opts;
+	opts.discr = discr;
+	opts.nref	 = nref;
+	if (precision_name == "fp32") { opts.precision = mpdp::gpu::Precision::FP32; }
+	else if (precision_name == "fp64") { opts.precision = mpdp::gpu::Precision::FP64; }
+	else
+	{
+		std::cerr << "Error: --precision must be fp32 or fp64\n";
+		return 1;
+	}
+
+	// Pay for the CUDA context before timing anything.
+	if (cudaFree (0) != cudaSuccess)
+	{
+		std::cerr << "No usable CUDA device\n";
+		return 1;
+	}
+	std::cout << "Device: " << mpdp::gpu::deviceName() << "\n"
+						<< "discr=" << discr << " nref=" << nref << " kmax=" << kmax
+						<< " precision=" << precision_name << "\n\n";
+
+	std::vector<Configuration2> points = kExample;
+	std::vector<bool> fixedAngles (points.size(), false);
+	fixedAngles.front() = true;
+	fixedAngles.back()	= true;
+	std::vector<real_type> params = {kmax};
+
+	try
+	{
+		TimePerf tp;
+		tp.start();
+		mpdp::gpu::Result res = mpdp::gpu::solveDP (points, fixedAngles, params, opts);
+		const double ms				= tp.getTime();
+
+		// The DP accumulates in the kernels' precision; recompute in double from
+		// the returned angles to get the length the path actually measures.
+		const double dparams[1] = {kmax};
+		double exact						= 0.0;
+		for (std::size_t i = 0; i + 1 < points.size(); ++i)
+		{
+			exact += mpdp::gpu::Dubins<double>::length (
+					points[i].x(), points[i].y(), res.angles[i], points[i + 1].x(),
+					points[i + 1].y(), res.angles[i + 1], dparams);
+		}
+
+		std::cout << std::setprecision (17);
+		std::cout << "length (DP)        : " << res.length << "\n"
+							<< "length (recomputed): " << exact << "\n"
+							<< "reference          : " << kExampleLength << "\n"
+							<< "error              : " << (exact - kExampleLength) << "\n\n";
+		std::cout << std::setprecision (6);
+		std::cout << "angles             : ";
+		for (const auto a : res.angles) { std::cout << a << " "; }
+		std::cout << "\n\n";
+		std::cout << "curves evaluated   : " << res.curves << "\n"
+							<< "device time        : " << res.device_ms << " ms\n"
+							<< "wall time          : " << ms << " ms" << std::endl;
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Solver failed: " << e.what() << std::endl;
+		return 1;
+	}
+
 	return 0;
 }

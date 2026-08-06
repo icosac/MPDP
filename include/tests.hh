@@ -15,7 +15,9 @@
 #ifndef CUDA_ON
 #include<utils.hh>
 #else
-#include<utils.cuh>
+#include<typedefs.hh>
+#include<iomanip>
+#include<string>
 #endif
 
 class Run{

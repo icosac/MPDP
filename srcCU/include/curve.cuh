@@ -1,47 +1,24 @@
-#ifndef CURVE_CUH
-#define CURVE_CUH
+/**
+ * @file curve.cuh
+ * @author Enrico Saccon <enricosaccon96@gmail.com>
+ * @license This project is released under the GNU Public License 3.0.
+ * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
+ * @brief What the GPU dynamic programming solver expects of a curve family.
+ */
 
-#include <configuration.cuh>
+#ifndef MPDP_CURVE_CUH
+#define MPDP_CURVE_CUH
 
-class Curve{
-public: 
-  enum CURVE_TYPE { INVALID, CLOTHOID, DUBINS, DUBINS_ARC }; ///< Possible types of CURVE
-  
-private:
-  Configuration2 _ci; ///<Initial `Configuration`
-  Configuration2 _cf; ///<Final `Configuration`
-  CURVE_TYPE _type;   ///<Type of curve
-  real_type* _params; ///<Parameters of curve
+namespace mpdp {
+namespace gpu {
 
-public:
-  /*!
-   * @brief Void constructor.
-   */
-  BOTH Curve() : _ci(Configuration2()), _cf(Configuration2()), _type(CURVE_TYPE::INVALID), _params(NULL) {}
-  /*!
-   * @brief Constructor to only set the type of the curve.
-   */
-  BOTH Curve(CURVE_TYPE type=CURVE_TYPE::INVALID) : _ci(), _cf(), _type(type), _params(NULL) {}
-
-  /*!
-   * @brief Constructor that takes two `Configuration2` and the type of the curve.
-   * @param ci Initial configuration.
-   * @param cf Final configuration.
-   * @param type Type of the curve.
-   * @param params The parameters of the curve, such as the curvature.
-   */
-  BOTH Curve(Configuration2 ci, Configuration2 cf, CURVE_TYPE type=CURVE_TYPE::INVALID, real_type* params=NULL) : _ci(ci), _cf(cf), _type(type), _params(params) {}
-
-  BOTH Configuration2* ci() { return &(this->_ci); }   ///< Returns a pointer to the initial `Configuration2`.
-  BOTH Configuration2* cf() { return &(this->_cf); }   ///< Returns a pointer to the final `Configuration2`.
-
-  CURVE_TYPE type () const { return this->_type; }         ///< Returns type of curve.
-  
-  real_type* params () const { return this->_params; }     ///< Returns the parameters of the curve.
-
-  BOTH virtual LEN_T l() const = 0;                        ///< Returns the length of the curve.
-
-  BOTH virtual void solver () = 0;                         ///< Solves the curve depending on the type.
+//! The point-to-point curve families the GPU DP can be instantiated with.
+enum class CurveKind {
+	DUBINS = 0,			///< Markov-Dubins path, forward motion only.
+	REEDS_SHEPP = 1		///< Reeds-Shepp path, forward and backward motion.
 };
 
-#endif //CURVE_CUH
+}	 // namespace gpu
+}	 // namespace mpdp
+
+#endif	// MPDP_CURVE_CUH

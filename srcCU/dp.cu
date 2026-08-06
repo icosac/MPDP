@@ -1,729 +1,847 @@
-#ifdef CUDA_ON
+/**
+ * @file dp.cu
+ * @author Enrico Saccon <enricosaccon96@gmail.com>
+ * @license This project is released under the GNU Public License 3.0.
+ * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
+ * @brief GPU dynamic programming solver for multi-point paths.
+ *
+ * Structure of the algorithm, and where the parallelism is:
+ *
+ *   for each round (one coarse round + `nref` refinements)      <- sequential
+ *       build the angle set of every point                      <- host, O(N*discr)
+ *       for idx = N-1 .. 1                                      <- sequential
+ *           for every (angle of point idx-1, angle of point idx) <- PARALLEL
+ *               evaluate the point-to-point curve and add the
+ *               already-known cost of the tail
+ *           reduce over the second index                        <- PARALLEL
+ *       walk the `next` pointers back to the angles             <- one thread
+ *
+ */
+
+#ifndef CUDA_ON
+#error "dp.cu must be compiled with CUDA_ON defined"
+#endif
+
 #include <dp.cuh>
 
-namespace DP {
-  namespace {
-    class Cell {
-    private:
-      Angle _th;   ///<Angle of the final point of the point to point curve.
-      LEN_T _l;    ///<Length of the point to point curve.
-      int _nextID; ///<Id to the next cell for dynamic programming.
+#include <cuda_runtime.h>
 
-    public:
-      /*!
-       * Default void constructor which returns a cell initialized with ANGLE::FREE, max length and -1 as next cell.
-       */
-      Cell() : _th(ANGLE::FREE), _l(MAX_LEN_T), _nextID(0) {}
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-      /*!
-       * Constructor that takes in input an angle, a length and the next id and returns a DP::Cell.
-       * @param th The initial angle of the point to point curve.
-       * @param l The length of the point to point curve.
-       * @param next The next id of the cell.
-       */
-      BOTH Cell(Angle th, LEN_T l, int nextID) :
-          _th(th), _l(l), _nextID(nextID) {}
+namespace mpdp {
+namespace gpu {
 
-      BOTH Angle th() const { return this->_th; }      ///<Returns the angle.
-      BOTH LEN_T l()  const { return this->_l; }       ///<Returns the length.
-      BOTH int next() const { return this->_nextID; }  ///<Returns the next id.
+namespace {
 
-      /*!
-       * Sets the new angle.
-       * @param th The new angle to be set.
-       * @return the new set angle.
-       */
-      BOTH Angle th(Angle th) {
-        this->_th = th;
-        return this->th();
-      }
-      /*!
-       * Sets the new length.
-       * @param th The new length to be set.
-       * @return the new set length.
-       */
-      BOTH LEN_T l(LEN_T l) {
-        this->_l = l;
-        return this->l();
-      }
-      /*!
-       * Sets the new next id.
-       * @param th The new next id to be set.
-       * @return the new set next id.
-       */
-      BOTH int next(int nextID){
-        //printf("nextID in class %d %u\n", nextID, nextID);
-        this->_nextID = nextID;
-        return this->next();
-      }
+	/*!
+	 * Throws on a CUDA error, with the call site attached.
+	 * @param err The status to check.
+	 * @param what What was being attempted.
+	 */
+	inline void
+	check (cudaError_t err, const char* what)
+	{
+		if (err != cudaSuccess)
+		{
+			std::ostringstream oss;
+			oss << "CUDA error in " << what << ": " << cudaGetErrorString (err);
+			throw std::runtime_error (oss.str());
+		}
+	}
 
-      /*!
-       * Creates a deep copy of a cell to `this`.
-       * @param d The cell to copy from.
-       * @return `*this`.
-       */
-      BOTH Cell& copy(const Cell &d) {
-        this->th(d.th());
-        this->l(d.l());
-        this->next(d.next());
+//! Checks the status of the most recent kernel launch.
+#define MPDP_CHECK_LAUNCH(what)                 \
+	do {                                          \
+		check (cudaGetLastError(), (what));         \
+	} while (0)
 
-        return *this;
-      }
-      /*!
-       * Overrides the assign operator (=) to make a deep copy of a cell to `this`.
-       * @param d The cell to copy from.
-       * @return `*this`.
-       */
-      BOTH Cell& operator=(const Cell &d) {
-        this->copy(d);
-        return *this;
-      }
+	//////////////////////////////////////////////////////////////////////////////
+	// Angle sampling - a faithful port of srcCC/dp.cc
+	//////////////////////////////////////////////////////////////////////////////
 
-      /*!
-       * Function to print the most essential info about `DP::Cell`.
-       * @param pretty An additional truth value to print a prettier version. Default is `false`.
-       * @return A `std::stringstream` object containing the data of `DP::Cell`.
-       */
-      std::stringstream to_string(bool pretty = false) const {
-        std::stringstream out;
-        out << std::setw(20) << std::setprecision(17);
-        if (pretty) {
-          out << "th: " << this->th() << " l: " << this->l();
-        } else {
-          out << "<" << (Angle)(this->th()*1.0) << ", " << (LEN_T)(this->l()) << ">";
-        }
-        return out;
-      }
-      /*! This function overrides the << operator so to print with `std::cout` the most essential info about the `DP::Cell`.
-          \param[in] out The out stream.
-          \param[in] data The `DP::Cell` to print.
-          \returns An output stream to be printed.
-      */
-      friend std::ostream &operator<<(std::ostream &out, const Cell &data) {
-        out << data.to_string().str();
-        return out;
-      }
+	/*!
+	 * Returns up to two circles of radius `r` through two points.
+	 * Credit to Marco Frego & Paolo Bevilacqua.
+	 * @param x1 Abscissa of the first point.
+	 * @param y1 Ordinate of the first point.
+	 * @param x2 Abscissa of the second point.
+	 * @param y2 Ordinate of the second point.
+	 * @param r The radius.
+	 * @param XC Abscissas of the found centres.
+	 * @param YC Ordinates of the found centres.
+	 */
+	void
+	circles (
+			double x1,
+			double y1,
+			double x2,
+			double y2,
+			double r,
+			std::vector<double>& XC,
+			std::vector<double>& YC)
+	{
+		const double TOL = 1e-8;
 
-    };
-  } //Anonymous namespace to hide information
-} //Namespace DP
+		const double q	= std::hypot (x2 - x1, y2 - y1);
+		const double x3 = 0.5 * (x1 + x2);
+		const double y3 = 0.5 * (y1 + y2);
 
-__global__ void dubinsWrapper(Configuration2 c0, Configuration2 c1, double Kmax, double* L){
-  CURVE c(c0, c1, Kmax);
-  //printf("%.17f\n", c.l());
-  L[0]+=c.l();
-}
+		const double delta = r * r - q * q / 4.;
 
-__global__ void printResults(real_type* results, uint discr, uint size){
-  for (int i=0; i<size; i++){
-    for(int j=0; j<discr; j++){
-      for(int h=0; h<discr; h++){
-        printf("(%2.0f,%.2f)", (float)((i*discr+j)*discr+h), results[(i*discr+j)*discr+h]);
-      }
-      printf("\t");
-    }
-    printf("\n");
-  }
-}
+		XC.clear();
+		YC.clear();
 
-__global__ void printMatrix(DP::Cell* matrix, uint discr, uint size){
-  for (int i=0; i<size; i++){
-    for(int j=0; j<discr; j++){
-      printf("(%d,%d)", (i*discr+j), matrix[i*discr+j].next());
-    }
-    printf("\n");
-  }
-}
+		if (delta < -TOL) { return; }
 
+		if (delta < TOL)
+		{
+			XC.push_back (x3);
+			YC.push_back (y3);
+		}
+		else
+		{
+			const double deltaS = std::sqrt (delta);
+			XC.push_back (x3 + deltaS * (y1 - y2) / q);
+			YC.push_back (y3 + deltaS * (x2 - x1) / q);
+			XC.push_back (x3 - deltaS * (y1 - y2) / q);
+			YC.push_back (y3 - deltaS * (x2 - x1) / q);
+		}
+	}
 
-// returns (up to) two circles through two points, given the radius
-// Marco Frego and Paolo Bevilacqua in "An Iterative Dynamic Programming Approach to the Multipoint Markov-Dubins Problem" 2020.
-static inline
-void circles(real_type x1, real_type y1, real_type x2, real_type y2, real_type r, std::vector<real_type> & XC, std::vector<real_type> & YC) 
+	/*!
+	 * The "interesting" angles between two consecutive points: the heading that
+	 * lines them up, and the tangents to the two circles of radius 1/Kmax
+	 * through both. Credit to Marco Frego & Paolo Bevilacqua.
+	 *
+	 * @param i Index of the second of the two points.
+	 * @param thPrev Filled with the angles suggested for point i-1.
+	 * @param thCur Filled with the angles suggested for point i.
+	 * @param points All the points.
+	 * @param kmax The maximum curvature.
+	 */
+	void
+	guessInitialAngles (
+			const std::size_t i,
+			std::vector<double>& thPrev,
+			std::vector<double>& thCur,
+			const std::vector<Configuration2>& points,
+			double kmax)
+	{
+		thPrev.clear();
+		thCur.clear();
+		thPrev.reserve (5);
+		thCur.reserve (5);
+
+		const double m_pi = 3.14159265358979323846264338328;
+
+		// aligned on straight line
+		double th = std::atan2 (
+				points[i].y() - points[i - 1].y(), points[i].x() - points[i - 1].x());
+		thPrev.push_back (th);
+		thCur.push_back (th);
+
+		// aligned on circle
+		std::vector<double> XC, YC;
+		circles (
+				points[i - 1].x(), points[i - 1].y(), points[i].x(), points[i].y(), 1. / kmax,
+				XC, YC);
+		for (std::size_t j = 0; j < XC.size(); ++j)
+		{
+			th = std::atan2 (points[i - 1].y() - YC[j], points[i - 1].x() - XC[j]);
+			thPrev.push_back (th + m_pi / 2.);
+			thPrev.push_back (th - m_pi / 2.);
+			th = std::atan2 (points[i].y() - YC[j], points[i].x() - XC[j]);
+			thCur.push_back (th + m_pi / 2.);
+			thCur.push_back (th - m_pi / 2.);
+		}
+	}
+
+	/*!
+	 * Builds the angle set of the first round: `discr` samples spread over the
+	 * whole circle around each point's current angle, plus the guess angles.
+	 *
+	 * @param discr Number of uniform samples.
+	 * @param fixedAngles One flag per point.
+	 * @param points The points.
+	 * @param kmax The maximum curvature.
+	 * @return One vector of angles per point.
+	 */
+	std::vector<std::vector<double>>
+	samplingAnglesFirst (
+			int discr,
+			const std::vector<bool>& fixedAngles,
+			const std::vector<Configuration2>& points,
+			double kmax)
+	{
+		const std::size_t n = points.size();
+		std::vector<std::vector<double>> rows (n);
+
+		const double m_pi		 = 3.14159265358979323846264338328;
+		const double dtheta	 = 2 * m_pi / discr;
+
+		for (std::size_t i = 0; i < n; ++i)
+		{
+			rows[i].reserve (discr + 12);
+			for (int j = 0; j < discr; ++j)
+			{
+				rows[i].push_back (points[i].th() + dtheta * j);
+			}
+			if (i > 0)
+			{
+				std::vector<double> thPrev, thCur;
+				guessInitialAngles (i, thPrev, thCur, points, kmax);
+				rows[i - 1].insert (rows[i - 1].end(), thPrev.begin(), thPrev.end());
+				rows[i].insert (rows[i].end(), thCur.begin(), thCur.end());
+			}
+		}
+		for (std::size_t i = 0; i < n; ++i)
+		{
+			if (fixedAngles[i]) { rows[i] = {points[i].th()}; }
+		}
+		return rows;
+	}
+
+	/*!
+	 * Builds the angle set of a refinement round: a window of half-width
+	 * `hrange` around each point's current angle, plus the guess angles.
+	 *
+	 * @param points The points, carrying the angles found by the previous round.
+	 * @param fixedAngles One flag per point.
+	 * @param hrange Half-width of the sampling window.
+	 * @param hn Number of samples on each side of the centre.
+	 * @param kmax The maximum curvature.
+	 * @return One vector of angles per point.
+	 */
+	std::vector<std::vector<double>>
+	samplingAnglesRefine (
+			const std::vector<Configuration2>& points,
+			const std::vector<bool>& fixedAngles,
+			double hrange,
+			int hn,
+			double kmax)
+	{
+		const std::size_t n = points.size();
+		std::vector<std::vector<double>> rows (n);
+
+		const double dtheta = hrange / hn;
+		for (std::size_t i = 0; i < n; ++i)
+		{
+			rows[i].reserve (2 * hn + 12);
+			rows[i].push_back (points[i].th());
+			for (int j = 1; j <= hn; ++j)
+			{
+				rows[i].push_back (dtheta * j + points[i].th());
+				rows[i].push_back (-dtheta * j + points[i].th());
+			}
+			if (i >= 1)
+			{
+				std::vector<double> thPrev, thCur;
+				guessInitialAngles (i, thPrev, thCur, points, kmax);
+				rows[i - 1].insert (rows[i - 1].end(), thPrev.begin(), thPrev.end());
+				rows[i].insert (rows[i].end(), thCur.begin(), thCur.end());
+			}
+		}
+		for (std::size_t i = 0; i < n; ++i)
+		{
+			if (fixedAngles[i]) { rows[i] = {points[i].th()}; }
+		}
+		return rows;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Kernels
+	//////////////////////////////////////////////////////////////////////////////
+
+	/*!
+	 * Initialises the cost matrix: the last row costs nothing (it is where the
+	 * path ends), every other cell starts unreachable.
+	 * @param len The cost matrix, row-major, padded to `W`.
+	 * @param next The successor matrix.
+	 * @param row_len Number of valid cells per row.
+	 * @param W Padded row width.
+	 * @param n Number of rows.
+	 */
+	template <typename T>
+	__global__ void
+	dpInitKernel (T* len, int* next, const int* row_len, int W, int n)
+	{
+		const int tid		 = blockIdx.x * blockDim.x + threadIdx.x;
+		const int stride = gridDim.x * blockDim.x;
+		for (int c = tid; c < n * W; c += stride)
+		{
+			const int row = c / W;
+			const int col = c - row * W;
+			const bool valid_last = (row == n - 1) && (col < row_len[row]);
+			len[c]	= valid_last ? T (0) : Scalar<T>::huge();
+			next[c] = -1;
+		}
+	}
+
+	/*!
+	 * One stage of the backward sweep.
+	 *
+	 * Thread (x, y) of block (bx, by) handles previous-angle
+	 * `i = bx*blockDim.y + y` and strides over next-angles starting at
+	 * `by*32 + x`. The reduction over the next-angle index is done inside the
+	 * warp, which is why `blockDim.x` is fixed to the warp size: every warp owns
+	 * exactly one `i`, so no shared memory or barrier is needed.
+	 *
+	 * When the grid splits a row over several blocks in y, each block writes a
+	 * partial best into `dst_*` and `dpStageCombineKernel` finishes the job;
+	 * when it does not, `dst_*` are the destination row itself and there is
+	 * nothing left to combine.
+	 *
+	 * @param x0 Abscissa of the previous point.
+	 * @param y0 Ordinate of the previous point.
+	 * @param x1 Abscissa of the current point.
+	 * @param y1 Ordinate of the current point.
+	 * @param th_prev Angles of the previous point.
+	 * @param th_cur Angles of the current point.
+	 * @param len_cur Already computed tail cost for each angle of the current point.
+	 * @param params Curve parameters.
+	 * @param dst_len Where to write the best cost.
+	 * @param dst_idx Where to write the index achieving it.
+	 * @param i_count Number of angles of the previous point.
+	 * @param j_count Number of angles of the current point.
+	 * @param dst_stride Number of partials stored per `i`.
+	 */
+	template <typename T, class CurveT>
+	__global__ void
+	dpStageKernel (
+			T x0,
+			T y0,
+			T x1,
+			T y1,
+			const T* __restrict__ th_prev,
+			const T* __restrict__ th_cur,
+			const T* __restrict__ len_cur,
+			const T* __restrict__ params,
+			T* __restrict__ dst_len,
+			int* __restrict__ dst_idx,
+			int i_count,
+			int j_count,
+			int dst_stride)
+	{
+		const int i = blockIdx.x * blockDim.y + threadIdx.y;
+		// `i` does not depend on threadIdx.x, so a whole warp leaves together and
+		// the full-mask shuffles below stay legal.
+		if (i >= i_count) { return; }
+
+		const T th0 = th_prev[i];
+
+		T best_l	 = Scalar<T>::huge();
+		int best_j = -1;
+
+		const int j_start	 = blockIdx.y * blockDim.x + threadIdx.x;
+		const int j_stride = gridDim.y * blockDim.x;
+		for (int j = j_start; j < j_count; j += j_stride)
+		{
+			const T l =
+					CurveT::length (x0, y0, th0, x1, y1, th_cur[j], params) + len_cur[j];
+			if (l < best_l || (l == best_l && j < best_j))
+			{
+				best_l = l;
+				best_j = j;
+			}
+		}
+
+		#pragma unroll
+		for (int off = 16; off > 0; off >>= 1)
+		{
+			const T other_l	 = __shfl_down_sync (0xffffffffu, best_l, off);
+			const int other_j = __shfl_down_sync (0xffffffffu, best_j, off);
+			if (other_l < best_l)
+			{
+				best_l = other_l;
+				best_j = other_j;
+			}
+			else if (other_l == best_l && other_j >= 0 && (best_j < 0 || other_j < best_j))
+			{
+				best_j = other_j;
+			}
+		}
+
+		if (threadIdx.x == 0)
+		{
+			dst_len[i * dst_stride + blockIdx.y] = best_l;
+			dst_idx[i * dst_stride + blockIdx.y] = best_j;
+		}
+	}
+
+	/*!
+	 * Merges the partial minima produced when a row was split over several
+	 * blocks.
+	 * @param part_len The partial costs.
+	 * @param part_idx The partial indices.
+	 * @param len_prev Destination cost row.
+	 * @param next_prev Destination successor row.
+	 * @param i_count Number of angles of the previous point.
+	 * @param stride Number of partials stored per `i`.
+	 */
+	template <typename T>
+	__global__ void
+	dpStageCombineKernel (
+			const T* __restrict__ part_len,
+			const int* __restrict__ part_idx,
+			T* __restrict__ len_prev,
+			int* __restrict__ next_prev,
+			int i_count,
+			int stride)
+	{
+		const int i = blockIdx.x * blockDim.x + threadIdx.x;
+		if (i >= i_count) { return; }
+
+		T best_l	 = Scalar<T>::huge();
+		int best_j = -1;
+		for (int b = 0; b < stride; ++b)
+		{
+			const int j = part_idx[i * stride + b];
+			if (j < 0) { continue; }
+			const T l = part_len[i * stride + b];
+			if (l < best_l || (l == best_l && j < best_j))
+			{
+				best_l = l;
+				best_j = j;
+			}
+		}
+		len_prev[i]	 = best_l;
+		next_prev[i] = best_j;
+	}
+
+	/*!
+	 * Picks the best cell of the first row and walks the successor pointers to
+	 * recover the angles. Sequential by nature and only O(N), so it runs in a
+	 * single thread rather than paying a round trip to the host.
+	 * @param theta The angle matrix.
+	 * @param len The cost matrix.
+	 * @param next The successor matrix.
+	 * @param row_len Number of valid cells per row.
+	 * @param W Padded row width.
+	 * @param n Number of rows.
+	 * @param out_angles Receives one angle per point.
+	 * @param out_len Receives the best cost, or a negative value if the path is
+	 *        broken.
+	 */
+	template <typename T>
+	__global__ void
+	dpTraceKernel (
+			const T* __restrict__ theta,
+			const T* __restrict__ len,
+			const int* __restrict__ next,
+			const int* __restrict__ row_len,
+			int W,
+			int n,
+			T* __restrict__ out_angles,
+			T* __restrict__ out_len)
+	{
+		if (threadIdx.x != 0 || blockIdx.x != 0) { return; }
+
+		T best_l	 = Scalar<T>::huge();
+		int best_j = -1;
+		for (int j = 0; j < row_len[0]; ++j)
+		{
+			if (len[j] < best_l)
+			{
+				best_l = len[j];
+				best_j = j;
+			}
+		}
+
+		if (best_j < 0)
+		{
+			out_len[0] = T (-1);
+			return;
+		}
+
+		out_len[0]		= best_l;
+		out_angles[0] = theta[best_j];
+
+		int cur = best_j;
+		for (int r = 0; r + 1 < n; ++r)
+		{
+			const int nx = next[r * W + cur];
+			if (nx < 0 || nx >= row_len[r + 1])
+			{
+				out_len[0] = T (-2);
+				return;
+			}
+			out_angles[r + 1] = theta[(r + 1) * W + nx];
+			cur								= nx;
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Device memory held for the duration of one solve
+	//////////////////////////////////////////////////////////////////////////////
+
+	//! Owns every device allocation of a single `solveDP` call.
+	template <typename T>
+	struct DeviceWorkspace {
+		T* theta			= nullptr;
+		T* len				= nullptr;
+		int* next			= nullptr;
+		int* row_len	= nullptr;
+		T* params			= nullptr;
+		T* part_len		= nullptr;
+		int* part_idx = nullptr;
+		T* out_angles = nullptr;
+		T* out_len		= nullptr;
+
+		int n = 0;	///< Rows.
+		int W = 0;	///< Padded row width.
+		int max_split = 0;	///< Partials stored per `i`.
+
+		//! Frees everything; safe to call twice.
+		~DeviceWorkspace()
+		{
+			cudaFree (theta);
+			cudaFree (len);
+			cudaFree (next);
+			cudaFree (row_len);
+			cudaFree (params);
+			cudaFree (part_len);
+			cudaFree (part_idx);
+			cudaFree (out_angles);
+			cudaFree (out_len);
+		}
+
+		/*!
+		 * Allocates for a matrix of `rows` x `width` and the given split factor.
+		 * @param rows Number of points.
+		 * @param width Padded row width.
+		 * @param split Maximum number of partials per `i`.
+		 * @param n_params Number of curve parameters.
+		 */
+		void
+		allocate (int rows, int width, int split, int n_params)
+		{
+			n					= rows;
+			W					= width;
+			max_split = split;
+
+			const std::size_t cells = (std::size_t)rows * (std::size_t)width;
+			check (cudaMalloc (&theta, cells * sizeof (T)), "cudaMalloc(theta)");
+			check (cudaMalloc (&len, cells * sizeof (T)), "cudaMalloc(len)");
+			check (cudaMalloc (&next, cells * sizeof (int)), "cudaMalloc(next)");
+			check (cudaMalloc (&row_len, (std::size_t)rows * sizeof (int)), "cudaMalloc(row_len)");
+			check (cudaMalloc (&params, (std::size_t)n_params * sizeof (T)), "cudaMalloc(params)");
+
+			const std::size_t parts = (std::size_t)width * (std::size_t)split;
+			check (cudaMalloc (&part_len, parts * sizeof (T)), "cudaMalloc(part_len)");
+			check (cudaMalloc (&part_idx, parts * sizeof (int)), "cudaMalloc(part_idx)");
+
+			check (cudaMalloc (&out_angles, (std::size_t)rows * sizeof (T)), "cudaMalloc(out_angles)");
+			check (cudaMalloc (&out_len, sizeof (T)), "cudaMalloc(out_len)");
+		}
+	};
+
+	//! A pair of CUDA events, destroyed even when a solve throws.
+	struct EventPair {
+		cudaEvent_t start = nullptr;
+		cudaEvent_t stop	= nullptr;
+
+		EventPair()
+		{
+			check (cudaEventCreate (&start), "cudaEventCreate(start)");
+			check (cudaEventCreate (&stop), "cudaEventCreate(stop)");
+		}
+		~EventPair()
+		{
+			cudaEventDestroy (start);
+			cudaEventDestroy (stop);
+		}
+		EventPair (const EventPair&)						 = delete;
+		EventPair& operator= (const EventPair&) = delete;
+	};
+
+	//////////////////////////////////////////////////////////////////////////////
+	// Host driver
+	//////////////////////////////////////////////////////////////////////////////
+
+	/*!
+	 * The solver, specialised on precision and curve family.
+	 * @param points The points; angles are updated if `opts.save_angles`.
+	 * @param fixedAngles One flag per point.
+	 * @param params Curve parameters.
+	 * @param opts Solver options.
+	 * @return The best length, the angles, and timing information.
+	 */
+	template <typename T, class CurveT>
+	Result
+	solveDPImpl (
+			std::vector<Configuration2>& points,
+			const std::vector<bool>& fixedAngles,
+			const std::vector<real_type>& params,
+			const Options& opts)
+	{
+		const int n = (int)points.size();
+
+		std::vector<Configuration2> comp_points;
+		comp_points.reserve (n);
+		for (const auto& p : points)
+		{
+			comp_points.push_back (Configuration2 (p.x(), p.y(), p.th()));
+		}
+
+		const double kmax = (double)params[0];
+		
+		const int hn			= opts.discr / 2;
+		const int w_first = opts.discr + 10;
+		const int w_ref		= 2 * hn + 1 + 10;
+		const int W				= std::max (w_first, w_ref);
+		const int split		= std::max (1, std::min (opts.max_split, (W + 31) / 32));
+
+		DeviceWorkspace<T> ws;
+		ws.allocate (n, W, split, CurveT::kNumParams);
+
+		{
+			std::vector<T> h_params (CurveT::kNumParams);
+			for (int i = 0; i < CurveT::kNumParams; ++i) { h_params[i] = (T)params[i]; }
+			check (
+					cudaMemcpy (
+							ws.params, h_params.data(), h_params.size() * sizeof (T),
+							cudaMemcpyHostToDevice),
+					"cudaMemcpy(params)");
+		}
+
+		std::vector<T> h_theta ((std::size_t)n * W);
+		std::vector<int> h_row_len (n);
+		std::vector<T> h_angles (n);
+		T h_len = T (0);
+
+		EventPair ev;
+
+		Result result;
+		double hrange = 2.0 * 3.14159265358979323846264338328;
+
+		const int warps_y = std::max (1, opts.threads_y);
+
+		for (int round = 0; round <= opts.nref; ++round)
+		{
+			std::vector<std::vector<double>> rows;
+			if (round == 0)
+			{
+				rows = samplingAnglesFirst (opts.discr, fixedAngles, comp_points, kmax);
+			}
+			else
+			{
+				// Same schedule as the CPU: the window shrinks by discr/1.5 each time.
+				hrange = hrange / opts.discr * 1.5;
+				rows	 = samplingAnglesRefine (comp_points, fixedAngles, hrange, hn, kmax);
+			}
+
+			int w_used = 0;
+			for (int i = 0; i < n; ++i)
+			{
+				h_row_len[i] = (int)rows[i].size();
+				w_used			 = std::max (w_used, h_row_len[i]);
+				for (int j = 0; j < h_row_len[i]; ++j)
+				{
+					h_theta[(std::size_t)i * W + j] = (T)rows[i][j];
+				}
+			}
+			if (w_used > W)
+			{
+				throw std::runtime_error (
+						"mpdp::gpu::solveDP: row wider than the reserved padding");
+			}
+
+			check (cudaEventRecord (ev.start), "cudaEventRecord");
+
+			check (
+					cudaMemcpy (
+							ws.theta, h_theta.data(), (std::size_t)n * W * sizeof (T),
+							cudaMemcpyHostToDevice),
+					"cudaMemcpy(theta)");
+			check (
+					cudaMemcpy (
+							ws.row_len, h_row_len.data(), (std::size_t)n * sizeof (int),
+							cudaMemcpyHostToDevice),
+					"cudaMemcpy(row_len)");
+
+			{
+				const int threads = 256;
+				const int blocks	= std::min (4096, (n * W + threads - 1) / threads);
+				dpInitKernel<T><<<blocks, threads>>> (ws.len, ws.next, ws.row_len, W, n);
+				MPDP_CHECK_LAUNCH ("dpInitKernel");
+			}
+
+			for (int idx = n - 1; idx >= 1; --idx)
+			{
+				const int i_count = h_row_len[idx - 1];
+				const int j_count = h_row_len[idx];
+				result.curves += (unsigned long long)i_count * (unsigned long long)j_count;
+
+				const dim3 block (32, warps_y);
+				const int gx = (i_count + warps_y - 1) / warps_y;
+				const int gy =
+						std::max (1, std::min (opts.max_split, (j_count + 31) / 32));
+				const dim3 grid (gx, gy);
+
+				// With a single block in y the kernel can write straight into the
+				// destination row; the combine pass exists only for wider splits.
+				T* dst_len		= (gy == 1) ? ws.len + (std::size_t)(idx - 1) * W : ws.part_len;
+				int* dst_idx	= (gy == 1) ? ws.next + (std::size_t)(idx - 1) * W : ws.part_idx;
+				const int dst_stride = (gy == 1) ? 1 : gy;
+
+				dpStageKernel<T, CurveT><<<grid, block>>> (
+						(T)comp_points[idx - 1].x(), (T)comp_points[idx - 1].y(),
+						(T)comp_points[idx].x(), (T)comp_points[idx].y(),
+						ws.theta + (std::size_t)(idx - 1) * W, ws.theta + (std::size_t)idx * W,
+						ws.len + (std::size_t)idx * W, ws.params, dst_len, dst_idx, i_count,
+						j_count, dst_stride);
+				MPDP_CHECK_LAUNCH ("dpStageKernel");
+
+				if (gy > 1)
+				{
+					const int threads = 128;
+					const int blocks	= (i_count + threads - 1) / threads;
+					dpStageCombineKernel<T><<<blocks, threads>>> (
+							ws.part_len, ws.part_idx, ws.len + (std::size_t)(idx - 1) * W,
+							ws.next + (std::size_t)(idx - 1) * W, i_count, gy);
+					MPDP_CHECK_LAUNCH ("dpStageCombineKernel");
+				}
+			}
+
+			dpTraceKernel<T><<<1, 1>>> (
+					ws.theta, ws.len, ws.next, ws.row_len, W, n, ws.out_angles, ws.out_len);
+			MPDP_CHECK_LAUNCH ("dpTraceKernel");
+
+			check (
+					cudaMemcpy (
+							h_angles.data(), ws.out_angles, (std::size_t)n * sizeof (T),
+							cudaMemcpyDeviceToHost),
+					"cudaMemcpy(out_angles)");
+			check (
+					cudaMemcpy (&h_len, ws.out_len, sizeof (T), cudaMemcpyDeviceToHost),
+					"cudaMemcpy(out_len)");
+
+			check (cudaEventRecord (ev.stop), "cudaEventRecord");
+			check (cudaEventSynchronize (ev.stop), "cudaEventSynchronize");
+			float ms = 0.f;
+			check (cudaEventElapsedTime (&ms, ev.start, ev.stop), "cudaEventElapsedTime");
+			result.device_ms += (double)ms;
+
+			if (h_len < T (0))
+			{
+				throw std::runtime_error (
+						"mpdp::gpu::solveDP: dynamic programming produced no feasible path");
+			}
+
+			for (int i = 0; i < n; ++i) { comp_points[i].th ((Angle)h_angles[i]); }
+			result.length = (LEN_T)h_len;
+		}
+
+		result.angles.resize (n);
+		for (int i = 0; i < n; ++i) { result.angles[i] = comp_points[i].th(); }
+
+		if (opts.save_angles)
+		{
+			for (int i = 0; i < n; ++i) { points[i].th (result.angles[i]); }
+		}
+
+		return result;
+	}
+
+	/*!
+	 * Chooses the curve family for a given precision.
+	 * @param points The points.
+	 * @param fixedAngles One flag per point.
+	 * @param params Curve parameters.
+	 * @param opts Solver options.
+	 * @return The result of the specialised solver.
+	 */
+	template <typename T>
+	Result
+	dispatchCurve (
+			std::vector<Configuration2>& points,
+			const std::vector<bool>& fixedAngles,
+			const std::vector<real_type>& params,
+			const Options& opts)
+	{
+		switch (opts.curve)
+		{
+			case CurveKind::DUBINS:
+				return solveDPImpl<T, Dubins<T>> (points, fixedAngles, params, opts);
+			case CurveKind::REEDS_SHEPP:
+				if constexpr (ReedsShepp<T>::kImplemented)
+				{
+					return solveDPImpl<T, ReedsShepp<T>> (points, fixedAngles, params, opts);
+				}
+				else
+				{
+					throw std::runtime_error (
+							"mpdp::gpu::solveDP: the Reeds-Shepp curve is not implemented yet");
+				}
+			default:
+				throw std::runtime_error ("mpdp::gpu::solveDP: unknown curve kind");
+		}
+	}
+
+}	 // namespace
+
+Result
+solveDP (
+		std::vector<Configuration2>& points,
+		const std::vector<bool>& fixedAngles,
+		const std::vector<real_type>& params,
+		const Options& opts)
 {
-  real_type TOL = 1e-8;
-  
-  real_type q = std::hypot(x2-x1, y2-y1);
-  real_type x3 = 0.5*(x1+x2);
-  real_type y3 = 0.5*(y1+y2);
+	if (points.size() < 2)
+	{
+		throw std::runtime_error ("mpdp::gpu::solveDP: at least two points are needed");
+	}
+	if (points.size() != fixedAngles.size())
+	{
+		throw std::runtime_error (
+				"mpdp::gpu::solveDP: points and fixedAngles have different sizes");
+	}
+	if (params.empty())
+	{
+		throw std::runtime_error ("mpdp::gpu::solveDP: params[0] must hold the curvature");
+	}
+	if (opts.discr < 1)
+	{
+		throw std::runtime_error ("mpdp::gpu::solveDP: discr must be positive");
+	}
+	if (opts.nref < 0)
+	{
+		throw std::runtime_error ("mpdp::gpu::solveDP: nref must not be negative");
+	}
 
-  real_type delta = r*r-q*q/4.;
-    
-  XC.clear();
-  YC.clear();
-
-  if (delta < -TOL) {
-    return;
-  }
-  
-  if (delta < TOL) 
-  {
-    XC.push_back(x3);
-    YC.push_back(y3);
-  }
-  else
-  {
-    real_type deltaS = std::sqrt(delta);
-    XC.push_back(x3 + deltaS*(y1-y2)/q);
-    YC.push_back(y3 + deltaS*(x2-x1)/q);
-    XC.push_back(x3 - deltaS*(y1-y2)/q);
-    YC.push_back(y3 - deltaS*(x2-x1)/q);
-  }
+	switch (opts.precision)
+	{
+		case Precision::FP32:
+			return dispatchCurve<float> (points, fixedAngles, params, opts);
+		case Precision::FP64:
+		default:
+			return dispatchCurve<double> (points, fixedAngles, params, opts);
+	}
 }
 
-// Marco Frego and Paolo Bevilacqua in "An Iterative Dynamic Programming Approach to the Multipoint Markov-Dubins Problem" 2020.
-// The function name is pretty self-explainatory 
-uint guessInitialAngles(std::vector<std::set<Angle> >& moreAngles, const std::vector<Configuration2>& points, const std::vector<bool> fixedAngles, const real_type K){
-  uint max=0;
-  for (uint i=1; i<points.size(); i++){
-    moreAngles.push_back(std::set<Angle>());
-    if (i==1) { moreAngles.push_back(std::set<Angle>()); }
-    //First add the lines connecting two points:
-    Angle th = std::atan2((points[i].y()-points[i-1].y()), (points[i].x()-points[i-1].x()));
-    if (!fixedAngles[i-1]){ moreAngles[i-1].insert(th); }
-    if (!fixedAngles[i])  { moreAngles[i].insert(th); }
-    
-    //Then add the possible angles of the tangents to two possible circles:
-    std::vector<real_type> XC, YC;
-    circles(points[i-1].x(), points[i-1].y(), points[i].x(), points[i].y(), 1./K, XC, YC);
-    
-    for (uint j=0; j<XC.size(); j++){
-      if (!fixedAngles[i-1]){
-        th = std::atan2(points[i-1].y()-YC[j], points[i-1].x()-XC[j]);
-        moreAngles[i-1].insert(th+M_PI/2.);
-        moreAngles[i-1].insert(th-M_PI/2.);
-      }
-      if (!fixedAngles[i]){
-        th = std::atan2(points[i].y()-YC[j], points[i].x()-XC[j]);
-        moreAngles[i].insert(th+M_PI/2.);
-        moreAngles[i].insert(th-M_PI/2.);
-      }
-    }
-    if (moreAngles[i-1].size()>max){
-      max=moreAngles[i-1].size();
-    }
-    if (i==points.size()-1 && moreAngles[i].size()>max){
-      max=moreAngles[i].size();
-    }
-  }  
-  return max;
+std::string
+deviceName()
+{
+	int count = 0;
+	if (cudaGetDeviceCount (&count) != cudaSuccess || count == 0)
+	{
+		return "<no CUDA device>";
+	}
+	int dev = 0;
+	cudaGetDevice (&dev);
+	cudaDeviceProp prop;
+	if (cudaGetDeviceProperties (&prop, dev) != cudaSuccess) { return "<unknown device>"; }
+	std::ostringstream oss;
+	oss << prop.name << " (sm_" << prop.major << prop.minor << ", " << prop.multiProcessorCount
+			<< " SMs)";
+	return oss.str();
 }
 
-std::vector<Angle> bestAngles(DP::Cell* matrix, int discr, int size){
-  DP::Cell* best=&matrix[0];
-  //Find best path
-  for (int i=size; i<discr*size; i+=size){
-    if (best->l()>matrix[i].l()  && matrix[i].l()!=0){ //TODO The second check is actually a bug in solveCell, but I'm not in the right mind to find this bug, please fix later
-      best=&matrix[i];
-    }
-  }
-  //Retrieve best angles
-  std::vector<Angle> ret(1, best->th());
-  uint nextID=best->next();
-  while (nextID!=0){
-    ret.push_back(matrix[nextID].th());
-    nextID=matrix[nextID].next();
-  }
-  return ret;
-}
-
-std::pair<LEN_T, std::vector<Angle> >
-bestAnglesMatrix(DP::Cell* matrix, int discr, int size, const std::vector<bool>& fixedAngles){
-  DP::Cell* best=&matrix[0];
-
-  if (!fixedAngles[0]){
-    for(int i=1; i<discr; i++){
-      if (matrix[i].l()<best->l())
-        best=&matrix[i];
-    }
-  }
-
-  //std::cout << "In function Length: " << std::setw(20) << std::setprecision(17) << best->l() << std::endl;
-
-  std::vector<real_type> ret={best->th()};
-//  std::vector<real_type> ret={best->l(), best->th()};
-  int nextID=best->next()+discr;
-  for (int i=1; i<size; i++){
-    ret.push_back(matrix[nextID].th());
-    nextID=matrix[nextID].next()+(i+1)*discr;
-  }
-  //ret.insert(ret.begin(), best->l());
-  return std::pair<LEN_T, std::vector<Angle> >(best->l(), ret);
-}
-
-__global__ void solveCol( DP::Cell* matrix, uint discr, uint size, const bool* fixedAngles, 
-                          Configuration2 c0, Configuration2 c1, 
-                          Angle a00, Angle a01, real_type* params, int i, Angle fullAngle, bool halveDiscr
-                        ){
-  int tidx=threadIdx.x+blockDim.x*blockIdx.x;
-  int stride=blockDim.x*gridDim.x;
-  int halfDiscr=(discr-1)/2;
-  int j=tidx;
-
-  // if (j<discr){
-  for (; j<discr; j+=stride){
-    Angle bestA=0.0;
-    LEN_T bestL=MAX_LEN_T; 
-    int bestK=0;
-    if (!fixedAngles[i-1]){ //If angle is fixed I don't have to change it
-      double hj=fullAngle*((j-halfDiscr)*1.0)/(((halveDiscr ? halfDiscr : discr)*1.0));
-      c0.th(a00+hj); 
-    } 
-    
-    for (int k=0; k<discr; k++){ //SolveCell
-      LEN_T currL=MAX_LEN_T;
-      if (!fixedAngles[i]){ //If angle is fixed I don't have to change its
-        double hk=fullAngle*((k-halfDiscr)*1.0)/(((halveDiscr ? halfDiscr : discr)*1.0));
-        c1.th(a01+hk); 
-      } 
-      CURVE c=CURVE(c0, c1, params); 
-      DP::Cell* next=(i==size-1 ? NULL : &matrix[k*size+(i+1)]);
-      if (c.l()>0){
-        currL=c.l();
-        if (next!=NULL){
-          currL+=next->l();
-        }  
-        if (currL<bestL || bestL==MAX_LEN_T){
-          bestL=currL;
-          bestA=c1.th();
-          bestK=k;
-        }
-      }
-      if (fixedAngles[i]){ k=discr; } //If the angle is fixed I don't have to change it
-    }
-    
-    if (bestL!=MAX_LEN_T){
-      uint nextID=(i==size-1 ? 0 : bestK*size+(i+1));
-      matrix[j*size+i]=DP::Cell(bestA, bestL, nextID);
-    }
-    if (i==1){
-      matrix[size*j]=DP::Cell(c0.th(), bestL, (size*j+i));
-    }
-    if(fixedAngles[i-1]) j=discr;
-  }
-}
-
-
-__global__ void solveMatrixCol (DP::Cell* matrix, uint discr, uint size, const bool* fixedAngles, 
-                                Configuration2 c0, Configuration2 c1, 
-                                real_type* params, int i, uint ref=0){
-  uint tidx=threadIdx.x+blockDim.x*blockIdx.x;
-  uint stride=blockDim.x*gridDim.x;
-
-  uint j=tidx;
-  // if (j<discr){
-  for (; j<discr; j+=stride){
-    c0.th(matrix[i*discr+j].th());
-    for (int h=0; h<(int)(discr); h++){
-      c1.th(matrix[(i+1)*discr+h].th());
-
-      CURVE c=CURVE(c0, c1, params);
-      LEN_T currL=c.l()+matrix[(i+1)*discr+h].l();
-      //if (ref==3 && i==0 && j==0){
-      //  printf("x0: %.2f y0: %.2f th0: %.16f x1: %.2f y1: %.2f th1: %.16f matrix[i*discr+j].l(): %.16f currL %.16f c.l(): %.16f matrix[(i+1)*discr+h].l(): %.16f\n", c0.x(), c0.y(), c0.th(), c1.x(), c1.y(), c1.th(), (matrix[i*discr+j].l()<10000.0 ? matrix[i*discr+j].l() : 10000.0), currL, c.l(), matrix[(i+1)*discr+h].l());
-      //}
-      if (currL<matrix[i*discr+j].l()) {
-        matrix[i*discr+j].l(currL);
-        //printf("nextID in func: %u %d\n", h, h);
-        matrix[i*discr+j].next(h);
-      }
-      if (fixedAngles[i+1]) {h=discr;}
-    }
-    if (matrix[i*discr+j].next()==-1) printf("[%u] BIG NO\n", i*discr+j);
-    if (fixedAngles[i]) {j=discr;}
-  }
-}
-
-void solveDPMatrix (std::vector<Configuration2> points, DP::Cell* dev_matrix, uint discr, std::vector<bool> fixedAngles, 
-                    bool* dev_fixedAngles, real_type* dev_params, uint nThreads=128, uint ref=0){
-
-  //REMOVE
-  size_t size=points.size();
-  int numberOfSMs; cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, cudaGetdeviceID());
-
-
-  for (int i=size-2; i>=0; i--){
-    Configuration2 c0=points[i];
-    Configuration2 c1=points[i+1];
-
-    size_t threads=discr>nThreads ? nThreads : discr;
-    size_t blocks=((int)(discr/threads)+1)*numberOfSMs; 
-    
-    if(fixedAngles[i]){
-      threads=1;
-      blocks=1;
-    }
-    solveMatrixCol<<<blocks, threads>>>(dev_matrix, discr, size, dev_fixedAngles, c0, c1, dev_params, i, ref);
-    cudaDeviceSynchronize();
-    cudaCheckError(cudaGetLastError()); 
-  }
-  if (ref==30){
-    printMatrix<<<1,1>>>(dev_matrix, discr, size);
-    cudaDeviceSynchronize();
-  }
-}
-
-std::pair<LEN_T, std::vector<Angle> >
-solveDPMatrixAllocator (std::vector<Configuration2> points, uint discr,
-                        const std::vector<bool> fixedAngles, std::vector<real_type> params,
-                        Angle fullAngle=2*M_PI, uint nThreads=0, uint ref=0){
-  size_t size=points.size();
-  DP::Cell* matrix;
-  bool* dev_fixedAngles=cudaSTDVectorToArray<bool>(fixedAngles);
-  real_type* dev_params=cudaSTDVectorToArray<real_type>(params);  
-  DP::Cell* dev_matrix;
-
-  int numberOfSMs; cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, cudaGetdeviceID());
-  
-  std::vector<std::set<Angle> > moreAngles;
-  uint addedAngles=0;
-
-  addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
-
-  uint halfDiscr=(uint)((discr-(discr%2==0 ? 0 : 1))/2);
-  real_type dtheta=fullAngle/(((int)(discr/2))*1.0);
-  if(ref==0){
-    dtheta=fullAngle/(discr*1.0);
-  }
-  discr+=addedAngles;
-  cudaMallocHost(&matrix, (sizeof(DP::Cell)*size*discr));
-  cudaMalloc(&dev_matrix, sizeof(DP::Cell)*size*discr);
-
-  for (uint i=0; i<size; i++){ //TODO change back, remove l=-1 if fixedAngles
-    LEN_T l = (i==size-1 ? 0 : std::numeric_limits<LEN_T>::max());
-    for (uint j=0; j<=halfDiscr; j++){
-      if (fixedAngles[i]){
-        matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1);
-        break;
-      }
-      else {
-        if(j==0) { 
-          matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1); 
-        }
-        else{
-          matrix[i*discr+j]          =DP::Cell(mod2pi(points[i].th()-(j*1.0)*dtheta), l, -1);
-          matrix[i*discr+j+halfDiscr]=DP::Cell(mod2pi(points[i].th()+(j*1.0)*dtheta), l, -1); 
-        }
-      }
-    }
-    if (true){
-      uint j=discr-addedAngles;
-      if (!fixedAngles[i]){
-        for (std::set<Angle>::iterator it=moreAngles[i].begin(); it!=moreAngles[i].end(); ++it){
-          matrix[i*discr+j]=DP::Cell(*it, l, -1);
-          j++;
-        }
-        for (; j<discr; j++){
-          matrix[i*discr+j]=DP::Cell(0, l, -1);
-        }
-      }
-    }
-  }
-    
-  cudaMemcpy(dev_matrix, matrix, sizeof(DP::Cell)*size*discr, cudaMemcpyHostToDevice);
-  cudaCheckError(cudaGetLastError());
-
-  solveDPMatrix(points, dev_matrix, discr, fixedAngles, dev_fixedAngles, dev_params, nThreads, ref);
-
-  cudaMemcpy(matrix, dev_matrix, sizeof(DP::Cell)*size*discr, cudaMemcpyDeviceToHost);
-  cudaCheckError(cudaGetLastError());
-
-
-#ifdef DEBUG
-  //Retrieve angles
-  cout << "Computing best angles" << endl;
-#endif
-  std::pair<LEN_T, std::vector<Angle> > ret=bestAnglesMatrix(matrix, discr, size, fixedAngles);
-#ifdef DEBUG
-  std::vector<Angle> bestA=ret.second;
-  printV(bestA)
-#endif
-  
-#ifdef DEBUG
-  LEN_T Length=0.0;
-  for (unsigned int i=bestA.size()-1; i>0; i--){
-    points[i].th(bestA[i]);
-    points[i-1].th(bestA[i-1]);
-    CURVE c(points[i-1], points[i], params.data());
-    Length+=c.l();
-  }
-  cout << "\tMatrix length: " << setprecision(20) << Length << " " << setprecision(12) << (Length-7.46756219733842652175326293218) << endl;
-  cout << "Printing for Matlab" << endl;
-  cout << "X=[";
-  for (unsigned int i=0; i<points.size(); i++){ cout << points[i].x() << (i!=points.size()-1 ? ", " : "];\n"); }
-  cout << "Y=[";
-  for (unsigned int i=0; i<points.size(); i++){ cout << points[i].y() << (i!=points.size()-1 ? ", " : "];\n"); }
-  cout << "th=[";
-  for (unsigned int i=0; i<bestA.size(); i++){ cout << bestA[i] << (i!=bestA.size()-1 ? ", " : "];\n"); }
-  cout << "KMAX: " << params[0] << endl;
-#endif
-
-  cudaFreeHost(matrix);
-
-  cudaFree(dev_matrix);
-  cudaFree(dev_params);
-  cudaFree(dev_fixedAngles);
-
-  return ret;
-}
-
-
-__global__ void computeMore(DP::Cell* matrix, real_type* results, const bool* fixedAngles,
-                            real_type* params, const Configuration2* points, 
-                            size_t jump, size_t discr, size_t size, size_t iter){ //TODO It may be possible to remove cmp and use iter and i to compute the position
-  uint tidx=threadIdx.x+blockDim.x*blockIdx.x;
-
-  uint j=tidx;
-  if (j<discr*jump*discr){        //j must be less than the number of rows (jump) times the number of inner cells per cell, times the number of cells per row
-    uint cell=(int)(tidx/discr);  //The big cell
-    uint inCell=tidx%discr;       //The small cell inside the big cell
-    uint cmpId=(int)(cell/discr); //The row in this call
-    uint pos=iter*jump+cmpId;     //The row w.r.t. the whole matrix
-
-    if (pos<size-1){ 
-      Configuration2 c0=points[pos];
-      Configuration2 c1=points[pos+1];
-
-      if (!fixedAngles[pos])   {c0.th(matrix[cell+iter*jump*discr].th());}
-      if (!fixedAngles[pos+1]) {c1.th(matrix[inCell+(pos+1)*discr].th());}
-
-      CURVE c=CURVE(c0, c1, params);
-      if (c.l()>0){
-        results[cell*discr+inCell]=c.l();
-      }
-    }
-  }
-}
-
-
-void bestAnglesPerCell( DP::Cell* matrix, real_type* results, const std::vector<bool> fixedAngles, 
-                        size_t size, size_t discr, size_t iter, size_t jump, size_t _threads, size_t numberOfSMs){
-  //MIND THAT WE START FROM THE LAST ROW OF THE MATRIX
-  int startRowIDM=iter*jump;        //Given #jump rows, this is the id of the first row in the jump group
-  uint lastRowIDM=iter*jump+jump-1;  //Given #jump rows, this is the id of the last row in the jump group
-  lastRowIDM=(lastRowIDM<size ? lastRowIDM : size-1);
-  for (int i=lastRowIDM; i>=startRowIDM; i--){ //Cycle through the rows
-    if (i==(int)(size-1)){continue;}    //If it's the last row, then skip it.
-    uint startCellM=i*discr;              //Given #jump rows, this is the id of the cell in the row in the jump group I'm considering
-    //std::cout << "startRowIDM: " << startRowIDM << std::endl;
-    //std::cout << "lastRowIDM: " << lastRowIDM << std::endl;
-    //std::cout << "startCellM: " << startCellM << std::endl;
-    //std::cout << "i: " << i << std::endl;
-    for (uint cellIDM=startCellM; cellIDM<startCellM+discr; cellIDM++){ //Cycle through all the cells in the row  
-      for (uint h=0; h<discr; h++){        //Each cell in matrix corresponds to discr cells in results. Each h is in results is the same as the next row
-        uint cellIDR=cellIDM*discr+h-startRowIDM*discr*discr;
-        double currL=results[cellIDR]+matrix[(i+1)*discr+h].l();
-        // int a=-2;
-        if(currL<matrix[cellIDM].l()){
-          matrix[cellIDM].l(currL);
-          matrix[cellIDM].next(h);
-          // a=matrix[cellIDM].next(h);
-          //std::cout << "a: " << a << std::endl;
-        }
-        //if (cellIDM>29 && cellIDM<45){
-        //  std::cout << "i: " << i << std::endl;
-        //  std::cout << "cellIDM: " << cellIDM << std::endl;
-        //  std::cout << "cellIDR: " << cellIDR << std::endl;
-        //  std::cout << "results[cellIDR]: " << results[cellIDR] << std::endl;
-        //  std::cout << "currL: " << currL << std::endl;
-        //  std::cout << "matrix[cellIDM].l(): " << matrix[cellIDM].l() << std::endl;
-        //  std::cout << "a: " << a << std::endl;
-        //  std::cout << "matrix[cellIDM].n(): " << matrix[cellIDM].next() << std::endl;
-        //}
-        //std::cout << "matrix[(i+1)*discr+h].l(): " << matrix[(i+1)*discr+h].l() << std::endl;
-        if (fixedAngles[i+1]){ h=discr; }
-      } 
-      if (matrix[cellIDM].next()<0) {printf("[%u] BIG NO\n", cellIDM);}
-    }
-    if (fixedAngles[i]){ i=startRowIDM-1; }
-  }
-}
-
-std::pair<LEN_T, std::vector<Angle> >
-solveDPAllIn1 ( std::vector<Configuration2> points, uint discr, const std::vector<bool> fixedAngles,
-                std::vector<real_type> params, Angle fullAngle, uint nThreads=0, uint ref=0){
-
-  //Get the number of multiproccessors in the GPU so to best compute the number of blocks afterwards.
-  int numberOfSMs; cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, cudaGetdeviceID());
-
-
-  uint addedAngles=0;
-  std::vector<std::set<Angle> > moreAngles;
-  addedAngles=guessInitialAngles(moreAngles, points, fixedAngles, params[0]);
-
-  size_t size=points.size();
-  //discr=(discr%2==0 ? discr+1 : discr); //So.... since we add always the angle in position 0, we'll always have an odd number of discretizionations... I'm not so sure about this, but ok
-  uint halfDiscr=(uint)(discr/2);
-  real_type dtheta=fullAngle/(((int)(discr/2))*1.0);
-  if(ref==0){
-    dtheta=fullAngle/(discr*1.0);
-  }
-  discr+=addedAngles;
-
-  DP::Cell* matrix;
-  cudaMallocHost(&matrix, sizeof(DP::Cell)*size*(discr));
-  DP::Cell* dev_matrix;
-  cudaMalloc(&dev_matrix, sizeof(DP::Cell)*size*(discr));
-
-  bool* dev_fixedAngles=cudaSTDVectorToArray<bool>(fixedAngles);
-  real_type* dev_params=cudaSTDVectorToArray<real_type>(params);  
-  Configuration2* dev_points=cudaSTDVectorToArray<Configuration2>(points);
-
-  for (uint i=0; i<size; i++){
-    LEN_T l = (i==size-1 ? 0 : std::numeric_limits<LEN_T>::max());
-    if (fixedAngles[i]){
-      for (uint j=0; j<discr; j++){
-        matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1);
-        //In this case I need to have the row full of the same values. Otherwise I should change the kernel function and add particular cases for fixed angles
-      }
-    }
-    else{
-      for (uint j=0; j<=halfDiscr; j++){
-        COUT(j)
-        if(j==0) { 
-          matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1); 
-        }
-        else{
-          matrix[i*discr+j]          =DP::Cell(mod2pi(points[i].th()-(j*1.0)*dtheta), l, -1);
-          matrix[i*discr+j+halfDiscr]=DP::Cell(mod2pi(points[i].th()+(j*1.0)*dtheta), l, -1); 
-        }
-      }
-      uint j=discr-addedAngles;
-      for (std::set<Angle>::iterator it=moreAngles[i].begin(); it!=moreAngles[i].end(); ++it){
-        matrix[i*discr+j]=DP::Cell(*it, l, -1);
-        j++;
-      }
-      for (; j<discr; j++){
-        matrix[i*discr+j]=DP::Cell(points[i].th(), l, -1);
-      }
-    }
-  }
-
-  cudaMemcpy(dev_matrix, matrix, sizeof(DP::Cell)*size*discr, cudaMemcpyHostToDevice);
-  cudaCheckError(cudaGetLastError());
-
-  size_t jump=(params.size()>1 ? params[1] : 3);
-  size_t iter=0;
-  if ((size-1)%jump==0) { iter=(size-1)/jump; }
-  else                  { iter=(size_t)(((size-1)+jump)/jump); }
-
-  size_t totThreads=jump*discr*discr;
-  size_t threads=totThreads>nThreads ? nThreads : totThreads;
-  size_t blocks=((int)(totThreads/threads)+1)*numberOfSMs; 
-  
-  real_type *results, *dev_results1, *dev_results2, *dev_resultsapp;
-  cudaMallocHost(&results, sizeof(real_type)*jump*discr*discr);
-  cudaMalloc(&dev_results1, sizeof(real_type)*jump*discr*discr);
-  cudaMalloc(&dev_results2, sizeof(real_type)*jump*discr*discr);
-    
-  for (int i=iter-1; i>=0; i--){
-    computeMore<<<blocks, threads>>>(dev_matrix, dev_results1, dev_fixedAngles, dev_params, dev_points, jump, discr, size, i);
-    cudaDeviceSynchronize();
-    cudaCheckError(cudaGetLastError());
-    
-    cudaMemcpy(results, dev_results1, sizeof(real_type)*jump*discr*discr, cudaMemcpyDeviceToHost);
-    cudaCheckError(cudaGetLastError());
-
-    dev_resultsapp=dev_results1;
-    dev_results1=dev_results2;
-    dev_results2=dev_resultsapp;
-
-    bestAnglesPerCell(matrix, results, fixedAngles, size, discr, i, jump, nThreads, numberOfSMs);
-    cudaMemcpy(dev_matrix, matrix, sizeof(real_type)*size*discr, cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize();
-    cudaCheckError(cudaGetLastError());
-    
-    #ifdef DEBUG
-    printf("\n");
-    #endif
-  }
-#ifdef DEBUG
-  //Retrieve angles
-  cout << "Computing best angles" << endl;
-#endif
-  std::pair<LEN_T, std::vector<Angle> > ret=bestAnglesMatrix(matrix, discr, size, fixedAngles);
-#ifdef DEBUG
-  std::vector<Angle> bestA=ret.second;
-  printV(bestA)
-#endif
-  
-#ifdef DEBUG
-  LEN_T Length=0.0;
-  for (unsigned int i=bestA.size()-1; i>0; i--){
-    points[i].th(bestA[i]);
-    points[i-1].th(bestA[i-1]);
-    CURVE c(points[i-1], points[i], params.data());
-    Length+=c.l();
-  }
-  cout << "\tAllInOne length: " << setprecision(20) << Length << " " << setprecision(12) << (Length-7.467562181965) << endl;
-
-  cout << "Printing for Matlab" << endl;
-  cout << "X=[";
-  for (unsigned int i=0; i<points.size(); i++){ cout << points[i].x() << (i!=points.size()-1 ? ", " : "];\n"); }
-  cout << "Y=[";
-  for (unsigned int i=0; i<points.size(); i++){ cout << points[i].y() << (i!=points.size()-1 ? ", " : "];\n"); }
-  cout << "th=[";
-  for (unsigned int i=0; i<bestA.size(); i++){ cout << bestA[i] << (i!=bestA.size()-1 ? ", " : "];\n"); }
-  cout << "KMAX: " << params[0] << endl;
-#endif
-  cudaFreeHost(matrix);
-  cudaFreeHost(results);
-
-  cudaFree(dev_matrix);
-  cudaFree(dev_params);
-  cudaFree(dev_fixedAngles);
-  cudaFree(dev_points);
-  cudaFree(dev_results1);
-  cudaFree(dev_results2);
-
-  return ret;
-}
-
-std::pair<LEN_T, std::vector<Angle> >
-DP::solveDP(std::vector<Configuration2>& points, const std::vector<bool> fixedAngles,
-            std::vector<real_type> params, int discr, uint nRefs, bool saveAngles,
-            short type, uint threads, Angle _fullAngle){
-  ////std::cout << "ciao2.1\n";
-  if (points.size()!=fixedAngles.size()){
-    std::cerr << "Number of points and number of fixed angles are not the same: " << points.size() << "!=" << fixedAngles.size() << std::endl;
-    return std::pair<LEN_T, std::vector<Angle> >(MAX_LEN_T, std::vector<Angle>());
-  }
-
-  Angle fullAngle=_fullAngle;
-  std::pair<LEN_T, std::vector<Angle> > ret;
-
-  for(uint i=0; i<nRefs+1; ++i){
-    switch(type){
-      case 1:{
-        ret=solveDPMatrixAllocator (points, discr, fixedAngles, params, fullAngle, threads, i);
-        break;
-      }
-      case 2: default:{
-        ret=solveDPAllIn1          (points, discr, fixedAngles, params, fullAngle, threads, i);
-      }
-    }
-    std::vector<Angle> angles=ret.second;
-
-    if(saveAngles){
-      for (uint j=0; j<angles.size(); j++){
-        if (!fixedAngles[j]){
-          points[j].th(angles[j]);
-        }
-      }
-    }
-
-    if (i==0){
-      fullAngle=fullAngle/(discr)*1.5;
-      discr++; //This is because, yes.
-    }
-    else{
-      fullAngle=fullAngle/(discr-1)*1.5;
-    }
-    angles.clear();
-  }
-  return ret;
-}
-
-#endif //CUDA_ON
-
-
+}	 // namespace gpu
+}	 // namespace mpdp

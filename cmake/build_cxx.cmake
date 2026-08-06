@@ -21,6 +21,12 @@ if (${MPDP_DRAW})
     add_compile_definitions(MPDP_DRAW)
 endif()
 
+if(MPDP_OPENMP)
+    find_package(OpenMP REQUIRED)
+    target_link_libraries(${LIB_CXX} PUBLIC OpenMP::OpenMP_CXX)
+    message(STATUS "C++ library built with OpenMP")
+endif()
+
 # Compile the executable if the flag is set
 if(COMPILE_CXX_EXEC)
     set(APP_EXEC_CXX "MPDPCC_exec")

@@ -54,7 +54,6 @@
 #define printMatrix(type)
 #endif
 
-static K_T Kmax = DUBINS_DEFAULT_KMAX;
 #define MATRIX this->matrix
 
 /*!
@@ -229,7 +228,10 @@ private:
 	std::vector<Configuration2> last_points_;
 	std::vector<Angle> last_best_angles_;
 	bool has_solution_ = false;
-	K_T last_k_max_ = 0.0;
+	/*!
+	 * The maximum curvature of the problem being solved, set by `solveDP` from `params[0]`.
+	 */
+	K_T k_max_ = DUBINS_DEFAULT_KMAX;
 
 	std::vector<std::pair<size_t, size_t>>
 	bestPathIndices() const;
@@ -382,7 +384,7 @@ public:
 		MATRIX.clear();
 
 		// TODO this should be independent of the params argument
-		Kmax = params[0];
+		this->k_max_ = params[0];
 
 		std::pair<LEN_T, std::vector<Angle>> ret;
 		std::vector<Angle> bestA;
@@ -395,7 +397,7 @@ public:
 
 		// First round
 		setSamplingAngles (discr, fixedAngles, compPoints);
-		ret		= solveDPInner (compPoints, params);
+		ret	= solveDPInner<CurveT> (compPoints, params);
 		bestA = ret.second;
 
 		// Other refinements
@@ -420,7 +422,6 @@ public:
 		this->last_points_ = compPoints;
 		this->last_best_angles_ = bestA;
 		this->has_solution_ = true;
-		this->last_k_max_ = Kmax;
 
 		return ret;
 	}

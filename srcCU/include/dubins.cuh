@@ -1,144 +1,248 @@
-#ifndef DUBINS_CUH
-#define DUBINS_CUH
+/**
+ * @file dubins.cuh
+ * @author Enrico Saccon <enricosaccon96@gmail.com>
+ * @license This project is released under the GNU Public License 3.0.
+ * @copyright Copyright 2020 Enrico Saccon. All rights reserved.
+ * @brief Device-side Dubins solver used by the GPU dynamic programming.
+ */
+
+#ifndef MPDP_DUBINS_CUH
+#define MPDP_DUBINS_CUH
 
 #include <curve.cuh>
-#include <utils.cuh>
-#include <constants.cuh>
+#include <math_utils.cuh>
 
-#define DUBINS_DEFAULT_KMAX 0.01
+namespace mpdp {
+namespace gpu {
 
-#include <cmath>
-#include <limits>
+template <typename T>
+struct Dubins {
+	using S = Scalar<T>;
 
-class Dubins : public Curve {
-public:
-  enum D_TYPE {INVALID, LSL, RSR, LSR, RSL, RLR, LRL}; ///<The possible types of Dubins.
-private:
-  D_TYPE _type; ///<The possible types of Dubins.
-  K_T _kmax=0.0, _k1=0.0, _k2=0.0, _k3=0.0; ///<The maximum curvature and the curvature for each part of the Dubins.
-  LEN_T _s1=0.0, _s2=0.0, _s3=0.0; ///<The lengths of each part of the Dubins.
+	//! Number of entries `params` must hold: the maximum curvature.
+	static constexpr int kNumParams = 1;
+	//! Whether this solver is implemented.
+	static constexpr bool kImplemented = true;
+	//! The family this solver belongs to.
+	static constexpr CurveKind kKind = CurveKind::DUBINS;
 
-  /*!
-   * Function to standardize the components. Credit to Marco Frego & Paolo Bevilacqua
-   */
-  BOTH void scaleToStandard(Angle& phi, real_type& lambda, Angle& sth0, Angle& sth1, K_T& sKmax);
+	//! The six Dubins words, plus the "no solution" marker.
+	enum Type { INVALID = 0, LRL, RLR, LSL, LSR, RSL, RSR };
 
-  /*!
-   * Given the standardized version, compute the best word. Credit to Marco Frego & Paolo Bevilacqua.
-   * @param th0 The initial standardized angle.
-   * @param th1 The final standardized angle.
-   * @param lambda A multiplier.
-   * @param sKmax The standardized curvature.
-   */
-  BOTH void computeBest( Angle th0, Angle th1, real_type lambda, K_T& sKmax);
+	//! Full solution of one point-to-point problem.
+	struct Solution {
+		T len	 = T (0);	 ///< Total length.
+		T s1	 = T (0);	 ///< Length of the first arc.
+		T s2	 = T (0);	 ///< Length of the middle arc.
+		T s3	 = T (0);	 ///< Length of the last arc.
+		T k1	 = T (0);	 ///< Curvature of the first arc.
+		T k2	 = T (0);	 ///< Curvature of the middle arc.
+		T k3	 = T (0);	 ///< Curvature of the last arc.
+		int type = INVALID;	 ///< The chosen word.
+	};
 
-  /*!
-   * Function to solve the Dubins curve.
-   */
-  BOTH void solve(){
-    real_type lambda;
-    K_T sKmax;
-    Angle phi, sth0, sth1;
-    scaleToStandard(phi, lambda, sth0, sth1, sKmax);
-    computeBest(sth0, sth1, lambda, sKmax);
-  }
+	/*!
+	 * Solves the point-to-point Dubins problem.
+	 * @param x0 Initial abscissa.
+	 * @param y0 Initial ordinate.
+	 * @param th0 Initial heading.
+	 * @param x1 Final abscissa.
+	 * @param y1 Final ordinate.
+	 * @param th1 Final heading.
+	 * @param params `params[0]` is the maximum curvature.
+	 * @return The shortest of the six maneuvers.
+	 */
+	__host__ __device__ static __forceinline__ Solution
+	solve (T x0, T y0, T th0, T x1, T y1, T th1, const T* params)
+	{
+		// ---- scale to standard ------------------------------------------------
+		const T dx		 = x1 - x0;
+		const T dy		 = y1 - y0;
+		const T phi		 = S::atan2 (dy, dx);
+		const T lambda = S::hypot (dx, dy) * T (0.5);
+		const T sKmax	 = params[0] * lambda;
+		const T sth0	 = mod2pi (th0 - phi);
+		const T sth1	 = mod2pi (th1 - phi);
 
-public:
-  /*!
-   * Void constructor to initialize a Dubins object.
-   */
-  Dubins() :
-          Curve(CURVE_TYPE::DUBINS),
-          _type (D_TYPE::INVALID),
-          _kmax(0) {}
+		const T invK	= T (1) / sKmax;
+		const T sin_0 = S::sin (sth0);
+		const T cos_0 = S::cos (sth0);
+		const T sin_1 = S::sin (sth1);
+		const T cos_1 = S::cos (sth1);
 
-  /*!
-   * Constructor to initialize a Dubins object with an initial and a final `Configuration2` and additional possible parameters.
-   * @param ci The initial `Configuration2`.
-   * @param cf The final `Configuration2`
-   * @param params Additional parameters to pass. Default is `nullptr`, in such case DUBINS_DEFAULT_KMAX==0.01 is used.
-   */
-  BOTH Dubins(Configuration2 ci, Configuration2 cf, real_type* params=nullptr) :
-    Curve(ci, cf, CURVE_TYPE::DUBINS, params),
-    _type(D_TYPE::INVALID)
-  {  
-    if (params==nullptr) { this->_kmax=DUBINS_DEFAULT_KMAX; }
-    else                 { this->_kmax=params[0]; }
-    solve();
-  }
+		const T Ksq	 = sKmax * sKmax;
+		const T dcos = S::cos (sth0 - sth1);
+		const T dcos2 = cos_0 - cos_1;
+		const T dsin = sin_0 - sin_1;
+		const T scos = cos_0 + cos_1;
+		const T ssin = sin_0 + sin_1;
+		const T dth	 = sth0 - sth1;
 
-  /*!
-   * Constructor to initialize a Dubins object with an initial and a final `Configuration2` and additional possible parameters.
-   * @param ci The initial `Configuration2`.
-   * @param cf The final `Configuration2`
-   * @param kmax The curvature of the Dubins parts.
-   */
-  BOTH Dubins(Configuration2 ci, Configuration2 cf, real_type kmax) :
-    Curve(ci, cf, CURVE_TYPE::DUBINS),
-    _type(D_TYPE::INVALID),
-    _kmax(kmax)
-  {
-    solve();
-  }
+		const T two_pi = S::twoPi();
 
-  BOTH K_T kmax() const { return this->_kmax; }                                ///<Returns the maximum curvature.
-  BOTH K_T k1() const { return this->_k1; }                                    ///<Returns the curvature of the first part of the Dubins.
-  BOTH K_T k2() const { return this->_k2; }                                    ///<Returns the curvature of the middle part of the Dubins.
-  BOTH K_T k3() const { return this->_k3; }                                    ///<Returns the curvature of the final part of the Dubins.
-  BOTH LEN_T s1() const { return this->_s1; }                                  ///<Returns the length of the first part of the Dubins.
-  BOTH LEN_T s2() const { return this->_s2; }                                  ///<Returns the length of the first part of the Dubins.
-  BOTH LEN_T s3() const { return this->_s3; }                                  ///<Returns the length of the first part of the Dubins.
-  BOTH LEN_T l() const override { return (this->s1()+this->s2()+this->s3()); } ///<Returns the length of the Dubins.
-  BOTH D_TYPE type() const { return this->_type; }                             ///<Returns the word of the Dubins.
+		T len = S::huge();
+		T ss1 = T (0), ss2 = T (0), ss3 = T (0);
+		T sk1 = T (0), sk2 = T (0), sk3 = T (0);
+		int type = INVALID;
 
-  BOTH K_T kmax(K_T kmax) { this->_kmax = kmax; return this->kmax(); }         ///<Sets the maximum curvature and returns the new set value.
-  BOTH K_T k1(K_T k1) { this->_k1 = k1; return this->k1(); }                   ///<Sets the curvature of the first part of the Dubins and returns the new set value.
-  BOTH K_T k2(K_T k2) { this->_k2 = k2; return this->k2(); }                   ///<Sets the curvature of the middle part of the Dubins and returns the new set value.
-  BOTH K_T k3(K_T k3) { this->_k3 = k3; return this->k3(); }                   ///<Sets the curvature of the final part of the Dubins and returns the new set value.
-  BOTH LEN_T s1(LEN_T s1) { this->_s1 = s1; return this->s1(); }               ///<Sets the length of the first part of the Dubins and returns the new set value.
-  BOTH LEN_T s2(LEN_T s2) { this->_s2 = s2; return this->s2(); }               ///<Sets the length of the middle part of the Dubins and returns the new set value.
-  BOTH LEN_T s3(LEN_T s3) { this->_s3 = s3; return this->s3(); }               ///<Sets the length of the final part of the Dubins and returns the new set value.
-  BOTH D_TYPE type(D_TYPE type) { this->_type = type; return this->type(); }   ///<Sets the word of the Dubins.
+		T C, Sc, temp1, temp2, temp3, t1, t2, t3, lc;
 
-  /*!
-   * Function to print the stringy word of the Dubins.
-   * @return A string containing the word of the computed Dubins.
-   */
-  std::string type_to_string() {
-    std::string ret="INVALID";
-    switch(this->_type){
-      case D_TYPE::LSL: { ret="LSL"; break; }
-      case D_TYPE::LSR: { ret="LSR"; break; }
-      case D_TYPE::RSR: { ret="RSR"; break; }
-      case D_TYPE::RSL: { ret="RSL"; break; }
-      case D_TYPE::LRL: { ret="LRL"; break; }
-      case D_TYPE::RLR: { ret="RLR"; break; }
-      case D_TYPE::INVALID: default: ret=ret;
-    }
-    return ret;
-  }
+		// ---- LRL --------------------------------------------------------------
+		C		 = -dcos2;
+		Sc	 = T (2) * sKmax + dsin;
+		temp1 = S::atan2 (C, Sc);
+		temp2 = T (0.125) * (T (6) - T (4) * Ksq + T (2) * dcos - T (4) * sKmax * dsin);
+		if (S::abs (temp2) <= T (1))
+		{
+			t2 = invK * mod2pi (two_pi - S::acos (temp2));
+			t1 = invK * mod2pi (-sth0 + temp1 + T (0.5) * t2 * sKmax);
+			t3 = invK * mod2pi (-dth + (t2 - t1) * sKmax);
+			lc = t1 + t2 + t3;
+			if (lc < len)
+			{
+				len = lc;
+				ss1 = t1; ss2 = t2; ss3 = t3;
+				sk1 = T (1); sk2 = T (-1); sk3 = T (1);
+				type = LRL;
+			}
+		}
 
-  /*!
-   * Function to print the most essential info about `Dubins`.
-   * @param str An additional string to add at the beginning.
-   * @return A `std::stringstream` object containing the data of `Dubins`.
-   */
-  std::stringstream to_string (const std::string& str="") {
-    std::stringstream out;
-    out << "c0: " << this->ci()->to_string().str() << "\tc1: " << this->cf()->to_string().str() << "\tk: " << this->kmax() << "\tl: " << this->l();
-    return out;
-  }
+		// ---- RLR --------------------------------------------------------------
+		C		 = dcos2;
+		Sc	 = T (2) * sKmax - dsin;
+		temp1 = S::atan2 (C, Sc);
+		temp2 = T (0.125) * (T (6) - T (4) * Ksq + T (2) * dcos + T (4) * sKmax * dsin);
+		if (S::abs (temp2) <= T (1))
+		{
+			t2 = invK * mod2pi (two_pi - S::acos (temp2));
+			t1 = invK * mod2pi (sth0 - temp1 + T (0.5) * t2 * sKmax);
+			t3 = invK * mod2pi (dth + (t2 - t1) * sKmax);
+			lc = t1 + t2 + t3;
+			if (lc < len)
+			{
+				len = lc;
+				ss1 = t1; ss2 = t2; ss3 = t3;
+				sk1 = T (-1); sk2 = T (1); sk3 = T (-1);
+				type = RLR;
+			}
+		}
 
-  /*! This function overload the << operator so to print with `std::cout` the most essential info about the `Dubins`.
-  		\param[in] out The out stream.
-  		\param[in] data The Dubins to print.
-  		\returns An output stream to be printed.
-  */
-  friend std::ostream& operator<<(std::ostream &out, Dubins& data) {
-    out << data.to_string().str();
-    return out;
-  }
-  
+		// ---- LSL --------------------------------------------------------------
+		C		 = cos_1 - cos_0;
+		Sc	 = T (2) * sKmax + dsin;
+		temp1 = S::atan2 (C, Sc);
+		temp2 = T (2) + T (4) * Ksq - T (2) * dcos + T (4) * sKmax * dsin;
+		if (temp2 >= T (0))
+		{
+			temp3 = invK * S::sqrt (temp2);
+			t1		= invK * mod2pi (temp1 - sth0);
+			t2		= temp3;
+			t3		= invK * mod2pi (sth1 - temp1);
+			lc		= t1 + t2 + t3;
+			if (lc < len)
+			{
+				len = lc;
+				ss1 = t1; ss2 = t2; ss3 = t3;
+				sk1 = T (1); sk2 = T (0); sk3 = T (1);
+				type = LSL;
+			}
+		}
+
+		// ---- LSR --------------------------------------------------------------
+		C		 = scos;
+		Sc	 = T (2) * sKmax + ssin;
+		temp1 = S::atan2 (-C, Sc);
+		temp2 = T (-2) + T (4) * Ksq + T (2) * dcos + T (4) * sKmax * ssin;
+		if (temp2 >= T (0))
+		{
+			t2		= invK * S::sqrt (temp2);
+			temp3 = -S::atan2 (T (-2), t2 * sKmax);
+			t1		= invK * mod2pi (-sth0 + temp1 + temp3);
+			t3		= invK * mod2pi (-sth1 + temp1 + temp3);
+			lc		= t1 + t2 + t3;
+			if (lc < len)
+			{
+				len = lc;
+				ss1 = t1; ss2 = t2; ss3 = t3;
+				sk1 = T (1); sk2 = T (0); sk3 = T (-1);
+				type = LSR;
+			}
+		}
+
+		// ---- RSL --------------------------------------------------------------
+		C		 = scos;
+		Sc	 = T (2) * sKmax - ssin;
+		temp1 = S::atan2 (C, Sc);
+		temp2 = T (-2) + T (4) * Ksq + T (2) * dcos - T (4) * sKmax * ssin;
+		if (temp2 >= T (0))
+		{
+			t2		= invK * S::sqrt (temp2);
+			temp3 = S::atan2 (T (2), t2 * sKmax);
+			t1		= invK * mod2pi (sth0 - temp1 + temp3);
+			t3		= invK * mod2pi (sth1 - temp1 + temp3);
+			lc		= t1 + t2 + t3;
+			if (lc < len)
+			{
+				len = lc;
+				ss1 = t1; ss2 = t2; ss3 = t3;
+				sk1 = T (-1); sk2 = T (0); sk3 = T (1);
+				type = RSL;
+			}
+		}
+
+		// ---- RSR --------------------------------------------------------------
+		C		 = cos_0 - cos_1;
+		Sc	 = T (2) * sKmax - dsin;
+		temp1 = S::atan2 (C, Sc);
+		temp2 = T (2) + T (4) * Ksq - T (2) * dcos - T (4) * sKmax * dsin;
+		if (temp2 >= T (0))
+		{
+			temp3 = invK * S::sqrt (temp2);
+			t1		= invK * mod2pi (sth0 - temp1);
+			t2		= temp3;
+			t3		= invK * mod2pi (temp1 - sth1);
+			lc		= t1 + t2 + t3;
+			if (lc < len)
+			{
+				len = lc;
+				ss1 = t1; ss2 = t2; ss3 = t3;
+				sk1 = T (-1); sk2 = T (0); sk3 = T (-1);
+				type = RSR;
+			}
+		}
+
+		// ---- scale back -------------------------------------------------------
+		Solution out;
+		out.s1	 = ss1 * lambda;
+		out.s2	 = ss2 * lambda;
+		out.s3	 = ss3 * lambda;
+		out.k1	 = sk1 * params[0];
+		out.k2	 = sk2 * params[0];
+		out.k3	 = sk3 * params[0];
+		out.len	 = out.s1 + out.s2 + out.s3;
+		out.type = type;
+		return out;
+	}
+
+	/*!
+	 * Length-only entry point, which is all DP on GPU needs.
+	 * @param x0 Initial abscissa.
+	 * @param y0 Initial ordinate.
+	 * @param th0 Initial heading.
+	 * @param x1 Final abscissa.
+	 * @param y1 Final ordinate.
+	 * @param th1 Final heading.
+	 * @param params `params[0]` is the maximum curvature.
+	 * @return The length of the shortest maneuver.
+	 */
+	__host__ __device__ static __forceinline__ T
+	length (T x0, T y0, T th0, T x1, T y1, T th1, const T* params)
+	{
+		return solve (x0, y0, th0, x1, y1, th1, params).len;
+	}
 };
 
-#endif //DUBINS_CUH
+}	 // namespace gpu
+}	 // namespace mpdp
+
+#endif	// MPDP_DUBINS_CUH

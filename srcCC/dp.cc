@@ -71,8 +71,8 @@ DP::guessInitialAngles (
 	// aligned on circle
 	std::vector<double> XC, YC;
 	circles (
-			points[i - 1].x(), points[i - 1].y(), points[i].x(), points[i].y(), 1. / Kmax, XC,
-			YC);
+			points[i - 1].x(), points[i - 1].y(), points[i].x(), points[i].y(),
+			1. / this->k_max_, XC, YC);
 	for (uint j = 0; j < XC.size(); ++j)
 	{
 		th = std::atan2 (points[i - 1].y() - YC[j], points[i - 1].x() - XC[j]);
@@ -274,7 +274,7 @@ DP::exportVisualizationData (const std::string& json_path) const
 	const auto best_path = bestPathIndices();
 	out << "{\n";
 	out << "  \"k_max\": ";
-	write_number (out, this->last_k_max_);
+	write_number (out, this->k_max_);
 	out << ",\n";
 	out << "  \"points\": [\n";
 	for (size_t i = 0; i < this->last_points_.size(); ++i)
