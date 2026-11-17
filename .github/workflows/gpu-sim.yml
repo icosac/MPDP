@@ -1,0 +1,136 @@
+name: GPU Simulator
+
+# Builds the CUDA solver (separate compilation, PTX only) and runs it on a
+# simulated NVIDIA H100 (https://github.com/pantheongpu/pantheonsim).
+# Two checks: the Kaya example against its published optimum, and the GPU
+# solver against the C++ reference on a few random multi-point problems.
+# The simulator has no timing model, so this checks results, not speed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ dev ]
+    paths:
+      - "srcCU/**"
+      - "srcCC/**"
+      - "include/**"
+      - "exec/main.cu"
+      - "examples/MPMDBenchmark/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  solver:
+    name: GPU solver (CUDA 13.0 and simulated H100)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      # actions/checkout fails here: ExternalLibs/rapidjson is a gitlink with no
+      # entry in .gitmodules, and its credential cleanup runs
+      # `git submodule foreach`. A plain fetch of the same ref avoids that.
+      - name: Check out
+        run: |
+          git init -q .
+          git fetch -q --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_REF"
+          git checkout -q FETCH_HEAD
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      - name: Install Eigen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libeigen3-dev
+
+      # 90-virtual embeds PTX only, which the simulator runs. The simulator
+      # needs a shared CUDA runtime. CUDA_SEP_COMP=ON is the -rdc=true build.
+      # The C++ sources need <cstdint> with GCC 13, hence the -include.
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-O3 -include cstdint" \
+            -DCUDA_ON=ON \
+            -DCOMPILE_CUDA_EXEC=ON \
+            -DCOMPILE_EXAMPLES=ON \
+            -DMPDP_OPENMP=ON \
+            -DCUDA_ARCH=90-virtual \
+            -DCUDA_SEP_COMP=ON \
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
+
+      - name: Build
+        run: |
+          cmake --build build -j3 --target \
+            MPDPCU_exec MPMDBenchmarkGen MPMDBenchmarkCPU MPMDBenchmarkGPU
+
+      # Kaya's fourth example has a published optimum of 7.46756219733842...
+      # The sampled DP lands slightly above it (about 5e-5 at discr 36), so
+      # the error must be small and non-negative. The Reeds-Shepp path may
+      # reverse, so it can not be longer than the Dubins one.
+      - name: Kaya example against the published optimum
+        run: |
+          vgpu run ./build/MPDPCU_exec --discr 36 --nref 2 2>&1 | tee dubins.log
+          test "${PIPESTATUS[0]}" -eq 0
+          vgpu run ./build/MPDPCU_exec --discr 36 --nref 2 --curve rs 2>&1 | tee rs.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -Eqi 'VirtualGPU error|no (usable )?(CUDA )?device|Solver failed' dubins.log rs.log; then
+            echo "simulator or solver error in the log"; exit 1
+          fi
+          grep -q '^Device: .*H100' dubins.log
+          python3 - <<'PY'
+          import re
+          def val(path, key):
+              for line in open(path):
+                  if line.startswith(key):
+                      return float(line.split(":", 1)[1])
+              raise SystemExit(f"{key!r} missing from {path}")
+          err = val("dubins.log", "error")
+          dub = val("dubins.log", "length (recomputed)")
+          rs = val("rs.log", "length (recomputed)")
+          print(f"Dubins error {err:.3e}, Dubins {dub:.9f}, Reeds-Shepp {rs:.9f}")
+          assert -1e-9 <= err < 1e-3, "Dubins length is not close to the published optimum"
+          assert 0 < rs <= dub + 1e-9, "Reeds-Shepp is longer than Dubins"
+          PY
+
+      # Same generated problems for both solvers; the GPU results must match
+      # the C++ reference. The first four problems (3 to 25 points) are used
+      # to keep the simulated run short.
+      - name: GPU solver against the C++ reference
+        run: |
+          mkdir -p cmp
+          ./build/MPMDBenchmarkGen --out cmp/all.csv --profile budget --budget 20000 --instances 1
+          head -n 5 cmp/all.csv > cmp/problems.csv
+          ./build/MPMDBenchmarkCPU --problems cmp/problems.csv --reps 1 --max-seconds 300 --out cmp/cpu.csv
+          vgpu run ./build/MPMDBenchmarkGPU --problems cmp/problems.csv --reps 1 --max-seconds 3000 --precision fp64 --out cmp/gpu.csv 2>&1 | tee cmp/gpu.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -Eqi 'VirtualGPU error|no (usable )?(CUDA )?device' cmp/gpu.log; then
+            echo "simulator error in the log"; exit 1
+          fi
+          python3 - <<'PY'
+          import csv
+          def load(p):
+              return {r["id"]: r for r in csv.DictReader(open(p))}
+          cpu, gpu = load("cmp/cpu.csv"), load("cmp/gpu.csv")
+          assert len(cpu) == 4 and set(cpu) == set(gpu), (sorted(cpu), sorted(gpu))
+          for k in sorted(cpu):
+              assert cpu[k]["status"] == "ok" and gpu[k]["status"] == "ok", (k, cpu[k]["status"], gpu[k]["status"])
+              c, g = float(cpu[k]["length_check"]), float(gpu[k]["length_check"])
+              print(f"problem {k}: cpu {c:.9f} gpu {g:.9f}")
+              assert abs(c - g) <= 1e-6 * max(1.0, abs(c)), f"problem {k} differs"
+          PY
